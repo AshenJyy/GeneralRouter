@@ -1,0 +1,20 @@
+{
+  "schema_version": "generalrouter-task-calibration-scope.v1",
+  "user_local_date": "2026-10-19",
+  "excluded_task_benchmarks": {
+    "GDP.pdf": {
+      "status": "excluded_by_user",
+      "reason": "User chose to stop GDP task calibration after discussing GDP.pdf's single-model submissions.",
+      "scope": "GDP.pdf task calibration examples"
+    }
+  },
+  "existing_briefcase_fit_scope": "Four tasks with four complete reference feature vectors each; provisional regularized reference fitting only.",
+  "four_dimensional_task_fitting_performed": true,
+  "fitted_task_ids": ["w1_t1", "w1_t2", "w1_t3", "w1_t4"],
+  "per_task_complete_reference_models": 4,
+  "input_observation_count": 24,
+  "included_observation_count": 16,
+  "excluded_observation_count": 8,
+  "fit_status": "limited_regularized_reference_fit",
+  "predictive_validation_performed": false
+}

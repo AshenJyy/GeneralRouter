@@ -1,0 +1,107 @@
+{
+  "schema_version": "generalrouter-candidate-configurations.v1",
+  "scope": "Calibration references only; no change to active execution candidate pool.",
+  "source_model_file": "aa-six-requested-exact-full-6.json",
+  "source_model_file_note": "Original locally supplied input filename retained for provenance; this input file is not included in the repository.",
+  "configurations": [
+    {
+      "configuration_id": "claude-fable-5:max",
+      "aa_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+      "aa_name": "Claude Fable 5 (Max, Opus 4.8 Fallback)",
+      "aa_slug": "claude-fable-5",
+      "model_family": "claude-fable-5",
+      "reference_effort": "max",
+      "source_effort_label": "Max, Opus 4.8 Fallback",
+      "access_channel": "calibration_reference",
+      "routing_enabled": false,
+      "effort_policy": "not_invoked_calibration_reference",
+      "identity_source": "Exact AA ID/name/slug from user supplied six-model file",
+      "fallback_caveat": null,
+      "sample_configuration_alignment": {
+        "status": "user_confirmed_reference_configuration",
+        "effort": "max",
+        "fallback_model": "Opus 4.8",
+        "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+        "independent_runtime_verification_performed": false
+      }
+    },
+    {
+      "configuration_id": "claude-4-opus-thinking:unknown",
+      "aa_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+      "aa_name": "Claude 4 Opus (Reasoning)",
+      "aa_slug": "claude-4-opus-thinking",
+      "model_family": "claude-4-opus-thinking",
+      "reference_effort": "unknown",
+      "source_effort_label": "Reasoning",
+      "access_channel": "calibration_reference",
+      "routing_enabled": false,
+      "effort_policy": "not_invoked_calibration_reference",
+      "identity_source": "Exact AA ID/name/slug from user supplied six-model file",
+      "fallback_caveat": null
+    },
+    {
+      "configuration_id": "gemini-3-1-pro-preview:unknown",
+      "aa_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+      "aa_name": "Gemini 3.1 Pro Preview",
+      "aa_slug": "gemini-3-1-pro-preview",
+      "model_family": "gemini-3-1-pro-preview",
+      "reference_effort": "unknown",
+      "source_effort_label": null,
+      "access_channel": "calibration_reference",
+      "routing_enabled": false,
+      "effort_policy": "not_invoked_calibration_reference",
+      "identity_source": "Exact AA ID/name/slug from user supplied six-model file",
+      "fallback_caveat": null,
+      "sample_configuration_alignment": {
+        "status": "user_confirmed_model_name",
+        "model_name": "Gemini 3.1 Pro Preview",
+        "effort": null,
+        "effort_status": "not_disclosed_in_sample_label",
+        "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+        "independent_runtime_verification_performed": false
+      }
+    },
+    {
+      "configuration_id": "gpt-5-5:xhigh",
+      "aa_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+      "aa_name": "GPT-5.5 (Xhigh)",
+      "aa_slug": "gpt-5-5",
+      "model_family": "gpt-5-5",
+      "reference_effort": "xhigh",
+      "source_effort_label": "Xhigh",
+      "access_channel": "calibration_reference",
+      "routing_enabled": false,
+      "effort_policy": "not_invoked_calibration_reference",
+      "identity_source": "Exact AA ID/name/slug from user supplied six-model file",
+      "fallback_caveat": null
+    },
+    {
+      "configuration_id": "o3:unknown",
+      "aa_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+      "aa_name": "o3",
+      "aa_slug": "o3",
+      "model_family": "o3",
+      "reference_effort": "unknown",
+      "source_effort_label": null,
+      "access_channel": "calibration_reference",
+      "routing_enabled": false,
+      "effort_policy": "not_invoked_calibration_reference",
+      "identity_source": "Exact AA ID/name/slug from user supplied six-model file",
+      "fallback_caveat": null
+    },
+    {
+      "configuration_id": "glm-5-2:max",
+      "aa_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+      "aa_name": "GLM-5.2 (Max)",
+      "aa_slug": "glm-5-2",
+      "model_family": "glm-5-2",
+      "reference_effort": "max",
+      "source_effort_label": "Max",
+      "access_channel": "calibration_reference",
+      "routing_enabled": false,
+      "effort_policy": "not_invoked_calibration_reference",
+      "identity_source": "Exact AA ID/name/slug from user supplied six-model file",
+      "fallback_caveat": null
+    }
+  ]
+}

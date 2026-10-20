@@ -1,0 +1,177 @@
+{
+  "schema_version": "generalrouter-candidate-configurations.v1",
+  "source_model_file": "models.json",
+  "source_model_file_note": "Original locally supplied input filename retained for provenance; this input file is not included in the repository.",
+  "selection_date": "2026-10-19",
+  "profile_scope": "All selected model-effort configurations have separate capability profiles.",
+  "default_pool_policy": {
+    "enabled_configuration_count": 12,
+    "profile_only_families": [],
+    "reason": "All retained profiles are enabled; Luna was removed at the user's request."
+  },
+  "execution_owner": "main_agent",
+  "usage_preference": {
+    "preferred_configuration": "gpt-6-astra:max",
+    "preference_is_mandatory": false,
+    "force_distribution_across_models": false,
+    "profile_presence_does_not_require_invocation": true
+  },
+  "resource_context": {
+    "source": "user_declared_access_channels",
+    "chatgpt_subscription": "Existing subscription channel with a finite observed usage allowance; account tier is not specified in public project metadata.",
+    "google_cloud_api": "Token-billed API channel; report usage at a stated rate schedule separately from cash paid.",
+    "gemini_subscription": "Existing subscription channel; account purchasing details are not specified in public project metadata.",
+    "public_api_rates_are_not_subscription_costs": true
+  },
+  "excluded_families": [
+    "deepseek-v4-1-flash-1017",
+    "gpt-6-sol",
+    "gpt-6-luna"
+  ],
+  "configurations": [
+    {
+      "configuration_id": "gpt-6-astra:low",
+      "aa_id": "a3f8100d-e38f-408b-b0fa-0085dae18dc1",
+      "aa_name": "GPT-6 Astra (Low)",
+      "aa_slug": "gpt-6-astra-low",
+      "model_family": "gpt-6-astra",
+      "reference_effort": "low",
+      "source_effort_label": "Low",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-astra:medium",
+      "aa_id": "e97a4ef5-e817-480e-9595-12f81dc4974f",
+      "aa_name": "GPT-6 Astra (Medium)",
+      "aa_slug": "gpt-6-astra-medium",
+      "model_family": "gpt-6-astra",
+      "reference_effort": "medium",
+      "source_effort_label": "Medium",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-astra:high",
+      "aa_id": "e05a4828-0536-4876-870d-a235023f992b",
+      "aa_name": "GPT-6 Astra (High)",
+      "aa_slug": "gpt-6-astra-high",
+      "model_family": "gpt-6-astra",
+      "reference_effort": "high",
+      "source_effort_label": "High",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-astra:xhigh",
+      "aa_id": "1f541ef3-913f-4eb2-9d07-0e93c7a9a5e3",
+      "aa_name": "GPT-6 Astra (Xhigh)",
+      "aa_slug": "gpt-6-astra-xhigh",
+      "model_family": "gpt-6-astra",
+      "reference_effort": "xhigh",
+      "source_effort_label": "Xhigh",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-astra:max",
+      "aa_id": "2f339a97-9a0d-499a-9cb5-e0db665bfa25",
+      "aa_name": "GPT-6 Astra (Max)",
+      "aa_slug": "gpt-6-astra",
+      "model_family": "gpt-6-astra",
+      "reference_effort": "max",
+      "source_effort_label": "Max",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-1-sol:low",
+      "aa_id": "e76e0fe5-93ca-4272-9359-2eb1740467d1",
+      "aa_name": "GPT-6.1 Sol (Low)",
+      "aa_slug": "gpt-6-1-sol-low",
+      "model_family": "gpt-6-1-sol",
+      "reference_effort": "low",
+      "source_effort_label": "Low",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-1-sol:medium",
+      "aa_id": "a2e51d62-ea4e-4f15-8be0-be9dc1fb489d",
+      "aa_name": "GPT-6.1 Sol (Medium)",
+      "aa_slug": "gpt-6-1-sol-medium",
+      "model_family": "gpt-6-1-sol",
+      "reference_effort": "medium",
+      "source_effort_label": "Medium",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-1-sol:high",
+      "aa_id": "3b84fee3-b70a-41bc-819e-5fbdef9a0042",
+      "aa_name": "GPT-6.1 Sol (High)",
+      "aa_slug": "gpt-6-1-sol-high",
+      "model_family": "gpt-6-1-sol",
+      "reference_effort": "high",
+      "source_effort_label": "High",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-1-sol:xhigh",
+      "aa_id": "092a3b0e-c5c8-45dc-bf1b-53673c8ff352",
+      "aa_name": "GPT-6.1 Sol (Xhigh)",
+      "aa_slug": "gpt-6-1-sol-xhigh",
+      "model_family": "gpt-6-1-sol",
+      "reference_effort": "xhigh",
+      "source_effort_label": "Xhigh",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gpt-6-1-sol:max",
+      "aa_id": "b25ac058-1e33-4c31-bbc9-a20c3ad0717a",
+      "aa_name": "GPT-6.1 Sol (Max)",
+      "aa_slug": "gpt-6-1-sol",
+      "model_family": "gpt-6-1-sol",
+      "reference_effort": "max",
+      "source_effort_label": "Max",
+      "access_channel": "chatgpt_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gemini-3-8-flash:high",
+      "aa_id": "8a999846-4c1d-4ce7-a8b7-1310a7166fd7",
+      "aa_name": "Gemini 3.8 Flash (High)",
+      "aa_slug": "gemini-3-8-flash",
+      "model_family": "gemini-3-8-flash",
+      "reference_effort": "high",
+      "source_effort_label": "High",
+      "access_channel": "gemini_subscription",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    },
+    {
+      "configuration_id": "gemini-4-argon:high",
+      "aa_id": "d366dfa1-d940-4788-aa73-d298c45699b3",
+      "aa_name": "Gemini 4 Argon (High)",
+      "aa_slug": "gemini-4-argon",
+      "model_family": "gemini-4-argon",
+      "reference_effort": "high",
+      "source_effort_label": "High",
+      "access_channel": "google_cloud_api",
+      "routing_enabled": true,
+      "effort_policy": "mapped_if_supported_else_default"
+    }
+  ]
+}

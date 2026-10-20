@@ -1,0 +1,596 @@
+{
+  "schema_version": "aa-public-observations.v1",
+  "collected_at": "2026-10-19",
+  "source_pages": [
+    "https://artificialanalysis.ai/evaluations/aa-briefcase",
+    "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite"
+  ],
+  "scope_note": "Public fifth scenario for illustration; these scores do not contribute to official AA-Briefcase leaderboard. Scores are actual binary rubric pass counts embedded in the public website static frontend data. AQ and presentation are pairwise verdicts and are kept separate.",
+  "observation_count": 24,
+  "task_count": 4,
+  "model_count": 6,
+  "model_labels": [
+    {
+      "slug": "claude-fable-5",
+      "name": "Claude Fable 5",
+      "creator": "Anthropic",
+      "logo": "/img/logos/anthropic.svg"
+    },
+    {
+      "slug": "claude-4-opus-thinking",
+      "name": "Claude 4 Opus (Extended Thinking)",
+      "creator": "Anthropic",
+      "logo": "/img/logos/anthropic.svg"
+    },
+    {
+      "slug": "gemini-3-1-pro",
+      "name": "Gemini 3.1 Pro Preview",
+      "creator": "Google",
+      "logo": "/img/logos/google.svg"
+    },
+    {
+      "slug": "gpt-5-5",
+      "name": "GPT-5.5 (xhigh)",
+      "creator": "OpenAI",
+      "logo": "/img/logos/openai.svg"
+    },
+    {
+      "slug": "o3",
+      "name": "o3",
+      "creator": "OpenAI",
+      "logo": "/img/logos/openai.svg"
+    },
+    {
+      "slug": "glm-5-2",
+      "name": "GLM-5.2 (max)",
+      "creator": "Z AI",
+      "logo": "/img/logos/zai.svg"
+    }
+  ],
+  "observations": [
+    {
+      "task_id": "w1_t1",
+      "model_slug": "claude-fable-5",
+      "model_name": "Claude Fable 5",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 7,
+      "total": 11,
+      "score": 0.6363636363636364,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t1.claude-fable-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t1",
+      "model_slug": "claude-4-opus-thinking",
+      "model_name": "Claude 4 Opus (Extended Thinking)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 3,
+      "total": 11,
+      "score": 0.2727272727272727,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t1.claude-4-opus-thinking.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t1",
+      "model_slug": "gemini-3-1-pro",
+      "model_name": "Gemini 3.1 Pro Preview",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 2,
+      "total": 11,
+      "score": 0.18181818181818182,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t1.gemini-3-1-pro.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t1",
+      "model_slug": "gpt-5-5",
+      "model_name": "GPT-5.5 (xhigh)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 7,
+      "total": 11,
+      "score": 0.6363636363636364,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t1.gpt-5-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t1",
+      "model_slug": "o3",
+      "model_name": "o3",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 0,
+      "total": 11,
+      "score": 0,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t1.o3.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t1",
+      "model_slug": "glm-5-2",
+      "model_name": "GLM-5.2 (max)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 6,
+      "total": 11,
+      "score": 0.5454545454545454,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t1.glm-5-2.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t2",
+      "model_slug": "claude-fable-5",
+      "model_name": "Claude Fable 5",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 10,
+      "total": 12,
+      "score": 0.8333333333333334,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t2.claude-fable-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t2",
+      "model_slug": "claude-4-opus-thinking",
+      "model_name": "Claude 4 Opus (Extended Thinking)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 0,
+      "total": 12,
+      "score": 0,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t2.claude-4-opus-thinking.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t2",
+      "model_slug": "gemini-3-1-pro",
+      "model_name": "Gemini 3.1 Pro Preview",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 2,
+      "total": 12,
+      "score": 0.16666666666666666,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t2.gemini-3-1-pro.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t2",
+      "model_slug": "gpt-5-5",
+      "model_name": "GPT-5.5 (xhigh)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 5,
+      "total": 12,
+      "score": 0.4166666666666667,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t2.gpt-5-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t2",
+      "model_slug": "o3",
+      "model_name": "o3",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 1,
+      "total": 12,
+      "score": 0.08333333333333333,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t2.o3.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t2",
+      "model_slug": "glm-5-2",
+      "model_name": "GLM-5.2 (max)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 7,
+      "total": 12,
+      "score": 0.5833333333333334,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t2.glm-5-2.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t3",
+      "model_slug": "claude-fable-5",
+      "model_name": "Claude Fable 5",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 16,
+      "total": 22,
+      "score": 0.7272727272727273,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t3.claude-fable-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t3",
+      "model_slug": "claude-4-opus-thinking",
+      "model_name": "Claude 4 Opus (Extended Thinking)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 1,
+      "total": 22,
+      "score": 0.045454545454545456,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t3.claude-4-opus-thinking.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t3",
+      "model_slug": "gemini-3-1-pro",
+      "model_name": "Gemini 3.1 Pro Preview",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 1,
+      "total": 22,
+      "score": 0.045454545454545456,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t3.gemini-3-1-pro.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t3",
+      "model_slug": "gpt-5-5",
+      "model_name": "GPT-5.5 (xhigh)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 9,
+      "total": 22,
+      "score": 0.4090909090909091,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t3.gpt-5-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t3",
+      "model_slug": "o3",
+      "model_name": "o3",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 1,
+      "total": 22,
+      "score": 0.045454545454545456,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t3.o3.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t3",
+      "model_slug": "glm-5-2",
+      "model_name": "GLM-5.2 (max)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 9,
+      "total": 22,
+      "score": 0.4090909090909091,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t3.glm-5-2.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t4",
+      "model_slug": "claude-fable-5",
+      "model_name": "Claude Fable 5",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 5,
+      "total": 10,
+      "score": 0.5,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t4.claude-fable-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t4",
+      "model_slug": "claude-4-opus-thinking",
+      "model_name": "Claude 4 Opus (Extended Thinking)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 0,
+      "total": 10,
+      "score": 0,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t4.claude-4-opus-thinking.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t4",
+      "model_slug": "gemini-3-1-pro",
+      "model_name": "Gemini 3.1 Pro Preview",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 1,
+      "total": 10,
+      "score": 0.1,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "claude-fable-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t4.gemini-3-1-pro.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t4",
+      "model_slug": "gpt-5-5",
+      "model_name": "GPT-5.5 (xhigh)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 3,
+      "total": 10,
+      "score": 0.3,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t4.gpt-5-5.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t4",
+      "model_slug": "o3",
+      "model_name": "o3",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 0,
+      "total": 10,
+      "score": 0,
+      "analytical_quality": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "presentation": {
+        "verdict": "loss",
+        "opponentSlug": "gpt-5-5"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t4.o3.grading",
+      "official_leaderboard_scored": false
+    },
+    {
+      "task_id": "w1_t4",
+      "model_slug": "glm-5-2",
+      "model_name": "GLM-5.2 (max)",
+      "metric": "binary_rubric_pass_rate",
+      "passed": 5,
+      "total": 10,
+      "score": 0.5,
+      "analytical_quality": {
+        "verdict": "win",
+        "opponentSlug": "claude-4-opus-thinking"
+      },
+      "presentation": {
+        "verdict": "win",
+        "opponentSlug": "o3"
+      },
+      "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "source_location": "module 70131, static variable ee.w1_t4.glm-5-2.grading",
+      "official_leaderboard_scored": false
+    }
+  ],
+  "provided_snapshot_alignment": [
+    {
+      "model_slug": "claude-fable-5",
+      "model_name": "Claude Fable 5",
+      "match_policy": "exact_slug_only",
+      "local_matches": [],
+      "status": "missing_from_provided_snapshot"
+    },
+    {
+      "model_slug": "claude-4-opus-thinking",
+      "model_name": "Claude 4 Opus (Extended Thinking)",
+      "match_policy": "exact_slug_only",
+      "local_matches": [],
+      "status": "missing_from_provided_snapshot"
+    },
+    {
+      "model_slug": "gemini-3-1-pro",
+      "model_name": "Gemini 3.1 Pro Preview",
+      "match_policy": "exact_slug_only",
+      "local_matches": [],
+      "status": "missing_from_provided_snapshot"
+    },
+    {
+      "model_slug": "gpt-5-5",
+      "model_name": "GPT-5.5 (xhigh)",
+      "match_policy": "exact_slug_only",
+      "local_matches": [],
+      "status": "missing_from_provided_snapshot"
+    },
+    {
+      "model_slug": "o3",
+      "model_name": "o3",
+      "match_policy": "exact_slug_only",
+      "local_matches": [],
+      "status": "missing_from_provided_snapshot"
+    },
+    {
+      "model_slug": "glm-5-2",
+      "model_name": "GLM-5.2 (max)",
+      "match_policy": "exact_slug_only",
+      "local_matches": [],
+      "status": "missing_from_provided_snapshot"
+    }
+  ],
+  "calibration_status": "blocked_missing_aligned_nine_dimension_vectors",
+  "missing_requirement": "Official nine-dimensional AA capability evaluations for the exact six public-example model configurations, or task scores for models represented in models.json (original local-only capability snapshot). No fuzzy model substitution applied.",
+  "source_js_sha256": "79b2639c2f2d73eebbe6207bfd2dc7e1cc923a3d7e0fa2af4042e5f4939d298c",
+  "source_js_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+  "metric_definition": "Rubric passed/total counts are the source public static grading.rubric values. score is derived by passed / total for the same task and model; it is not a rank, Elo score, or aggregate nine-dimensional index. Pairwise AQ/presentation verdicts are stored separately and not added to rubric.",
+  "source_files": [
+    {
+      "sha256": "79b2639c2f2d73eebbe6207bfd2dc7e1cc923a3d7e0fa2af4042e5f4939d298c",
+      "path": "chunks/7675-c7c38f0d3fab1224.js",
+      "url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/tasks.jsonl",
+      "path": "tasks.jsonl"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/checks.jsonl",
+      "path": "checks.jsonl"
+    }
+  ]
+}

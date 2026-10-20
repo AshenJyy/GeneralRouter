@@ -1,0 +1,192 @@
+{
+  "configuration_count": 6,
+  "retrieved_count": 6,
+  "complete_11_component_count": 4,
+  "configurations": [
+    {
+      "aa_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+      "aa_name": "Claude Fable 5 (Max, Opus 4.8 Fallback)",
+      "aa_slug": "claude-fable-5",
+      "retrieval_status": "retrieved",
+      "available_count": 11,
+      "missing": [],
+      "missing_reason": null,
+      "components": {
+        "briefcaseElo": 1539.25,
+        "gdpval": 1609.83,
+        "automationBenchPartialScore": 0.5407130114065382,
+        "terminalBench40": 0.424242424242424,
+        "scicode": 0.609953703703704,
+        "omniscienceBreakdown.accuracy": 0.6535,
+        "omniscienceBreakdown.hallucinationRate": 0.6363636363636364,
+        "gdpPdfAllPass": 0.24,
+        "lcr": 0.823333333333333,
+        "hle": 0.554680259499537,
+        "critpt": 0.2857142857
+      },
+      "source": {
+        "url": "https://artificialanalysis.ai/models/claude-fable-5",
+        "retrieved_at_utc": "2026-10-20T03:38:29.296657+00:00",
+        "sha256": "9876730f6d17653354aeaed8b1e4913e791a1a878e72e0714c50aa6234702644",
+        "source_kind": "public_page"
+      }
+    },
+    {
+      "aa_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+      "aa_name": "Claude 4 Opus (Reasoning)",
+      "aa_slug": "claude-4-opus-thinking",
+      "retrieval_status": "retrieved",
+      "available_count": 2,
+      "missing": [
+        "briefcaseElo",
+        "gdpval",
+        "automationBenchPartialScore",
+        "terminalBench40",
+        "scicode",
+        "omniscienceBreakdown.accuracy",
+        "omniscienceBreakdown.hallucinationRate",
+        "gdpPdfAllPass",
+        "critpt"
+      ],
+      "missing_reason": "source_record_null_or_absent",
+      "components": {
+        "briefcaseElo": null,
+        "gdpval": null,
+        "automationBenchPartialScore": null,
+        "terminalBench40": null,
+        "scicode": null,
+        "omniscienceBreakdown.accuracy": null,
+        "omniscienceBreakdown.hallucinationRate": null,
+        "gdpPdfAllPass": null,
+        "lcr": 0.693333333333333,
+        "hle": 0.123262279888786,
+        "critpt": null
+      },
+      "source": {
+        "url": "https://artificialanalysis.ai/models/claude-4-opus-thinking",
+        "retrieved_at_utc": "2026-10-20T03:38:28.801003+00:00",
+        "sha256": "27daff236a6ffa5099c6ae9542d4539c93814e5366ee7f5594fe1aef971c7980",
+        "source_kind": "public_page"
+      }
+    },
+    {
+      "aa_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+      "aa_name": "Gemini 3.1 Pro Preview",
+      "aa_slug": "gemini-3-1-pro-preview",
+      "retrieval_status": "retrieved",
+      "available_count": 11,
+      "missing": [],
+      "missing_reason": null,
+      "components": {
+        "briefcaseElo": 456.5,
+        "gdpval": 791.8,
+        "automationBenchPartialScore": 0.3542771839809836,
+        "terminalBench40": 0.0404040404040404,
+        "scicode": 0.586805555555556,
+        "omniscienceBreakdown.accuracy": 0.5485,
+        "omniscienceBreakdown.hallucinationRate": 0.5086747877445552,
+        "gdpPdfAllPass": 0.178,
+        "lcr": 0.82,
+        "hle": 0.470342910101946,
+        "critpt": 0.177142857142857
+      },
+      "source": {
+        "url": "https://artificialanalysis.ai/models/gemini-3-1-pro-preview",
+        "retrieved_at_utc": "2026-10-20T03:38:29.129136+00:00",
+        "sha256": "d4c78664c5ee26f42ba5a64b12547b2ae2e1ac667e6d2dbb599d9b82bab89d79",
+        "source_kind": "public_page"
+      }
+    },
+    {
+      "aa_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+      "aa_name": "GPT-5.5 (Xhigh)",
+      "aa_slug": "gpt-5-5",
+      "retrieval_status": "retrieved",
+      "available_count": 11,
+      "missing": [],
+      "missing_reason": null,
+      "components": {
+        "briefcaseElo": 1136.33,
+        "gdpval": 1350.71,
+        "automationBenchPartialScore": 0.4730056587293313,
+        "terminalBench40": 0.146464646464646,
+        "scicode": 0.55787037037037,
+        "omniscienceBreakdown.accuracy": 0.5795,
+        "omniscienceBreakdown.hallucinationRate": 0.890210067380103,
+        "gdpPdfAllPass": 0.212,
+        "lcr": 0.843333333333333,
+        "hle": 0.457831325301205,
+        "critpt": 0.271428571428571
+      },
+      "source": {
+        "url": "https://artificialanalysis.ai/models/gpt-5-5",
+        "retrieved_at_utc": "2026-10-20T03:38:29.378388+00:00",
+        "sha256": "2416fdbb071ff7d149fc0ad17cd2a6feadffdfb0982235ab81773279ee39985b",
+        "source_kind": "public_page"
+      }
+    },
+    {
+      "aa_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+      "aa_name": "o3",
+      "aa_slug": "o3",
+      "retrieval_status": "retrieved",
+      "available_count": 5,
+      "missing": [
+        "briefcaseElo",
+        "gdpval",
+        "automationBenchPartialScore",
+        "terminalBench40",
+        "scicode",
+        "gdpPdfAllPass"
+      ],
+      "missing_reason": "source_record_null_or_absent",
+      "components": {
+        "briefcaseElo": null,
+        "gdpval": null,
+        "automationBenchPartialScore": null,
+        "terminalBench40": null,
+        "scicode": null,
+        "omniscienceBreakdown.accuracy": 0.38566666666666666,
+        "omniscienceBreakdown.hallucinationRate": 0.8809007053716766,
+        "gdpPdfAllPass": null,
+        "lcr": 0.746666666666667,
+        "hle": 0.2005,
+        "critpt": 0.0114285714285714
+      },
+      "source": {
+        "url": "https://artificialanalysis.ai/models/o3",
+        "retrieved_at_utc": "2026-10-20T03:38:29.604169+00:00",
+        "sha256": "9069c7231246545e777168a5e688c65e0bcc74f1d46a25d3c2559bfbbe5f12dd",
+        "source_kind": "public_page"
+      }
+    },
+    {
+      "aa_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+      "aa_name": "GLM-5.2 (Max)",
+      "aa_slug": "glm-5-2",
+      "retrieval_status": "retrieved",
+      "available_count": 11,
+      "missing": [],
+      "missing_reason": null,
+      "components": {
+        "briefcaseElo": 1228.86,
+        "gdpval": 1372.01,
+        "automationBenchPartialScore": 0.2839897721005435,
+        "terminalBench40": 0.0101010101010101,
+        "scicode": 0.511574074074074,
+        "omniscienceBreakdown.accuracy": 0.24333333333333335,
+        "omniscienceBreakdown.hallucinationRate": 0.2629955947136564,
+        "gdpPdfAllPass": 0.104,
+        "lcr": 0.783333333333333,
+        "hle": 0.411492122335496,
+        "critpt": 0.208571428571429
+      },
+      "source": {
+        "url": "https://artificialanalysis.ai/models/glm-5-2",
+        "retrieved_at_utc": "2026-10-20T03:38:29.738888+00:00",
+        "sha256": "c4152b049622be52bc7a76ec735b694d32c1cbecc090610a9e214d1239a3dd5c",
+        "source_kind": "public_page"
+      }
+    }
+  ]
+}

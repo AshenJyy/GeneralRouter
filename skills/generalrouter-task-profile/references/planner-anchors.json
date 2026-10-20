@@ -1,0 +1,250 @@
+{
+  "schema_version": "aa-planner-anchor-view.v1",
+  "delivery_version": "0.3",
+  "dimensions": [
+    "agentic",
+    "coding",
+    "knowledge_document",
+    "scientific_reasoning"
+  ],
+  "snapshot_models_sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b",
+  "calibration_sha256": "49bfe4ee851de46d548941460ab0a27f1d8b57adecf2507f6588ed3d2530f836",
+  "calibration_method": {
+    "requested_dimensions": [
+      "agentic",
+      "coding",
+      "knowledge_document",
+      "scientific_reasoning"
+    ],
+    "fit_kind": "joint_four_dimension_reference",
+    "algorithm": "nonnegative_ridge",
+    "optimizer": "cyclic_coordinate_descent",
+    "prediction": "score_proxy = bias + scale * dot(weights, model_capabilities)",
+    "objective": "mean((observed_normalized_score - bias - X beta)**2) + ridge * sum(beta**2), beta >= 0",
+    "ridge": 0.01,
+    "intercept_penalized": false,
+    "weight_derivation": "weights = beta / sum(beta); scale = sum(beta); bias is separate",
+    "minimum_complete_models": 4,
+    "minimum_is_project_policy_not_identifiability_guarantee": true,
+    "algorithm_origin": "GeneralRouter engineering choice, not an AA task annotation or official AA calibration algorithm.",
+    "missing_data_policy": "Exclude an observation when any of its four capability values is null; do not impute or switch to a single-dimension fit.",
+    "normalization_scope": "Use the fixed [0, 1] AA component-derived category scores in the snapshot; do not apply model-pool minmax.",
+    "score_proxy_is_success_probability": false,
+    "score_proxy_is_task_difficulty": false,
+    "validation_performed": false
+  },
+  "scope": "Four public Briefcase-Lite tasks in one business due-diligence scenario; fitted reference predictors, not semantic work percentages or official AA task labels.",
+  "limitations": [
+    "Four complete reference models per task are fewer than four coefficients plus an intercept; regularization selects a reference solution, not a uniquely identified task vector.",
+    "The 16 included observations cover four outputs within one shared business scenario; the eight incomplete-model observations are retained but excluded.",
+    "Reference capabilities and public task-score runtime conditions are not independently verified as identical; user confirmations and undisclosed effort are recorded separately.",
+    "The model-side knowledge_document category still includes GDP.pdf aggregate scores. Only GDP.pdf task examples were excluded at the user's request.",
+    "No testing, review, predictive validation, or model invocations were performed."
+  ],
+  "anchors": [
+    {
+      "anchor_id": "w1_t1",
+      "task_id": "w1_t1",
+      "task_text": "基于给定资料制作新西兰鸡蛋市场结构单页图，呈现生产体系、渠道、规模和转型。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t1.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "weights": {
+        "agentic": 0.9199901388041096,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.08000986119589037
+      },
+      "bias": 0.1996267972625782,
+      "scale": 0.8588956386777221,
+      "coefficients": {
+        "agentic": 0.790175517845362,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.06872012083236016
+      },
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "identifiable_without_regularization": false,
+      "transfer_scope": "Close analogue of this business due-diligence deliverable, not general coding or scientific reasoning."
+    },
+    {
+      "anchor_id": "w1_t2",
+      "task_id": "w1_t2",
+      "task_text": "创建可更新的 Excel 市场模型，覆盖历史规模、预测、行业转型与敏感性分析。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t2.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "weights": {
+        "agentic": 0.7084321192235856,
+        "coding": 0.2161070090786004,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.07546087169781406
+      },
+      "bias": 0.022570622069066182,
+      "scale": 1.355523265740755,
+      "coefficients": {
+        "agentic": 0.9602962198055986,
+        "coding": 0.2929380786956914,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.10228896723946503
+      },
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "identifiable_without_regularization": false,
+      "transfer_scope": "Close analogue of this business due-diligence deliverable, not general coding or scientific reasoning."
+    },
+    {
+      "anchor_id": "w1_t3",
+      "task_id": "w1_t3",
+      "task_text": "制作并购目标评估演示文稿，分析竞争位置、需求、成本风险和盈利持续性。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t3.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "weights": {
+        "agentic": 0.6403707642055355,
+        "coding": 0.2371360574849619,
+        "knowledge_document": 0.010416266558037304,
+        "scientific_reasoning": 0.11207691175146535
+      },
+      "bias": -0.13710797791432566,
+      "scale": 1.51269067356476,
+      "coefficients": {
+        "agentic": 0.9686828826372517,
+        "coding": 0.35871350252341866,
+        "knowledge_document": 0.015756589275707535,
+        "scientific_reasoning": 0.1695376991283823
+      },
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "identifiable_without_regularization": false,
+      "transfer_scope": "Close analogue of this business due-diligence deliverable, not general coding or scientific reasoning."
+    },
+    {
+      "anchor_id": "w1_t4",
+      "task_id": "w1_t4",
+      "task_text": "把初步尽调发现、关键判断和待确认问题制作成简报视频及字幕。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t4.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "weights": {
+        "agentic": 1.0,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "bias": 0.11465032532640082,
+      "scale": 0.6737916186549493,
+      "coefficients": {
+        "agentic": 0.6737916186549493,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "identifiable_without_regularization": false,
+      "transfer_scope": "Close analogue of this business due-diligence deliverable, not general coding or scientific reasoning."
+    }
+  ]
+}

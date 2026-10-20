@@ -1,0 +1,445 @@
+{
+  "purpose": "Recorded AA public task scores and four-dimensional regularized reference weights. No ordinal requirement labels or inferred difficulty probabilities.",
+  "delivery_version": "0.3",
+  "dimensions": [
+    "agentic",
+    "coding",
+    "knowledge_document",
+    "scientific_reasoning"
+  ],
+  "unique_task_model_observations": 24,
+  "included_joint_fit_observations": 16,
+  "excluded_joint_fit_observations": 8,
+  "aa_tasks": [
+    {
+      "task_id": "w1_t1",
+      "task_text": "基于给定资料制作新西兰鸡蛋市场结构单页图，呈现生产体系、渠道、规模和转型。",
+      "text_is_shortened_chinese_paraphrase": true,
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t1.md",
+      "anchor_id": "w1_t1",
+      "dimension_order": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "reference_weights": {
+        "agentic": 0.9199901388041096,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.08000986119589037
+      },
+      "fit_status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "joint_reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "observed_grades": [
+        {
+          "model_name": "Claude Fable 5",
+          "model_slug": "claude-fable-5",
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "passed": 7,
+          "total": 11,
+          "score": 0.6363636363636364,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ]
+        },
+        {
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "model_slug": "claude-4-opus-thinking",
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "passed": 3,
+          "total": 11,
+          "score": 0.2727272727272727,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ]
+        },
+        {
+          "model_name": "Gemini 3.1 Pro Preview",
+          "model_slug": "gemini-3-1-pro",
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "passed": 2,
+          "total": 11,
+          "score": 0.18181818181818182,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ]
+        },
+        {
+          "model_name": "GPT-5.5 (xhigh)",
+          "model_slug": "gpt-5-5",
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "passed": 7,
+          "total": 11,
+          "score": 0.6363636363636364,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        },
+        {
+          "model_name": "o3",
+          "model_slug": "o3",
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "passed": 0,
+          "total": 11,
+          "score": 0,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ]
+        },
+        {
+          "model_name": "GLM-5.2 (max)",
+          "model_slug": "glm-5-2",
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "passed": 6,
+          "total": 11,
+          "score": 0.5454545454545454,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        }
+      ],
+      "provenance": "Source grading and separate AQ/presentation verdicts are preserved in aa-observed-results.json. Public examples do not contribute to official leaderboard scores."
+    },
+    {
+      "task_id": "w1_t2",
+      "task_text": "创建可更新的 Excel 市场模型，覆盖历史规模、预测、行业转型与敏感性分析。",
+      "text_is_shortened_chinese_paraphrase": true,
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t2.md",
+      "anchor_id": "w1_t2",
+      "dimension_order": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "reference_weights": {
+        "agentic": 0.7084321192235856,
+        "coding": 0.2161070090786004,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.07546087169781406
+      },
+      "fit_status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "joint_reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "observed_grades": [
+        {
+          "model_name": "Claude Fable 5",
+          "model_slug": "claude-fable-5",
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "passed": 10,
+          "total": 12,
+          "score": 0.8333333333333334,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ]
+        },
+        {
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "model_slug": "claude-4-opus-thinking",
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "passed": 0,
+          "total": 12,
+          "score": 0,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ]
+        },
+        {
+          "model_name": "Gemini 3.1 Pro Preview",
+          "model_slug": "gemini-3-1-pro",
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "passed": 2,
+          "total": 12,
+          "score": 0.16666666666666666,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ]
+        },
+        {
+          "model_name": "GPT-5.5 (xhigh)",
+          "model_slug": "gpt-5-5",
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "passed": 5,
+          "total": 12,
+          "score": 0.4166666666666667,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        },
+        {
+          "model_name": "o3",
+          "model_slug": "o3",
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "passed": 1,
+          "total": 12,
+          "score": 0.08333333333333333,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ]
+        },
+        {
+          "model_name": "GLM-5.2 (max)",
+          "model_slug": "glm-5-2",
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "passed": 7,
+          "total": 12,
+          "score": 0.5833333333333334,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        }
+      ],
+      "provenance": "Source grading and separate AQ/presentation verdicts are preserved in aa-observed-results.json. Public examples do not contribute to official leaderboard scores."
+    },
+    {
+      "task_id": "w1_t3",
+      "task_text": "制作并购目标评估演示文稿，分析竞争位置、需求、成本风险和盈利持续性。",
+      "text_is_shortened_chinese_paraphrase": true,
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t3.md",
+      "anchor_id": "w1_t3",
+      "dimension_order": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "reference_weights": {
+        "agentic": 0.6403707642055355,
+        "coding": 0.2371360574849619,
+        "knowledge_document": 0.010416266558037304,
+        "scientific_reasoning": 0.11207691175146535
+      },
+      "fit_status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "joint_reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "observed_grades": [
+        {
+          "model_name": "Claude Fable 5",
+          "model_slug": "claude-fable-5",
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "passed": 16,
+          "total": 22,
+          "score": 0.7272727272727273,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ]
+        },
+        {
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "model_slug": "claude-4-opus-thinking",
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "passed": 1,
+          "total": 22,
+          "score": 0.045454545454545456,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ]
+        },
+        {
+          "model_name": "Gemini 3.1 Pro Preview",
+          "model_slug": "gemini-3-1-pro",
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "passed": 1,
+          "total": 22,
+          "score": 0.045454545454545456,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ]
+        },
+        {
+          "model_name": "GPT-5.5 (xhigh)",
+          "model_slug": "gpt-5-5",
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "passed": 9,
+          "total": 22,
+          "score": 0.4090909090909091,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        },
+        {
+          "model_name": "o3",
+          "model_slug": "o3",
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "passed": 1,
+          "total": 22,
+          "score": 0.045454545454545456,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ]
+        },
+        {
+          "model_name": "GLM-5.2 (max)",
+          "model_slug": "glm-5-2",
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "passed": 9,
+          "total": 22,
+          "score": 0.4090909090909091,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        }
+      ],
+      "provenance": "Source grading and separate AQ/presentation verdicts are preserved in aa-observed-results.json. Public examples do not contribute to official leaderboard scores."
+    },
+    {
+      "task_id": "w1_t4",
+      "task_text": "把初步尽调发现、关键判断和待确认问题制作成简报视频及字幕。",
+      "text_is_shortened_chinese_paraphrase": true,
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t4.md",
+      "anchor_id": "w1_t4",
+      "dimension_order": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "reference_weights": {
+        "agentic": 1.0,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "fit_status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "joint_reference_model_count": 4,
+      "excluded_reference_model_count": 2,
+      "observed_grades": [
+        {
+          "model_name": "Claude Fable 5",
+          "model_slug": "claude-fable-5",
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "passed": 5,
+          "total": 10,
+          "score": 0.5,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ]
+        },
+        {
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "model_slug": "claude-4-opus-thinking",
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "passed": 0,
+          "total": 10,
+          "score": 0,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ]
+        },
+        {
+          "model_name": "Gemini 3.1 Pro Preview",
+          "model_slug": "gemini-3-1-pro",
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "passed": 1,
+          "total": 10,
+          "score": 0.1,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ]
+        },
+        {
+          "model_name": "GPT-5.5 (xhigh)",
+          "model_slug": "gpt-5-5",
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "passed": 3,
+          "total": 10,
+          "score": 0.3,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        },
+        {
+          "model_name": "o3",
+          "model_slug": "o3",
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "passed": 0,
+          "total": 10,
+          "score": 0,
+          "included_in_joint_fit": false,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ]
+        },
+        {
+          "model_name": "GLM-5.2 (max)",
+          "model_slug": "glm-5-2",
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "passed": 5,
+          "total": 10,
+          "score": 0.5,
+          "included_in_joint_fit": true,
+          "exclusion_reason": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ]
+        }
+      ],
+      "provenance": "Source grading and separate AQ/presentation verdicts are preserved in aa-observed-results.json. Public examples do not contribute to official leaderboard scores."
+    }
+  ],
+  "boundary_notes": [
+    {
+      "request": "实现新算法或修复代码",
+      "note": "已有锚点是业务交付物，不覆盖一般编程任务；不能因为四维中有coding字段就声称已校准。"
+    },
+    {
+      "request": "求解物理问题或证明数学命题",
+      "note": "缺少对应同题模型成绩锚点，返回未校准；不能套用商业尽调拟合的科学推理系数。"
+    },
+    {
+      "request": "整理长文档中的事实",
+      "note": "单页图和简报依赖资料，但不能自动迁移为一般长文档题的已校准向量。"
+    }
+  ]
+}

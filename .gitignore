@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.runs/
+config.local.json
+host.local.json
+quota.local.json
+*.local.json
+*.local.toml
+work/
+.env
+.env.*
+!.env.example
+
+# Machine-local instructions, duplicate skill installations, and research scratch.
+/AGENTS.md
+/.agents/
+
+# Generated distributions and archived releases are kept locally.
+/*.tgz
+/GeneralRouter-v0.1-DSH安装说明.txt
+/项目资料/
+/历史版本/
+
+# Original research input; current model vectors use the curated candidate data.
+/data/models.json

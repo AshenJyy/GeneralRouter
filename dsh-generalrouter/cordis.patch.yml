@@ -1,0 +1,6 @@
+# GeneralRouter is a Host plugin. DSH's scope layering makes these tools visible
+# to its Agents without replacing a shipped preset or native subagent tool.
+- insert:
+    - id: generalrouter
+      name: 'dsh-generalrouter'
+      config: {}

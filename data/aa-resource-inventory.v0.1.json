@@ -1,0 +1,1171 @@
+{
+  "schema_version": "generalrouter-aa-resource-inventory.v1",
+  "user_local_date": "2026-10-19",
+  "packaged_at_utc": "2026-10-20T05:32:23.966939+00:00",
+  "scope": "Collected sources and limited four-dimensional Briefcase reference fitting; no cross-domain task calibration or predictive validation is claimed.",
+  "local_collection_artifacts": "Paths under work/ refer to local-only collection artifacts that are not distributed in this repository. Official source URLs and recorded metadata are retained.",
+  "candidate_models": {
+    "configuration_count": 12,
+    "complete_profiles": 12,
+    "raw_component_value_count": 132,
+    "vectors_file": "data/model-vectors.v0.1.json"
+  },
+  "reference_models": {
+    "configuration_count": 6,
+    "available_component_value_count": 51,
+    "possible_component_value_count": 66,
+    "vectors_file": "data/calibration-reference-vectors.v0.1.json",
+    "rows": [
+      {
+        "aa_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "aa_name": "Claude Fable 5 (Max, Opus 4.8 Fallback)",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/claude-fable-5",
+          "retrieved_at_utc": "2026-10-20T03:38:29.296657+00:00",
+          "sha256": "9876730f6d17653354aeaed8b1e4913e791a1a878e72e0714c50aa6234702644",
+          "source_kind": "public_page"
+        },
+        "available_component_count": 11,
+        "missing_components": [],
+        "capabilities": {
+          "agentic": 0.5349030019010896,
+          "coding": 0.517098063973064,
+          "knowledge_document": 0.4956616161616162,
+          "scientific_reasoning": 0.4201972725997685
+        },
+        "record_status": "complete",
+        "source_effort_label": "Max, Opus 4.8 Fallback",
+        "fallback_caveat": null,
+        "sample_configuration_alignment": {
+          "status": "user_confirmed_reference_configuration",
+          "effort": "max",
+          "fallback_model": "Opus 4.8",
+          "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+          "independent_runtime_verification_performed": false
+        }
+      },
+      {
+        "aa_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+        "aa_name": "Claude 4 Opus (Reasoning)",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/claude-4-opus-thinking",
+          "retrieved_at_utc": "2026-10-20T03:38:28.801003+00:00",
+          "sha256": "27daff236a6ffa5099c6ae9542d4539c93814e5366ee7f5594fe1aef971c7980",
+          "source_kind": "public_page"
+        },
+        "available_component_count": 2,
+        "missing_components": [
+          "briefcaseElo",
+          "gdpval",
+          "automationBenchPartialScore",
+          "terminalBench40",
+          "scicode",
+          "omniscienceBreakdown.accuracy",
+          "omniscienceBreakdown.hallucinationRate",
+          "gdpPdfAllPass",
+          "critpt"
+        ],
+        "capabilities": {
+          "agentic": null,
+          "coding": null,
+          "knowledge_document": null,
+          "scientific_reasoning": null
+        },
+        "record_status": "partial",
+        "source_effort_label": "Reasoning",
+        "fallback_caveat": null,
+        "sample_configuration_alignment": null
+      },
+      {
+        "aa_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "aa_name": "Gemini 3.1 Pro Preview",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/gemini-3-1-pro-preview",
+          "retrieved_at_utc": "2026-10-20T03:38:29.129136+00:00",
+          "sha256": "d4c78664c5ee26f42ba5a64b12547b2ae2e1ac667e6d2dbb599d9b82bab89d79",
+          "source_kind": "public_page"
+        },
+        "available_component_count": 11,
+        "missing_components": [],
+        "capabilities": {
+          "agentic": 0.10767953066349728,
+          "coding": 0.31360479797979823,
+          "knowledge_document": 0.4607208687092409,
+          "scientific_reasoning": 0.32374288362240145
+        },
+        "record_status": "complete",
+        "source_effort_label": null,
+        "fallback_caveat": null,
+        "sample_configuration_alignment": {
+          "status": "user_confirmed_model_name",
+          "model_name": "Gemini 3.1 Pro Preview",
+          "effort": null,
+          "effort_status": "not_disclosed_in_sample_label",
+          "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+          "independent_runtime_verification_performed": false
+        }
+      },
+      {
+        "aa_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "aa_name": "GPT-5.5 (Xhigh)",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/gpt-5-5",
+          "retrieved_at_utc": "2026-10-20T03:38:29.378388+00:00",
+          "sha256": "2416fdbb071ff7d149fc0ad17cd2a6feadffdfb0982235ab81773279ee39985b",
+          "source_kind": "public_page"
+        },
+        "available_component_count": 11,
+        "missing_components": [],
+        "capabilities": {
+          "agentic": 0.37970177645488856,
+          "coding": 0.352167508417508,
+          "knowledge_document": 0.422687210992205,
+          "scientific_reasoning": 0.36462994836488805
+        },
+        "record_status": "complete",
+        "source_effort_label": "Xhigh",
+        "fallback_caveat": null,
+        "sample_configuration_alignment": null
+      },
+      {
+        "aa_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+        "aa_name": "o3",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/o3",
+          "retrieved_at_utc": "2026-10-20T03:38:29.604169+00:00",
+          "sha256": "9069c7231246545e777168a5e688c65e0bcc74f1d46a25d3c2559bfbbe5f12dd",
+          "source_kind": "public_page"
+        },
+        "available_component_count": 5,
+        "missing_components": [
+          "briefcaseElo",
+          "gdpval",
+          "automationBenchPartialScore",
+          "terminalBench40",
+          "scicode",
+          "gdpPdfAllPass"
+        ],
+        "capabilities": {
+          "agentic": null,
+          "coding": null,
+          "knowledge_document": null,
+          "scientific_reasoning": 0.1059642857142857
+        },
+        "record_status": "partial",
+        "source_effort_label": null,
+        "fallback_caveat": null,
+        "sample_configuration_alignment": null
+      },
+      {
+        "aa_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+        "aa_name": "GLM-5.2 (Max)",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/glm-5-2",
+          "retrieved_at_utc": "2026-10-20T03:38:29.738888+00:00",
+          "sha256": "c4152b049622be52bc7a76ec735b694d32c1cbecc090610a9e214d1239a3dd5c",
+          "source_kind": "public_page"
+        },
+        "available_component_count": 11,
+        "missing_components": [],
+        "capabilities": {
+          "agentic": 0.3748816286834239,
+          "coding": 0.26083754208754206,
+          "knowledge_document": 0.36916740088105726,
+          "scientific_reasoning": 0.3100317754534625
+        },
+        "record_status": "complete",
+        "source_effort_label": "Max",
+        "fallback_caveat": null,
+        "sample_configuration_alignment": null
+      }
+    ],
+    "missing_policy": "Null source fields remain null. No cross-effort borrowing, interpolation, or replacement by overall Intelligence.",
+    "sample_alignment_note": "The user confirmed Fable 5 Max with Opus 4.8 fallback and the Gemini 3.1 Pro Preview model name. Preserve undisclosed sample effort as unknown; no independent runtime verification is claimed."
+  },
+  "existing_briefcase_evidence": {
+    "task_count": 4,
+    "model_count": 6,
+    "observation_count": 24,
+    "source_pages": [
+      "https://artificialanalysis.ai/evaluations/aa-briefcase",
+      "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite"
+    ],
+    "scope_note": "Public fifth scenario for illustration; these scores do not contribute to official AA-Briefcase leaderboard. Scores are actual binary rubric pass counts embedded in the public website static frontend data. AQ and presentation are pairwise verdicts and are kept separate.",
+    "observations_file": "skills/generalrouter-task-profile/references/aa-observed-results.json",
+    "task_summaries_file": "skills/generalrouter-task-profile/references/examples.json",
+    "rubrics_file": "data/task-resources/aa-briefcase-lite/grader/grading_rubric_w1.json",
+    "task_material_directory": "data/task-resources/aa-briefcase-lite",
+    "source_pool_downloaded": false,
+    "source_pool_note": "Task metadata lists the 147-file source pool; the full pool was not downloaded in this collection."
+  },
+  "new_task_collections": [
+    {
+      "collection_directory": "work/task-resources-coding-science",
+      "manifest": {
+        "schema_version": "generalrouter-resource-manifest.v1",
+        "assembled_at_utc": "2026-10-20T03:40:23.735243+00:00",
+        "scope": "Ordinary anonymous AA public evaluation pages; official linked benchmark websites; GitHub main-branch trees/README and a few small files; small Hugging Face rows endpoint. No full-dataset crawl, model calls, tests, fitting, auth or private endpoints.",
+        "sources": [
+          {
+            "benchmark": "scicode",
+            "url": "https://artificialanalysis.ai/evaluations/scicode",
+            "retrieved_at_utc": "2026-10-20T03:38:35.133492+00:00",
+            "sha256": "841f7f27c3e83db1da26200040e8d9042fc4bb7b6c95ef44357ded4b0fd0c6f1",
+            "page_path": "work\\task-resources-coding-science\\scicode.html",
+            "visible_text_path": "work\\task-resources-coding-science\\scicode-visible.txt"
+          },
+          {
+            "benchmark": "critpt",
+            "url": "https://artificialanalysis.ai/evaluations/critpt",
+            "retrieved_at_utc": "2026-10-20T03:38:35.133745+00:00",
+            "sha256": "8f045f747f36a8428fe8e8b06c90bb9abb46ab1a09ad41a1c63d2d8ce51f15d8",
+            "page_path": "work\\task-resources-coding-science\\critpt.html",
+            "visible_text_path": "work\\task-resources-coding-science\\critpt-visible.txt"
+          },
+          {
+            "benchmark": "hle",
+            "url": "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+            "retrieved_at_utc": "2026-10-20T03:38:34.948046+00:00",
+            "sha256": "491f940080a2c28f46a6791e9e002a616c9639afc4228916bc3ed1d234ac7eda",
+            "page_path": "work\\task-resources-coding-science\\hle.html",
+            "visible_text_path": "work\\task-resources-coding-science\\hle-visible.txt"
+          },
+          {
+            "benchmark": "terminalbench-4-0",
+            "url": "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+            "retrieved_at_utc": "2026-10-20T03:38:35.158676+00:00",
+            "sha256": "07859e9d6ac0f8c0104329cfae589aa1c4e6d8bb013691a26a2258a96dc8f395",
+            "page_path": "work\\task-resources-coding-science\\terminalbench-4-0.html",
+            "visible_text_path": "work\\task-resources-coding-science\\terminalbench-4-0-visible.txt"
+          },
+          {
+            "url": "https://critpt.com/example",
+            "path": "work\\task-resources-coding-science\\critpt-author-example.html",
+            "retrieved_at_utc": "2026-10-20T03:39:04.204344+00:00",
+            "sha256": "df3a4b0bed17b503b208c7f7140100240b3fda26b83155444c9632f8d625816e",
+            "status": "retrieved",
+            "bytes": 197894
+          },
+          {
+            "url": "https://agi.safe.ai/",
+            "path": "work\\task-resources-coding-science\\hle-author-home.html",
+            "retrieved_at_utc": "2026-10-20T03:39:04.204844+00:00",
+            "sha256": "514f6c49609448ca9b61686a66d0969033f6914dc8085b098d51dc0d3529aa08",
+            "status": "retrieved",
+            "bytes": 469505
+          },
+          {
+            "url": "https://scicode-bench.github.io/",
+            "path": "work\\task-resources-coding-science\\scicode-author-home.html",
+            "retrieved_at_utc": "2026-10-20T03:39:04.205147+00:00",
+            "sha256": "e769e53ee838c8abf3bb676ff0ca9c620d83135c9204857990a7883e2ac356de",
+            "status": "retrieved",
+            "bytes": 36795
+          },
+          {
+            "url": "https://hub.harborframework.com/datasets/terminal-bench/terminal-bench/4?tab=tasks",
+            "path": "work\\task-resources-coding-science\\terminalbench-4-hub.html",
+            "retrieved_at_utc": "2026-10-20T03:39:04.205456+00:00",
+            "sha256": "beaabc662c7bae06c1e1ac5ac15505ebf153cc6ffb31803bfddef438babbd201",
+            "status": "retrieved",
+            "bytes": 135385
+          },
+          {
+            "url": "https://api.github.com/repos/scicode-bench/SciCode/git/trees/main?recursive=1",
+            "path": "work\\task-resources-coding-science\\scicode-repo-tree.json",
+            "retrieved_at_utc": "2026-10-20T03:39:04.501338+00:00",
+            "sha256": "c034549fb727b09dcfd1573cd6005a4bb6ebc9badb5335218e954b01d0b8f6e8",
+            "status": "retrieved",
+            "bytes": 9305
+          },
+          {
+            "url": "https://api.github.com/repos/CritPt-Benchmark/CritPt/git/trees/main?recursive=1",
+            "path": "work\\task-resources-coding-science\\critpt-repo-tree.json",
+            "retrieved_at_utc": "2026-10-20T03:39:04.510537+00:00",
+            "sha256": "f448c063bd77047eb823f2199029b309b5cc217e598a23e81c636134a85cbb36",
+            "status": "retrieved",
+            "bytes": 54610
+          },
+          {
+            "url": "https://api.github.com/repos/centerforaisafety/hle/git/trees/main?recursive=1",
+            "path": "work\\task-resources-coding-science\\hle-repo-tree.json",
+            "retrieved_at_utc": "2026-10-20T03:39:04.682009+00:00",
+            "sha256": "128d0b4beccdde588be497e19e442c65e48021eca8af884ff380ce2b0cd0c9fd",
+            "status": "retrieved",
+            "bytes": 4516
+          },
+          {
+            "url": "https://raw.githubusercontent.com/centerforaisafety/hle/main/README.md",
+            "path": "work\\task-resources-coding-science\\hle-readme.md",
+            "retrieved_at_utc": "2026-10-20T03:39:04.687958+00:00",
+            "sha256": "fd3bd0049e1a2b39244d8240a63d0ccfe037b0b6e5979d5826e1d1cf4203ee88",
+            "status": "retrieved",
+            "bytes": 2648
+          },
+          {
+            "url": "https://raw.githubusercontent.com/scicode-bench/SciCode/main/README.md",
+            "path": "work\\task-resources-coding-science\\scicode-readme.md",
+            "retrieved_at_utc": "2026-10-20T03:39:04.841037+00:00",
+            "sha256": "a06846f318d4d269449d83201169058bc4e1ee64f3375a6104c4477d6ef03799",
+            "status": "retrieved",
+            "bytes": 8287
+          },
+          {
+            "url": "https://raw.githubusercontent.com/CritPt-Benchmark/CritPt/main/README.md",
+            "path": "work\\task-resources-coding-science\\critpt-readme.md",
+            "retrieved_at_utc": "2026-10-20T03:39:04.866246+00:00",
+            "sha256": "416d4b506040d37d2d53e6c3b2edb3acea38e432d06d9651e134a3d87560d5bb",
+            "status": "retrieved",
+            "bytes": 5874
+          },
+          {
+            "url": "https://datasets-server.huggingface.co/rows?dataset=SciCode1%2FSciCode&config=default&split=test&offset=0&length=1",
+            "path": "work\\task-resources-coding-science\\scicode-hf-one-row.json",
+            "retrieved_at_utc": "2026-10-20T03:39:34.727454+00:00",
+            "status": "retrieved",
+            "sha256": "44095d6894582b38aa9b93a6ee4e511997a1452fb4395d52e9affdfcede14c0d",
+            "bytes": 42798
+          },
+          {
+            "url": "https://datasets-server.huggingface.co/rows?dataset=cais%2Fhle&config=default&split=test&offset=0&length=1",
+            "path": "work\\task-resources-coding-science\\hle-hf-one-row.json",
+            "retrieved_at_utc": "2026-10-20T03:39:34.727924+00:00",
+            "status": "not_retrieved",
+            "error": "HTTP Error 401: Unauthorized"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/CritPt-Benchmark/CritPt/main/data/example_challenges/json/quantum_error_correction.json",
+            "path": "work\\task-resources-coding-science\\critpt-example.json",
+            "retrieved_at_utc": "2026-10-20T03:39:34.728295+00:00",
+            "status": "retrieved",
+            "sha256": "ff1712d90abd8939712c0431e0c4b0a509b13efe667d285d4c57e64cfe8b7e21",
+            "bytes": 19297
+          },
+          {
+            "url": "https://raw.githubusercontent.com/CritPt-Benchmark/CritPt/main/data/example_challenges/json/quantum_error_correction_main.json",
+            "path": "work\\task-resources-coding-science\\critpt-example-main.json",
+            "retrieved_at_utc": "2026-10-20T03:39:34.728817+00:00",
+            "status": "retrieved",
+            "sha256": "466a7ee51b3f237a8841abaf93bbe6b0138705f226265574e8773223e6e2421b",
+            "bytes": 6617
+          },
+          {
+            "url": "https://raw.githubusercontent.com/scicode-bench/SciCode/main/tests/test_data/first_problem.jsonl",
+            "path": "work\\task-resources-coding-science\\scicode-repo-sample.jsonl",
+            "retrieved_at_utc": "2026-10-20T03:39:34.971081+00:00",
+            "status": "retrieved",
+            "sha256": "7d3220bea02382315c0d92b7c66b2f7ccc7e0b98d14f9dea64ec7736b666ead0",
+            "bytes": 41346
+          },
+          {
+            "url": "https://raw.githubusercontent.com/scicode-bench/SciCode/main/eval/inspect_ai/scicode.py",
+            "path": "work\\task-resources-coding-science\\scicode-grading.py.txt",
+            "retrieved_at_utc": "2026-10-20T03:39:34.971323+00:00",
+            "status": "retrieved",
+            "sha256": "d007ac9250ec596849ea1a71e3be78c254ff3c80163b09d1320250af5ca8194a",
+            "bytes": 15612
+          },
+          {
+            "url": "https://raw.githubusercontent.com/centerforaisafety/hle/main/hle_eval/run_judge_results.py",
+            "path": "work\\task-resources-coding-science\\hle-grading.py.txt",
+            "retrieved_at_utc": "2026-10-20T03:39:35.014072+00:00",
+            "status": "retrieved",
+            "sha256": "a796e74d6e58beab3bd88f46182f599443a102308b2d1c7e0b4b22f578468446",
+            "bytes": 7858
+          },
+          {
+            "url": "https://critpt.com/Critpt%20Example/quantum_error_correction_v2p/use_golden_for_prev_steps_False/parsing_False/multiturn_with_answer_True/o3/0/Challenge.html",
+            "path": "work\\task-resources-coding-science\\critpt-o3-epoch0-challenge.html",
+            "retrieved_at_utc": "2026-10-20T03:39:35.140593+00:00",
+            "status": "retrieved",
+            "sha256": "7a340a0509a920216a415de85a46b67ed6ec266733bb0d34c578a2f91bd45de6",
+            "bytes": 31780
+          }
+        ],
+        "benchmarks": [
+          {
+            "benchmark": "scicode",
+            "exact_version_or_protocol": "AA 288 test-set subproblems, 3 repetitions; source dataset unversioned default branch snapshot",
+            "sample_task_count": 2,
+            "per_task_model_scores_present": false,
+            "aa_same_six_reference_model_results_present": false,
+            "gaps": [
+              "No per-task model results in AA public example payload or inspected upstream repo tree/readme; upstream homepage leaderboard is aggregate",
+              "Full h5 reference test data not fetched"
+            ],
+            "reusable_local_files": [
+              "work\\task-resources-coding-science\\scicode-example-tasks.txt",
+              "work\\task-resources-coding-science\\scicode.html"
+            ]
+          },
+          {
+            "benchmark": "terminalbench-4-0",
+            "exact_version_or_protocol": "AA Terminal-Bench 4.0, 66 tasks, mini-swe-agent, 3 repetitions",
+            "sample_task_count": 3,
+            "per_task_model_scores_present": false,
+            "aa_same_six_reference_model_results_present": false,
+            "gaps": [
+              "No per-task model results in AA public example payload",
+              "Full environment/assets not retrieved; Hub returned Loading tasks"
+            ],
+            "reusable_local_files": [
+              "work\\task-resources-coding-science\\terminalbench-4-0-example-tasks.txt",
+              "work\\task-resources-coding-science\\terminalbench-4-0.html"
+            ]
+          },
+          {
+            "benchmark": "hle",
+            "exact_version_or_protocol": "AA 2158 text-only questions from 2500-question finalized revision; 1 repetition",
+            "sample_task_count": 3,
+            "per_task_model_scores_present": false,
+            "aa_same_six_reference_model_results_present": false,
+            "gaps": [
+              "AA examples give questions but not reference answers/model per-question results",
+              "Official dataset sample endpoint returned HTTP 401; upstream README/repository tree inspected without results artifacts"
+            ],
+            "reusable_local_files": [
+              "work\\task-resources-coding-science\\hle-example-tasks.txt",
+              "work\\task-resources-coding-science\\hle.html"
+            ]
+          },
+          {
+            "benchmark": "critpt",
+            "exact_version_or_protocol": "AA all 70 test challenges, 5 repetitions, no agent harness; author example separate",
+            "sample_task_count": 1,
+            "per_task_model_scores_present": true,
+            "aa_same_six_reference_model_results_present": false,
+            "gaps": [
+              "Only author public example has per-task results, not AA evaluation matrix",
+              "Only o3 high/Opus4 overlap reference model names; exact Opus4 thinking effort not stated in example table",
+              "A final task repeated as checkpoint 3 cannot count as independent task",
+              "GPT-5 minimal source summary conflicts with expanded per-epoch links; quarantine before fitting"
+            ],
+            "reusable_local_files": [
+              "work\\task-resources-coding-science\\critpt-example-tasks.txt",
+              "work\\task-resources-coding-science\\critpt.html"
+            ]
+          }
+        ],
+        "task_index_path": "work\\task-resources-coding-science\\task-index.json",
+        "critpt_score_file": "work\\task-resources-coding-science\\critpt-example-model-scores.json",
+        "limitations": "A negative finding only describes the inspected pages and artifacts, not all available or paid resources."
+      },
+      "task_index": {
+        "schema_version": "generalrouter-public-task-resources.v1",
+        "task_case_count": 9,
+        "count_policy": "Main problem cases only; subproblems/checkpoints separately counted, not inflated as independent samples",
+        "tasks": [
+          {
+            "benchmark": "SciCode",
+            "task_id": "10",
+            "title": "ewald_summation",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\scicode-example-tasks.txt",
+            "source_url": "https://artificialanalysis.ai/evaluations/scicode",
+            "subtask_ids": [
+              "10.1",
+              "10.2",
+              "10.3",
+              "10.4",
+              "10.5",
+              "10.6",
+              "10.7",
+              "10.8",
+              "10.9",
+              "10.10",
+              "10.11"
+            ],
+            "per_task_model_scores_present": false,
+            "scoring": "Python execution; all unit tests must pass; AA scores 288 subproblems, 3 repetitions",
+            "source_limitations": [
+              "AA displayed assertion snippets use target references; full numeric h5 reference data not downloaded",
+              "AA describes benchmark as under review"
+            ]
+          },
+          {
+            "benchmark": "SciCode",
+            "task_id": "77",
+            "title": "Berendsen_thermostat",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\scicode-hf-one-row.json",
+            "source_url": "https://datasets-server.huggingface.co/rows?dataset=SciCode1%2FSciCode&config=default&split=test&offset=0&length=1",
+            "subtask_count": 12,
+            "per_task_model_scores_present": false,
+            "source_kind": "official upstream Hugging Face dataset row, duplicated by repository first_problem.jsonl",
+            "aa_protocol_equivalence": "not established for exact upstream revision; retain as task material"
+          },
+          {
+            "benchmark": "Terminal-Bench 4.0",
+            "task_id": "live-database-cutover",
+            "title": "Zero-downtime MySQL to PostgreSQL Migration",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\terminalbench-4-0-example-tasks.txt",
+            "source_url": "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+            "per_task_model_scores_present": false,
+            "scoring": "AA sample success criteria preserved; whole task passes only if all tests pass",
+            "source_limitations": [
+              "AA instruction and success criteria only; container assets, environment and full verifier not downloaded",
+              "Harbor Hub public landing page returned Loading tasks, not actual task files"
+            ]
+          },
+          {
+            "benchmark": "Terminal-Bench 4.0",
+            "task_id": "photonic-waveguide-routing",
+            "title": "Photonic Waveguide Routing",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\terminalbench-4-0-example-tasks.txt",
+            "source_url": "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+            "per_task_model_scores_present": false,
+            "scoring": "AA sample success criteria preserved; whole task passes only if all tests pass",
+            "source_limitations": [
+              "AA instruction and success criteria only; container assets, environment and full verifier not downloaded",
+              "Harbor Hub public landing page returned Loading tasks, not actual task files"
+            ]
+          },
+          {
+            "benchmark": "Terminal-Bench 4.0",
+            "task_id": "freecad-spring-clip",
+            "title": "Parametric Spring Clip in FreeCAD",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\terminalbench-4-0-example-tasks.txt",
+            "source_url": "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+            "per_task_model_scores_present": false,
+            "scoring": "AA sample success criteria preserved; whole task passes only if all tests pass",
+            "source_limitations": [
+              "AA instruction and success criteria only; container assets, environment and full verifier not downloaded",
+              "Harbor Hub public landing page returned Loading tasks, not actual task files"
+            ]
+          },
+          {
+            "benchmark": "Humanity's Last Exam",
+            "task_id": "6687ffb1091058ff19128813",
+            "title": "Two-step substitution cipher",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\hle-example-tasks.txt",
+            "source_url": "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+            "per_task_model_scores_present": false,
+            "answer_present": false,
+            "scoring": "AA LLM equality checker against reference answer; pass@1",
+            "source_limitations": [
+              "Official cais/hle sample-row endpoint returned 401; no credentials requested or restrictions bypassed",
+              "AA uses 2158 text-only questions from 2500-question revision; HLE Rolling/Diamond not substituted"
+            ]
+          },
+          {
+            "benchmark": "Humanity's Last Exam",
+            "task_id": "66e8db4fe1e483c59165a247",
+            "title": "Tardigrade protein hydrogel FTIR",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\hle-example-tasks.txt",
+            "source_url": "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+            "per_task_model_scores_present": false,
+            "answer_present": false,
+            "scoring": "AA LLM equality checker against reference answer; pass@1",
+            "source_limitations": [
+              "Official cais/hle sample-row endpoint returned 401; no credentials requested or restrictions bypassed",
+              "AA uses 2158 text-only questions from 2500-question revision; HLE Rolling/Diamond not substituted"
+            ]
+          },
+          {
+            "benchmark": "Humanity's Last Exam",
+            "task_id": "66e9c038d2d1c2dec1f6978e",
+            "title": "Old Russian stress patterns",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\hle-example-tasks.txt",
+            "source_url": "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+            "per_task_model_scores_present": false,
+            "answer_present": false,
+            "scoring": "AA LLM equality checker against reference answer; pass@1",
+            "source_limitations": [
+              "Official cais/hle sample-row endpoint returned 401; no credentials requested or restrictions bypassed",
+              "AA uses 2158 text-only questions from 2500-question revision; HLE Rolling/Diamond not substituted"
+            ]
+          },
+          {
+            "benchmark": "CritPt",
+            "task_id": "quantum_error_correction",
+            "title": "Quantum Error Detection",
+            "fulltask_or_source_path": "work\\task-resources-coding-science\\critpt-example.json",
+            "source_url": "https://critpt.com/example",
+            "per_task_model_scores_present": true,
+            "source_kind": "author public example, not AA leaderboard per-task matrix",
+            "model_scores_path": "work\\task-resources-coding-science\\critpt-example-model-scores.json",
+            "subtask_ids": [
+              "quantum_error_correction_sub_0",
+              "quantum_error_correction_sub_1",
+              "quantum_error_correction_sub_2"
+            ],
+            "distinct_prompt_count": 3,
+            "displayed_slots": 4,
+            "duplicate_note": "main challenge duplicates checkpoint 3 prompt; carryover changes the experiment",
+            "scoring": "Authors publish binary correctness over 5 epochs in standalone/self-carryover/oracle-carryover contexts; expert answers and solution are public",
+            "aa_protocol_equivalence": "not established",
+            "source_limitations": [
+              "Not the same six reference models as Briefcase",
+              "Unknown efforts remain null",
+              "No fit performed"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "collection_directory": "work/task-resources-document-agent",
+      "manifest": {
+        "schema_version": "generalrouter-task-resources.v1",
+        "collected_at_utc": "2026-10-20T03:40:56.119542+00:00",
+        "sources": [
+          {
+            "name": "omniscience",
+            "url": "https://artificialanalysis.ai/evaluations/omniscience",
+            "retrieved_at_utc": "2026-10-20T03:38:27.720195+00:00",
+            "status": 200,
+            "final_url": "https://artificialanalysis.ai/evaluations/omniscience",
+            "content_type": "text/html; charset=utf-8",
+            "sha256": "af5169f7a1748a343aae53a22816fd736663bd786ba6724b95561b4ceeddc100",
+            "bytes": 1386939,
+            "saved_path": "omniscience.html"
+          },
+          {
+            "name": "gdp-pdf",
+            "url": "https://artificialanalysis.ai/evaluations/gdp-pdf",
+            "retrieved_at_utc": "2026-10-20T03:38:27.720643+00:00",
+            "status": 200,
+            "final_url": "https://artificialanalysis.ai/evaluations/gdp-pdf",
+            "content_type": "text/html; charset=utf-8",
+            "sha256": "e83c19aeef054def04b1597e2ec998b538e7cdc92b3fa69158cb0dfc6fb5dce9",
+            "bytes": 1172662,
+            "saved_path": "gdp-pdf.html"
+          },
+          {
+            "name": "aa-lcr",
+            "url": "https://artificialanalysis.ai/evaluations/artificial-analysis-long-context-reasoning",
+            "retrieved_at_utc": "2026-10-20T03:38:27.720942+00:00",
+            "status": 200,
+            "final_url": "https://artificialanalysis.ai/evaluations/artificial-analysis-long-context-reasoning",
+            "content_type": "text/html; charset=utf-8",
+            "sha256": "2a01f7de2d1581c9bd298ee9699eada7a2dd332642b3baafe79f824ea6d0cafb",
+            "bytes": 1126505,
+            "saved_path": "aa-lcr.html"
+          },
+          {
+            "name": "gdpval-aa",
+            "url": "https://artificialanalysis.ai/evaluations/gdpval-aa",
+            "retrieved_at_utc": "2026-10-20T03:38:27.721212+00:00",
+            "status": 200,
+            "final_url": "https://artificialanalysis.ai/evaluations/gdpval-aa",
+            "content_type": "text/html; charset=utf-8",
+            "sha256": "6ea8ca56dc48a69a87cbf5461ce9344caec1356073c43f85b20a469eb5b5512f",
+            "bytes": 1638945,
+            "saved_path": "gdpval-aa.html"
+          },
+          {
+            "name": "automationbench-aa",
+            "url": "https://artificialanalysis.ai/evaluations/automationbench-aa",
+            "retrieved_at_utc": "2026-10-20T03:38:27.721679+00:00",
+            "status": 200,
+            "final_url": "https://artificialanalysis.ai/evaluations/automationbench-aa",
+            "content_type": "text/html; charset=utf-8",
+            "sha256": "f022fc49b875d74402207be899e1af20793f6056a85600db49d3b4c2a62531fe",
+            "bytes": 1303172,
+            "saved_path": "automationbench-aa.html"
+          },
+          {
+            "name": "hf-omniscience-tree",
+            "url": "https://huggingface.co/api/datasets/ArtificialAnalysis/AA-Omniscience-Public/tree/main",
+            "retrieved_at_utc": "2026-10-20T03:39:38.496129+00:00",
+            "status": 200,
+            "final_url": "https://huggingface.co/api/datasets/ArtificialAnalysis/AA-Omniscience-Public/tree/main",
+            "content_type": "application/json; charset=utf-8",
+            "sha256": "cdabc34ec60b6367ac011f99f4871a561b04e62e79153b1ff8378b577818436e",
+            "bytes": 1011,
+            "saved_path": "hf-omniscience-tree.html"
+          },
+          {
+            "name": "hf-lcr-tree",
+            "url": "https://huggingface.co/api/datasets/ArtificialAnalysis/AA-LCR/tree/main",
+            "retrieved_at_utc": "2026-10-20T03:39:38.496460+00:00",
+            "status": 200,
+            "final_url": "https://huggingface.co/api/datasets/ArtificialAnalysis/AA-LCR/tree/main",
+            "content_type": "application/json; charset=utf-8",
+            "sha256": "37257e618ed9009403cdf97e8698cc66dcd15b613feff70f3de8fc93727d2ad8",
+            "bytes": 409,
+            "saved_path": "hf-lcr-tree.html"
+          },
+          {
+            "name": "hf-gdp-pdf-tree",
+            "url": "https://huggingface.co/api/datasets/surgeai/GDP.pdf/tree/main",
+            "retrieved_at_utc": "2026-10-20T03:39:38.496872+00:00",
+            "status": "fetch_failed",
+            "error": "HTTP Error 401: Unauthorized"
+          },
+          {
+            "name": "hf-omniscience-readme",
+            "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Omniscience-Public/raw/main/README.md",
+            "retrieved_at_utc": "2026-10-20T03:39:38.497613+00:00",
+            "status": 200,
+            "final_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Omniscience-Public/raw/main/README.md",
+            "content_type": "text/plain; charset=utf-8",
+            "sha256": "e75f912ebd1c5ea40b47692a98bc684e13da32af226694024f4a94eab7327481",
+            "bytes": 11444,
+            "saved_path": "hf-omniscience-readme.html"
+          },
+          {
+            "name": "hf-lcr-readme",
+            "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-LCR/raw/main/README.md",
+            "retrieved_at_utc": "2026-10-20T03:39:38.497790+00:00",
+            "status": 200,
+            "final_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-LCR/raw/main/README.md",
+            "content_type": "text/plain; charset=utf-8",
+            "sha256": "a07bb0e510eebe33be1290770efe29981374544212f897e68b753a62ca6aeb16",
+            "bytes": 16803,
+            "saved_path": "hf-lcr-readme.html"
+          },
+          {
+            "name": "gdpval-page-script-0",
+            "url": "https://artificialanalysis.ai/_next/static/chunks/app/%5Blocale%5D/evaluations/gdpval-aa/page-9c3d7a93120a7363.js",
+            "retrieved_at_utc": "2026-10-20T03:39:38.588810+00:00",
+            "status": 200,
+            "final_url": "https://artificialanalysis.ai/_next/static/chunks/app/%5Blocale%5D/evaluations/gdpval-aa/page-9c3d7a93120a7363.js",
+            "content_type": "application/javascript; charset=utf-8",
+            "sha256": "d00f64152d046621f8f58360b5c4a4e8676f903218040be69b000b2334b94dea",
+            "bytes": 40794,
+            "saved_path": "gdpval-page-script-0.html"
+          },
+          {
+            "name": "omniscience-dataset-csv",
+            "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Omniscience-Public/resolve/main/AA-Omniscience_dataset_public.csv",
+            "retrieved_at_utc": "2026-10-20T03:39:55.487631+00:00",
+            "status": 200,
+            "final_url": "https://huggingface.co/api/resolve-cache/datasets/ArtificialAnalysis/AA-Omniscience-Public/e4883edbb9f5ccf2b2a8fdc6fb65e01a58e99849/AA-Omniscience_dataset_public.csv",
+            "content_type": "text/plain; charset=utf-8",
+            "sha256": "1e04603dafa3bd0d16d8151f07a5eb74c43d90c3a85d2fca120da2359174d02f",
+            "bytes": 154615,
+            "saved_path": "omniscience-dataset-csv.csv"
+          },
+          {
+            "name": "lcr-dataset-csv",
+            "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-LCR/resolve/main/AA-LCR_Dataset.csv",
+            "retrieved_at_utc": "2026-10-20T03:39:55.488147+00:00",
+            "status": 200,
+            "final_url": "https://huggingface.co/api/resolve-cache/datasets/ArtificialAnalysis/AA-LCR/9a77ef56b717057ade24ceab4d273712a0b4f19e/AA-LCR_Dataset.csv",
+            "content_type": "text/plain; charset=utf-8",
+            "sha256": "aea5198982436fa774f616964bbeb34716de9e94368a123275b9355765c9b73b",
+            "bytes": 145408,
+            "saved_path": "lcr-dataset-csv.csv"
+          },
+          {
+            "name": "gdp-pdf-engineering-source",
+            "url": "https://artificialanalysiscdn.com/evaluations/gdp-pdf/3d3981fb7ace5d0e551f6f45b5c98e5d6b599541/7e8d3e45-3122-4fa0-93ff-04341d842946_b5d91c2a-227e-49e9-a6a0-c47576e333ae_0ea94dc6-e77e-41b5-8114-c01fc31801f7.pdf",
+            "retrieved_at_utc": "2026-10-20T03:39:55.488490+00:00",
+            "status": 200,
+            "final_url": "https://artificialanalysiscdn.com/evaluations/gdp-pdf/3d3981fb7ace5d0e551f6f45b5c98e5d6b599541/7e8d3e45-3122-4fa0-93ff-04341d842946_b5d91c2a-227e-49e9-a6a0-c47576e333ae_0ea94dc6-e77e-41b5-8114-c01fc31801f7.pdf",
+            "content_type": "application/pdf",
+            "sha256": "da599a4a89c671fe503a98e54a09bdcd1eefc6c866513cafe93e9ad32e42b16d",
+            "bytes": 4443190,
+            "saved_path": "gdp-pdf-engineering-source.pdf"
+          },
+          {
+            "name": "lcr-extracted-text",
+            "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-LCR/resolve/main/extracted_text/AA-LCR_extracted-text.zip",
+            "retrieved_at_utc": "2026-10-20T03:40:07.119724+00:00",
+            "status": 200,
+            "final_url": "https://us.aws.cdn.hf.co/xet-bridge-us/6892359d51e05640c9982a92/5675a4791e6b85b32ad03c14972ffa7028713a6cc5dba25ed9509ba0eb753536",
+            "content_type": "application/zip",
+            "sha256": "5e839249826f6b9bd5324f0d139089c9dc481ccb3f212a6dfad00c51045d9d8a",
+            "bytes": 4023468,
+            "saved_path": "lcr-extracted-text.zip"
+          },
+          {
+            "name": "lcr-extracted-tree",
+            "url": "https://huggingface.co/api/datasets/ArtificialAnalysis/AA-LCR/tree/main/extracted_text",
+            "retrieved_at_utc": "2026-10-20T03:40:03.922360+00:00",
+            "status": 200,
+            "sha256": "71b342c0eb2d7a76c596c99f405215ac8b448e434c2baeea20e1e3424d4ba873",
+            "bytes": 322,
+            "saved_path": "lcr-extracted-tree.json"
+          }
+        ],
+        "task_index": "task-index.json",
+        "summary": {
+          "page_example_cards": 14,
+          "gdp_pdf_scored_submissions": 5,
+          "multi_model_same_task_score_matrix": false,
+          "omniscience_questions_with_answers": 600,
+          "lcr_questions_with_answers": 100,
+          "lcr_text_archive_downloaded": true,
+          "gdp_pdf_source_pdf_downloaded": 1,
+          "blocked_source": "https://huggingface.co/api/datasets/surgeai/GDP.pdf/tree/main returned HTTP 401"
+        },
+        "limits": [
+          "No private endpoint, login, paywall bypass, model call, testing or review used.",
+          "Omniscience full benchmark 6000 questions private; downloaded official public subset contains 600.",
+          "AutomationBench public examples are not AA held-out benchmark tasks; no per-example model scores found.",
+          "GDP.pdf 5th example has placeholder-like prompt; do not silently repair.",
+          "AA-LCR example display IDs differ from official dataset IDs; match by exact question text."
+        ]
+      },
+      "task_index": {
+        "schema_version": "generalrouter-task-resource-index.v1",
+        "created_at_utc": "2026-10-20T03:40:56.118645+00:00",
+        "tasks": [
+          {
+            "evaluation": "omniscience",
+            "display_task_id": "1",
+            "task_text_path": "omniscience-example-1.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "available_in_official_public_csv",
+            "attachments_status": "none_required",
+            "dataset_row": {
+              "domain": "Software Engineering",
+              "topic": "JavaScript",
+              "subtopic": "Javascript frontend frameworks",
+              "question_id": "545",
+              "question": "In React’s Canary Fragment refs API, which FragmentInstance method returns a flat array of DOMRect objects for all children?",
+              "answer": "getClientRects"
+            }
+          },
+          {
+            "evaluation": "omniscience",
+            "display_task_id": "2",
+            "task_text_path": "omniscience-example-2.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "available_in_official_public_csv",
+            "attachments_status": "none_required",
+            "dataset_row": {
+              "domain": "Health",
+              "topic": "Medicine",
+              "subtopic": "Pharmacy",
+              "question_id": "178",
+              "question": "In what year was the Nobel Prize in Medicine awarded to Domagk for discovering prontosil’s chemotherapeutic value?",
+              "answer": "1938"
+            }
+          },
+          {
+            "evaluation": "omniscience",
+            "display_task_id": "3",
+            "task_text_path": "omniscience-example-3.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "available_in_official_public_csv",
+            "attachments_status": "none_required",
+            "dataset_row": {
+              "domain": "Finance",
+              "topic": "Economics",
+              "subtopic": "Macroeconomics",
+              "question_id": "51",
+              "question": "Over what years did Roubini and Sachs examine 15 OECD countries when assessing trends in tax-to-GDP ratios?",
+              "answer": "1960–1986"
+            }
+          },
+          {
+            "evaluation": "aa-lcr",
+            "display_task_id": "2",
+            "task_text_path": "aa-lcr-example-2.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "available_in_official_csv",
+            "attachments_status": "complete_extracted_text_downloaded_in_zip",
+            "dataset_question_id": "1",
+            "dataset_row": {
+              "": "0",
+              "document_category": "Academia",
+              "document_set_id": "ac_markets",
+              "question_id": "1",
+              "question": "Based on the provided documents, there appears to be a correlation between industry concentration and the frequency of consumer-related infringements and undertakings issued by the ACCC. Identify and rank the industries explicitly mentioned in the paragraphs, according to the number of infringements over the past three decades. Exclude Broadcasting Industry from the answer.",
+              "answer": "1. Airline Industry (12)\\n2. Accommodation Industry (4)",
+              "data_source_filenames": "barriers-to-collaboration-and-commercialisation-iisa.txt;The-State-of-Competition.txt;FULLTEXT01.txt;DAF-COMP(2023)14.en.txt",
+              "data_source_urls": "https://competition-policy.ec.europa.eu/system/files/2024-06/A_taxonomy_of_industry_competition_launch.pdf;https://www.industry.gov.au/sites/default/files/2023-11/barriers-to-collaboration-and-commercialisation-iisa.pdf;https://e61.in/wp-content/uploads/2023/08/The-State-of-Competition.pdf;https://uu.diva-portal.org/smash/get/diva2:1798138/FULLTEXT01.pdf;https://one.oecd.org/document/DAF/COMP(2023)14/en/pdf",
+              "input_tokens": "94494"
+            },
+            "extracted_documents": [
+              {
+                "filename": "barriers-to-collaboration-and-commercialisation-iisa.txt",
+                "path": "lcr-example-documents\\barriers-to-collaboration-and-commercialisation-iisa.txt",
+                "sha256": "c3fa0c803bede4d8ef60cb3642a95c900fb83677084578938d66cc1ed2327866",
+                "archive_member": "lcr/Academia/ac_markets/barriers-to-collaboration-and-commercialisation-iisa.txt"
+              },
+              {
+                "filename": "The-State-of-Competition.txt",
+                "path": "lcr-example-documents\\The-State-of-Competition.txt",
+                "sha256": "259970fdec3064c9711bc1deb8df03cc0f02ffc02b9edef01e96eff2d0ae1f8e",
+                "archive_member": "lcr/Academia/ac_markets/The-State-of-Competition.txt"
+              },
+              {
+                "filename": "FULLTEXT01.txt",
+                "path": "lcr-example-documents\\FULLTEXT01.txt",
+                "sha256": "cba7e9e790c8e50efede1aaf9aa278ae93589702d56c2c5885ca4d41074a2bac",
+                "archive_member": "lcr/Academia/ac_markets/FULLTEXT01.txt"
+              },
+              {
+                "filename": "DAF-COMP(2023)14.en.txt",
+                "path": "lcr-example-documents\\DAF-COMP(2023)14.en.txt",
+                "sha256": "131e7a4d46f48fc933fe6439350fd7b11a31c4a4ddfe2255548dfd9715eefc54",
+                "archive_member": "lcr/Academia/ac_markets/DAF-COMP(2023)14.en.txt"
+              }
+            ]
+          },
+          {
+            "evaluation": "aa-lcr",
+            "display_task_id": "8",
+            "task_text_path": "aa-lcr-example-8.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "available_in_official_csv",
+            "attachments_status": "complete_extracted_text_downloaded_in_zip",
+            "dataset_question_id": "6",
+            "dataset_row": {
+              "": "5",
+              "document_category": "Company_Documents",
+              "document_set_id": "co_dc_2Q23",
+              "question_id": "6",
+              "question": "What is the difference in total stockholders' equity for the Nasdaq and NYSE listed company that are the primary focus of the documents, at June 30, 2023? Report your answer in thousands of dollars",
+              "answer": "5597456",
+              "data_source_filenames": "Copy of Digital-Realty-2Q23-Earnings-Supplemental.txt;Copy of Digital-Realty-2Q23-Earnings-Press-Release-FINAL.txt;Copy of Equinix Q2 2023 Press Release and Financials.txt",
+              "data_source_urls": "https://s29.q4cdn.com/106493612/files/doc_financials/2023/q2/Digital-Realty-2Q23-Earnings-Supplemental.pdf;https://s29.q4cdn.com/106493612/files/doc_financials/2023/q2/Digital-Realty-2Q23-Earnings-Press-Release-FINAL.pdf;https://d1io3yog0oux5.cloudfront.net/_7d21ae8f93fa6eb7c686ed6c0c1aa7ed/equinix/db/2183/23185/earnings_release/Equinix+Q2+2023+Press+Release+and+Financials.pdf",
+              "input_tokens": "71709"
+            }
+          },
+          {
+            "evaluation": "aa-lcr",
+            "display_task_id": "111",
+            "task_text_path": "aa-lcr-example-111.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "available_in_official_csv",
+            "attachments_status": "complete_extracted_text_downloaded_in_zip",
+            "dataset_question_id": "69",
+            "dataset_row": {
+              "": "68",
+              "document_category": "Government_Consultations",
+              "document_set_id": "gc_bnpl",
+              "question_id": "69",
+              "question": "I am looking to read the submissions made by Buy Now, Pay Later companies. Please provide a list of these companies in alphabetical order of who's documents I should read.",
+              "answer": "Afterpay, Zip",
+              "data_source_filenames": "c2024-504798-financial-counselling-victoria.txt;c2024-504798-mfaa.txt;c2024-504798-epa.txt;c2024-504798-equifax.txt;c2024-504798-hamilton-locke.txt;c2024-504798-fintech-australia.txt;c2024-504798-nab.txt;c2024-504798-ara.txt;c2024-504798-ed-em.txt;c2024-504798-earg.txt;c2024-504798-ed-es.txt;c2024-504798-ed-bill.txt;c2024-504798-asic.txt;c2024-504798-afca.txt;c2024-504798-oaic.txt;c2024-504798-afterpay.txt;c2024-504798-s-nla.txt;c2024-504798-law-council-of-australia.txt;c2024-504798-ncpa.txt;c2024-504798-ed-regs.txt;c2024-504798-fbaa.txt;c2024-504798-zip.txt;c2024-504798-joint-consumer-group.txt;c2024-504798-good-shepherd.txt",
+              "data_source_urls": "https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-financial-counselling-victoria.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-mfaa.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-epa.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-equifax.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-hamilton-locke.pdf;https://treasury.gov.au/sites/default/files/2024-04/c2023-436961-fintech-australia.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-nab.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-ara.pdf;https://treasury.gov.au/sites/default/files/2024-03/c2024-504798-ed-em.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-earg.pdf;https://treasury.gov.au/sites/default/files/2024-03/c2024-504798-ed-es.pdf;https://treasury.gov.au/sites/default/files/2024-03/c2024-504798-ed-bill.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-asic.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-afca.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-oaic.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-afterpay.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-s-nla.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-law-council-of-australia.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-ncpa.pdf;https://treasury.gov.au/sites/default/files/2024-03/c2024-504798-ed-regs.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-fbaa.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-zip.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-joint-consumer-group.pdf;https://treasury.gov.au/sites/default/files/2024-05/c2024-504798-good-shepherd.pdf",
+              "input_tokens": "114563"
+            }
+          },
+          {
+            "evaluation": "automationbench-aa",
+            "display_task_id": "finance.grant_expense_tracking",
+            "task_text_path": "automationbench-aa-example-finance.grant_expense_tracking.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "not_supplied_on_example_card",
+            "attachments_status": "simulated_environment_described_not_executed"
+          },
+          {
+            "evaluation": "automationbench-aa",
+            "display_task_id": "sales.docusign_sequential_signing",
+            "task_text_path": "automationbench-aa-example-sales.docusign_sequential_signing.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "not_supplied_on_example_card",
+            "attachments_status": "simulated_environment_described_not_executed"
+          },
+          {
+            "evaluation": "automationbench-aa",
+            "display_task_id": "hr.twilio_interview_reminders",
+            "task_text_path": "automationbench-aa-example-hr.twilio_interview_reminders.txt",
+            "model_task_scores": [],
+            "reference_answer_status": "not_supplied_on_example_card",
+            "attachments_status": "simulated_environment_described_not_executed"
+          },
+          {
+            "evaluation": "gdp-pdf",
+            "task_id": "0fd75f2a-9435-4c85-9dab-b5f452a3a9f3",
+            "title": "TNXB-associated EDS subtypes",
+            "full_task_and_rubric_path": "gdp-pdf-examples.json",
+            "record_index": 0,
+            "model_task_scores": [
+              {
+                "model_name": "Gemini 3.5 Flash",
+                "effort": "unknown_unless_explicit_in_model_name",
+                "all_pass": false,
+                "mean_criterion_pass": 0.9090909090909091,
+                "run_count": 1,
+                "note": "one reviewed submission, not a multi-model per-task matrix"
+              }
+            ],
+            "reference_answer_status": "criterion_rubric_available",
+            "attachment_url": "https://artificialanalysiscdn.com/evaluations/gdp-pdf/3d3981fb7ace5d0e551f6f45b5c98e5d6b599541/6050c0f2-f55f-4f3c-8b62-8bbdbb427e4d_b5d91c2a-227e-49e9-a6a0-c47576e333ae_0db19a82-6e24-4b05-9be6-7b262146ec55.pdf",
+            "attachment_path": null,
+            "attachments_status": "public_url_retained_not_downloaded",
+            "usability_warning": null
+          },
+          {
+            "evaluation": "gdp-pdf",
+            "task_id": "6070d5f8-d8f0-4557-aa60-fde07763513f",
+            "title": "Subleasing and pond-adjacent lots",
+            "full_task_and_rubric_path": "gdp-pdf-examples.json",
+            "record_index": 1,
+            "model_task_scores": [
+              {
+                "model_name": "GPT-5.5 Medium",
+                "effort": "unknown_unless_explicit_in_model_name",
+                "all_pass": false,
+                "mean_criterion_pass": 0.6,
+                "run_count": 1,
+                "note": "one reviewed submission, not a multi-model per-task matrix"
+              }
+            ],
+            "reference_answer_status": "criterion_rubric_available",
+            "attachment_url": "https://artificialanalysiscdn.com/evaluations/gdp-pdf/3d3981fb7ace5d0e551f6f45b5c98e5d6b599541/b6c6ea4b-2ca6-435b-abdc-9b171318cf6a_b5d91c2a-227e-49e9-a6a0-c47576e333ae_28a2af60-0ba2-46cc-9d82-b133a91a82f6.pdf",
+            "attachment_path": null,
+            "attachments_status": "public_url_retained_not_downloaded",
+            "usability_warning": null
+          },
+          {
+            "evaluation": "gdp-pdf",
+            "task_id": "2a74d072-a8fb-4962-a6ef-77b1fca4df7b",
+            "title": "Model 690 fryer wiring",
+            "full_task_and_rubric_path": "gdp-pdf-examples.json",
+            "record_index": 2,
+            "model_task_scores": [
+              {
+                "model_name": "Claude Sonnet 4.6",
+                "effort": "unknown_unless_explicit_in_model_name",
+                "all_pass": false,
+                "mean_criterion_pass": 0.25,
+                "run_count": 1,
+                "note": "one reviewed submission, not a multi-model per-task matrix"
+              }
+            ],
+            "reference_answer_status": "criterion_rubric_available",
+            "attachment_url": "https://artificialanalysiscdn.com/evaluations/gdp-pdf/3d3981fb7ace5d0e551f6f45b5c98e5d6b599541/7e8d3e45-3122-4fa0-93ff-04341d842946_b5d91c2a-227e-49e9-a6a0-c47576e333ae_0ea94dc6-e77e-41b5-8114-c01fc31801f7.pdf",
+            "attachment_path": "gdp-pdf-engineering-source.pdf",
+            "attachments_status": "downloaded",
+            "usability_warning": null
+          },
+          {
+            "evaluation": "gdp-pdf",
+            "task_id": "0227c280-d73c-42ed-9491-8b1f59ac7ae7",
+            "title": "Hurricane share of disaster costs",
+            "full_task_and_rubric_path": "gdp-pdf-examples.json",
+            "record_index": 3,
+            "model_task_scores": [
+              {
+                "model_name": "Llama 3.3 70B",
+                "effort": "unknown_unless_explicit_in_model_name",
+                "all_pass": false,
+                "mean_criterion_pass": 0.6,
+                "run_count": 1,
+                "note": "one reviewed submission, not a multi-model per-task matrix"
+              }
+            ],
+            "reference_answer_status": "criterion_rubric_available",
+            "attachment_url": "https://artificialanalysiscdn.com/evaluations/gdp-pdf/3d3981fb7ace5d0e551f6f45b5c98e5d6b599541/9aa846c0-2712-4e37-b8d0-ca039e3e50ee_b5d91c2a-227e-49e9-a6a0-c47576e333ae_0ec53663-a778-494d-aaa6-ee30da3ae772.pdf",
+            "attachment_path": null,
+            "attachments_status": "public_url_retained_not_downloaded",
+            "usability_warning": null
+          },
+          {
+            "evaluation": "gdp-pdf",
+            "task_id": "efb22c1d-4a15-4f00-98a7-f176e7f8d6ec",
+            "title": "Hail claim evidence review",
+            "full_task_and_rubric_path": "gdp-pdf-examples.json",
+            "record_index": 4,
+            "model_task_scores": [
+              {
+                "model_name": "GPT-5.6 Luna Low",
+                "effort": "unknown_unless_explicit_in_model_name",
+                "all_pass": false,
+                "mean_criterion_pass": 0.07692307692307693,
+                "run_count": 1,
+                "note": "one reviewed submission, not a multi-model per-task matrix"
+              }
+            ],
+            "reference_answer_status": "criterion_rubric_available",
+            "attachment_url": "https://artificialanalysiscdn.com/evaluations/gdp-pdf/3d3981fb7ace5d0e551f6f45b5c98e5d6b599541/ef73638d-0900-4e68-b760-56c29b775daa_b5d91c2a-227e-49e9-a6a0-c47576e333ae_ebf79163-5175-40cb-997b-f6d744505548.pdf",
+            "attachment_path": null,
+            "attachments_status": "public_url_retained_not_downloaded",
+            "usability_warning": "published prompt is placeholder-like; exclude from calibration without repaired prompt"
+          }
+        ],
+        "official_datasets": {
+          "omniscience": {
+            "question_count": 600,
+            "path": "omniscience-dataset-csv.csv",
+            "fields": [
+              "domain",
+              "topic",
+              "subtopic",
+              "question_id",
+              "question",
+              "answer"
+            ],
+            "model_task_scores": false
+          },
+          "lcr": {
+            "question_count": 100,
+            "path": "lcr-dataset-csv.csv",
+            "fields": [
+              "",
+              "document_category",
+              "document_set_id",
+              "question_id",
+              "question",
+              "answer",
+              "data_source_filenames",
+              "data_source_urls",
+              "input_tokens"
+            ],
+            "model_task_scores": false,
+            "first_example_documents": [
+              {
+                "filename": "barriers-to-collaboration-and-commercialisation-iisa.txt",
+                "path": "lcr-example-documents\\barriers-to-collaboration-and-commercialisation-iisa.txt",
+                "sha256": "c3fa0c803bede4d8ef60cb3642a95c900fb83677084578938d66cc1ed2327866",
+                "archive_member": "lcr/Academia/ac_markets/barriers-to-collaboration-and-commercialisation-iisa.txt"
+              },
+              {
+                "filename": "The-State-of-Competition.txt",
+                "path": "lcr-example-documents\\The-State-of-Competition.txt",
+                "sha256": "259970fdec3064c9711bc1deb8df03cc0f02ffc02b9edef01e96eff2d0ae1f8e",
+                "archive_member": "lcr/Academia/ac_markets/The-State-of-Competition.txt"
+              },
+              {
+                "filename": "FULLTEXT01.txt",
+                "path": "lcr-example-documents\\FULLTEXT01.txt",
+                "sha256": "cba7e9e790c8e50efede1aaf9aa278ae93589702d56c2c5885ca4d41074a2bac",
+                "archive_member": "lcr/Academia/ac_markets/FULLTEXT01.txt"
+              },
+              {
+                "filename": "DAF-COMP(2023)14.en.txt",
+                "path": "lcr-example-documents\\DAF-COMP(2023)14.en.txt",
+                "sha256": "131e7a4d46f48fc933fe6439350fd7b11a31c4a4ddfe2255548dfd9715eefc54",
+                "archive_member": "lcr/Academia/ac_markets/DAF-COMP(2023)14.en.txt"
+              }
+            ],
+            "version_note": "Dataset README states questions/document sets unchanged from v1.0.0 to v1.1; scoring prompts changed. Match page example to CSV by full question text, not display ID."
+          }
+        },
+        "gdpval_examples": "gdpval-public-example-links.json",
+        "six_reference_models_cross_benchmark_score_matrix": "not_found_in_these_public_examples",
+        "calibration_note": "Only GDP.pdf examples in this collection have per-task model scores, one model per task. No fitted weights generated."
+      }
+    }
+  ],
+  "task_calibration_scope": {
+    "schema_version": "generalrouter-task-calibration-scope.v1",
+    "user_local_date": "2026-10-19",
+    "excluded_task_benchmarks": {
+      "GDP.pdf": {
+        "status": "excluded_by_user",
+        "reason": "User chose to stop GDP task calibration after discussing GDP.pdf's single-model submissions.",
+        "scope": "GDP.pdf task calibration examples"
+      }
+    },
+    "existing_briefcase_fit_scope": "Four tasks with four complete reference feature vectors each; provisional regularized reference fitting only.",
+    "four_dimensional_task_fitting_performed": true,
+    "fitted_task_ids": [
+      "w1_t1",
+      "w1_t2",
+      "w1_t3",
+      "w1_t4"
+    ],
+    "per_task_complete_reference_models": 4,
+    "input_observation_count": 24,
+    "included_observation_count": 16,
+    "excluded_observation_count": 8,
+    "fit_status": "limited_regularized_reference_fit",
+    "predictive_validation_performed": false
+  },
+  "calibration_status": {
+    "cross_domain_four_dimensional_calibration_complete": false,
+    "reason": "Task text, reference answers, reviewed submissions, and matched multi-model task outcomes have different evidence coverage. Author outcomes with different effort/tools/versions are retained separately from AA outcomes.",
+    "new_fitting_performed": true,
+    "regularized_reference_fit_task_count": 4,
+    "fit_file": "skills/generalrouter-task-profile/references/calibration.json",
+    "model_calls_performed": false,
+    "tests_or_review_performed": false
+  }
+}

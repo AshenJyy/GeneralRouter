@@ -1,0 +1,186 @@
+{
+  "schema_version": "generalrouter-host-integration-plan.v1",
+  "project_name": "GeneralRouter",
+  "architecture_scope": {
+    "positioning": "A subtask-level model-routing plugin for DeepSeek Harness; no separate orchestrator is planned.",
+    "dsh_responsibilities": "Main agent, sessions, tools, native subagent execution and orchestration.",
+    "generalrouter_responsibilities": "Capability and task reference data, candidate matching, reported-quota admission, selection explanations and usage records.",
+    "dispatch_ownership": "The DSH main agent receives GeneralRouter's selection and explicitly calls the native subagent tool. DSH retains execution ownership.",
+    "optimization_boundary": "Cost and timing are recorded for evaluation. The current matcher does not establish cost or completion-time optimality."
+  },
+  "status": "v0.1.5_implemented_without_runtime_validation_prior_v0.1.4_user_smoke_completed",
+  "target_dsh_version": "0.2.1-rc.2",
+  "model_mapping_owner": "Plugin bundles the 12 AA-to-callable-model/effort mappings. The user owns DSH App provider registration, allowed models and effort metadata.",
+  "source_snapshots": {
+    "deepseek_harness": {
+      "repository": "https://github.com/deepseek-ai/deepseek-harness",
+      "tag": "dsh-v0.2.1-rc.2",
+      "commit": "687f282e8625c6b8d11ff58211a90524be2e4317"
+    },
+    "easycliproxyapi": {
+      "repository": "https://github.com/router-for-me/EasyCLIProxyAPI",
+      "commit": "04c68c295ce0979b6719f58fe21a7da8698b20b7"
+    },
+    "cliproxyapi_core": {
+      "repository": "https://github.com/router-for-me/CLIProxyAPI",
+      "commit": "ae3ee3be303fb07fb8173279923413005bf32177"
+    }
+  },
+  "dispatch_flow": [
+    "DSH main agent uses the GeneralRouter planner skill and 12 human-defined semantic anchors to prepare task-profile.v3, normally with planner_estimated weights and a task-grounded rationale.",
+    "A Cordis ESM plugin registers generalrouter_match and sends the profile to the existing local Python CLI.",
+    "The matcher returns candidate scores and the selection. The adapter resolves the AA configuration to an allowed DSH provider/model route.",
+    "Read applicable reported ECPA percentages and exclude explicitly exhausted applicable allowance; unknown percentage stays unknown. Issue a one-use dispatch ticket without deducting an estimated percentage.",
+    "The main agent explicitly calls DSH's native subagent tool with the selected provider/model and a supported reasoning_effort, or omits effort to use the selected model's default.",
+    "DSH owns worker execution and completion; the plugin records selections, actual dispatch settings, usage and timing."
+  ],
+  "dsh_adapter": {
+    "implementation_style": "Standard DSH npm tarball with prebuilt Cordis ESM entry point and a bundled Python runtime; retain main-agent dispatch ownership.",
+    "tool_registration": "Export apply(ctx); register a tool using defineTool and ctx.tools.register().",
+    "subagent_backend": "Prefer in-process spawn. Native model overrides are supported by in-process and DSH SDK backends, not by the official Codex, Claude Code or ACP subagent backends.",
+    "model_selection_setup": "Enable child model selection and configure the precise allowed provider/model list in Plugins > Subagent. Start a new session after changing this policy.",
+    "route_mapping": "Bundled explicit mappings resolve AA configuration IDs to exact model IDs already observed in the ECPA catalog. The host session must independently expose the same provider/model pairs.",
+    "effort_policy": "Inspect supported effort settings, apply only a corresponding supported mapping, otherwise omit reasoning_effort. Record the actual setting and any fallback. Invalid efforts must not be sent with an assumption that DSH will automatically downgrade them.",
+    "skill_location_in_app_workspace": "Bundled runtime/skills/generalrouter-task-profile registered with the DSH skill service for all workspaces; a same-name project skill takes precedence.",
+    "gateway": "Use the user's configured compatible provider with the actual ECPA baseURL, API protocol, model IDs and secret source. The user completed one native-subagent smoke workflow in v0.1.4; provider and execution-backend configuration remain user-owned and are not changed by this release.",
+    "installation_after_package_exists": "In DSH App, open Plugins > Add plugin, enter the absolute path to the downloaded dsh-generalrouter-0.1.5.tgz package, install and enable the bundle. Existing users update the package through App plugin management and start a new main session. Keep existing shared settings and project records. Leave projectRoot and hostConfig empty. Shared configuration and the bundled skill work across workspaces; no per-workspace copying is required. Same-name project or user skills still override the bundle and may need updating to use its new instructions. DSH provider registration, the native model allowlist and effort metadata remain user-owned.",
+    "project_path_defaults": "Prefer session.header.cwd from main-session creation; use workingDirectory.get(session) only if that header is absent. Never infer the root from the package or DSH process directory. A nonempty projectRoot overrides the default. Bind the workspace when establishing a run and retain it across children, retries and records. A missing root is a setup error. Switching workspaces requires a new main session.",
+    "hook_boundary": "Do not mutate subagent arguments from tools/pre-execute or assume subagent/start/end can reroute a call.",
+    "sources": [
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/tool-subagent/README.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/tool-subagent/src/model-selection.ts",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/tool-subagent/src/model-selection-settings.ts",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-pi-ai/README.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/user/develop/basic/tool.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/user/develop/basic/publish.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/skill/skill-filesystem/README.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/tools/README.md"
+    ],
+    "configuration_layers": {
+      "order": [
+        "bundled defaults",
+        "$DSH_HOME/generalrouter/host.local.json (default ~/.dsh/generalrouter/host.local.json)",
+        "<projectRoot>/host.local.json or the explicit hostConfig file"
+      ],
+      "merge": "Object fields, including routes, merge recursively. Project settings may contain only changed fields. Missing optional host files retain the preceding layer; no external host file is required for built-in matching.",
+      "path_origins": "Relative routing_config, rates_file and quota_file paths resolve from the host configuration file that defines the field. A project-specified quota_file selects a complete quota file; do not mix account identities or credentials across layers.",
+      "workspace_state": "Relative state_dir always resolves from the current workspace. Absolute state_dir must stay inside that workspace. Task, usage and quota-cache state are separate per workspace.",
+      "skill": "Plugin registers the bundled planner skill across sessions. A same-name project skill may override it. Per-workspace skill copies are not required.",
+      "missing_quota_connection": "Keep allowance unknown and permit matching under the built-in defaults; unknown is not unlimited allowance.",
+      "existing_project_files": "Existing local host/quota files and project skills remain optional overrides. The plugin does not delete or overwrite them."
+    }
+  },
+  "task_profile_policy": {
+    "contract": "task-profile.v3",
+    "default_weight_source": "planner_estimated",
+    "semantic_anchors": {
+      "file": "runtime/skills/generalrouter-task-profile/references/semantic-anchors.json",
+      "version": "generalrouter-semantic-anchors.v1",
+      "count": 12,
+      "origin": "Human-defined task examples with explicit reasons for their relative capability weights; not empirical AA task calibration."
+    },
+    "planner_estimation": "Use the four-dimensional definitions and closest semantic examples to estimate four nonnegative weights summing to one. Keep source_task_id and calibration_anchor_id empty; rationale records the analogy and adjustments.",
+    "unknown_policy": "Use uncalibrated with four nulls for insufficient task information or central requirements outside the four-dimensional coverage. Missing matching AA samples alone does not require nulls.",
+    "historical_reference_fits": "Retain exact and analogical bindings to the four Briefcase regularized reference fits with their original complete weights. Small-sample regression coefficients are not semantic ground truth for the manual examples.",
+    "compatibility": "The source enum is extended within task-profile.v3. Existing legal profiles remain compatible and are not rewritten, including saved four-null plans; new profiles in new sessions adopt the new instructions.",
+    "reference_updates": "Resources are bundled at fixed versions and may be updated with a later release. No live benchmark search or automatic periodic update is performed.",
+    "matching_boundary": "Four-dimensional model capability snapshots and the 12 configurations retain their roles. Numerical task vectors still use the default 0.4 AA-category prior; four-null profiles use the explicit AA-composite fallback. Price, latency, difficulty and effort resource costs are not added to the selection formula.",
+    "measurement_boundary": "Weight-source labels record provenance, not accuracy. No new public-benchmark runs or calibration claims accompany this update."
+  },
+  "quota_adapter": {
+    "implementation_style": "Read the same CLIProxyAPI credential/model metadata and quota-request chain used by ECPA. No user-defined groups, account-to-group assignments or per-job percentage estimates.",
+    "installed_version": "Observed ECPA 0.3.46 with CLIProxyAPI core 8.0.34; collectors target explicit v8 or v0 configuration without probing versions.",
+    "current_upstream_management_routes": {
+      "credentials": "GET /v8/management/credentials",
+      "provider_request": "POST /v8/management/requests/api-call",
+      "authentication": "Separate management key supplied locally; never include it in public artifacts."
+    },
+    "coverage": {
+      "codex_oauth": "Uses wham/usage. Keep returned usage percentages, primary/secondary/additional windows and reset times; these are not token balances or proof of coverage of every ChatGPT feature.",
+      "antigravity_oauth": "Uses retrieveUserQuotaSummary and keeps group/bucket remainingFraction, resetTime and window.",
+      "gemini_api_or_vertex": "No corresponding collector in the inspected ECPA quota service. Antigravity allowance cannot stand in for direct API or cloud billing budgets."
+    },
+    "polling_plan": "Cold read on first active use; subsequent automatic reads at most once per 600 seconds while matching or workers are active. No idle timer or idle refresh. Failed reads are cached for the same interval.",
+    "snapshot_fields": [
+      "credential_ref",
+      "provider",
+      "account_type",
+      "models",
+      "windows",
+      "remaining_percent",
+      "reset_at",
+      "fetched_at",
+      "status"
+    ],
+    "usage_collection": "Use DSH execution records or the existing ECPA usage collection/export path. Do not add a competing destructive consumer to the core usage queue.",
+    "sources": [
+      "https://github.com/router-for-me/EasyCLIProxyAPI/blob/04c68c295ce0979b6719f58fe21a7da8698b20b7/src/services/quotaService.ts",
+      "https://github.com/router-for-me/EasyCLIProxyAPI/blob/04c68c295ce0979b6719f58fe21a7da8698b20b7/src/services/quotaCache.ts",
+      "https://github.com/router-for-me/CLIProxyAPI/blob/ae3ee3be303fb07fb8173279923413005bf32177/docs/management-api-v8.md"
+    ],
+    "admission_policy": "Use only reported applicable percentages. Explicitly exhausted applicable allowance may exclude a route. Unreported, ambiguous or unscoped values remain unknown and do not by themselves block a route. The proxy retains account selection.",
+    "ticket_semantics": "A reservation_id identifies a one-use dispatch ticket; no assumed percentage is deducted and no settlement hold is computed.",
+    "limitations": "Cached provider percentages do not bound a future job's actual consumption or other clients. Unknown percentage is not unlimited allowance."
+  },
+  "remaining_local_configuration": [
+    "For a new installation, the user configures DSH App provider easy-cliproxyapi, native model allowlist and supported effort metadata once. Existing user settings are preserved.",
+    "Prepare the shared ECPA management connection and secret source once if reported allowance is needed; existing shared configuration is preserved and a missing connection remains unknown.",
+    "Install or update and enable dsh-generalrouter through App plugin management, then start a new main session in the actual workspace. No manual root/host paths, per-workspace configuration copies or skill copies are required unless a project-specific override is desired."
+  ],
+  "implementation_order": [
+    "DSH matching tool and AA-to-callable route mapping",
+    "Quota snapshot collector and allowance admission policy",
+    "Usage, routing and timing records with API-equivalent cost accounting",
+    "The two-arm local translation-app case study"
+  ],
+  "implementation_files": [
+    "dsh-generalrouter/index.mjs",
+    "dsh-generalrouter/package.json",
+    "dsh-generalrouter/cordis.patch.yml",
+    "dsh-generalrouter/Install-Desktop.ps1",
+    "scripts/package_dsh_plugin.py",
+    "generalrouter/host_bridge.py",
+    "generalrouter/quota.py",
+    "generalrouter/ledger.py",
+    "host.example.json",
+    "data/quota-policy.example.json",
+    "data/api-equivalent-rates.v0.1.json",
+    "data/model-call-mappings.v0.1.json"
+  ],
+  "execution_evidence": {
+    "prior_release": {
+      "version": "0.1.4",
+      "source": "User-reported smoke workflow and existing local run records; not a developer-run test.",
+      "native_child_status": "completed",
+      "route_mismatch": false,
+      "result": "The selected Astra max native subagent created an addition webpage; a repeat match returned completed.",
+      "browser_functional_acceptance": "not_performed",
+      "scope": "One workflow does not establish all-candidate compatibility, quality, lower cost, quota savings or a guarantee against allowance exhaustion."
+    },
+    "current_release": {
+      "version": "0.1.5",
+      "work": "Implementation, source and resource reading, documentation and artifact generation.",
+      "validation": "No development tests, review, validators, compilation checks, simulated routing, API/model calls or developer plugin installation for this update.",
+      "configuration": "Preserve shared connection settings and user DSH provider/backend configuration; do not read secret contents.",
+      "future_work": "Public benchmark execution is deferred and contributes no results to this release."
+    }
+  },
+  "distribution": {
+    "kind": "standard_npm_tarball_supported_by_dsh",
+    "package": "dsh-generalrouter",
+    "version": "0.1.5",
+    "artifact": "dsh-generalrouter-0.1.5.tgz",
+    "local_delivery_path": "dsh-generalrouter-0.1.5.tgz",
+    "contents": "Prebuilt JavaScript entry point, DSH bundle patch, Python runtime, task-profile skill with 12 human-defined semantic anchors, required model/rate data and blank configuration examples.",
+    "external_configuration": "Optional shared host.local.json and quota.local.json under $DSH_HOME/generalrouter, with optional project overrides. Installed package contents do not store local paths or credentials. Workspace task and usage state remains under that workspace.",
+    "source_repository_required_at_runtime": false
+  },
+  "bundled_model_mappings": {
+    "file": "runtime/data/model-call-mappings.v0.1.json",
+    "dsh_provider": "easy-cliproxyapi",
+    "configuration_count": 12,
+    "enabled_by_default": true,
+    "external_overrides": "Optional host.routes overrides built-in values; an empty object uses the complete plugin defaults.",
+    "max_effort": "max, not ultra"
+  }
+}

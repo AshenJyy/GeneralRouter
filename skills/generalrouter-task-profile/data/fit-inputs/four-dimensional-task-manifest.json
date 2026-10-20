@@ -1,0 +1,81 @@
+{
+  "schema_version": "aa-four-dimensional-task-manifest.v1",
+  "source_policy": "Explicit UUID correspondences originally supplied by the user. This manifest carries no nine-dimensional scores. Current configuration clarifications override historical caveats.",
+  "historical_source_provenance": {
+    "legacy_uuid_bindings": {
+      "source": "work\\legacy-nine-dimensional-skill\\data\\fit-inputs\\source-bindings.json",
+      "sha256": "4d254662559e36ad00be3ccdb37b312ec6bd2da5b0cf8cf316f1bbb26b7a828a",
+      "used_for": "sample slug to exact AA UUID mapping only, not old nine-dimensional capabilities or pending caveats"
+    },
+    "task_summaries": {
+      "source": "work\\legacy-nine-dimensional-skill\\references\\examples.json",
+      "sha256": "48fa203bf5532c32881254aa93667a1e8562eda0f6b640ffd9ab87fb71856e67"
+    }
+  },
+  "model_bindings": [
+    {
+      "sample_model_slug": "claude-fable-5",
+      "sample_model_label": "Claude Fable 5",
+      "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9"
+    },
+    {
+      "sample_model_slug": "claude-4-opus-thinking",
+      "sample_model_label": "Claude 4 Opus (Extended Thinking)",
+      "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7"
+    },
+    {
+      "sample_model_slug": "gemini-3-1-pro",
+      "sample_model_label": "Gemini 3.1 Pro Preview",
+      "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df"
+    },
+    {
+      "sample_model_slug": "gpt-5-5",
+      "sample_model_label": "GPT-5.5 (xhigh)",
+      "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e"
+    },
+    {
+      "sample_model_slug": "o3",
+      "sample_model_label": "o3",
+      "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c"
+    },
+    {
+      "sample_model_slug": "glm-5-2",
+      "sample_model_label": "GLM-5.2 (max)",
+      "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "w1_t1",
+      "task_text": "基于给定资料制作新西兰鸡蛋市场结构单页图，呈现生产体系、渠道、规模和转型。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t1.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+      "task_type": "market_structure_one_pager"
+    },
+    {
+      "task_id": "w1_t2",
+      "task_text": "创建可更新的 Excel 市场模型，覆盖历史规模、预测、行业转型与敏感性分析。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t2.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+      "task_type": "spreadsheet_market_model"
+    },
+    {
+      "task_id": "w1_t3",
+      "task_text": "制作并购目标评估演示文稿，分析竞争位置、需求、成本风险和盈利持续性。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t3.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+      "task_type": "acquisition_assessment_presentation"
+    },
+    {
+      "task_id": "w1_t4",
+      "task_text": "把初步尽调发现、关键判断和待确认问题制作成简报视频及字幕。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t4.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+      "task_type": "briefing_video_and_captions"
+    }
+  ]
+}

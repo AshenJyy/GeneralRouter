@@ -1,0 +1,31 @@
+{
+  "schema_version": "generalrouter-quota-policy.v2",
+  "connection": {
+    "management_base_url": "http://127.0.0.1:8317",
+    "management_api_version": "v8",
+    "management_key_env": "GENERALROUTER_ECPA_MANAGEMENT_KEY",
+    "timeout_seconds": 20
+  },
+  "refresh_interval_seconds": 600,
+  "minimum_remaining_percent": 0,
+  "lock_timeout_seconds": 15,
+  "notes": [
+    "Refresh only while GeneralRouter is in use. The first active request fetches once; subsequent active refresh requests share a ten-minute cache. Idle hosts do not poll. Failed collection attempts are also throttled for ten minutes.",
+    "Read enabled credential metadata and each credential's actual models from the ECPA management interface. Do not manually create quota groups or infer AA-to-provider model mappings.",
+    "Match an already user-mapped callable model ID exactly against the reported credential model IDs. Multiple possible credentials are kept as evidence; GeneralRouter does not claim to pin which credential ECPA will use.",
+    "Only provider-reported percentages are used. There is no assumed five-percent cost per job, safety-margin deduction, percentage reservation, or settlement hold.",
+    "Codex shared primary and secondary windows constrain a known account. Additional and code-review windows remain visible without assuming that every normal model call consumes them.",
+    "Antigravity reported display labels are preserved for display. They do not prove a model-ID association; where the source does not report that relation, applicability remains unknown and GeneralRouter does not guess it.",
+    "Known applicable allowance must be strictly greater than minimum_remaining_percent. Unknown allowance, unmatched model IDs, API-key routes, stale snapshots and unsupported collectors remain explicitly unknown and do not block the user's paid API calls.",
+    "A route is rejected for a reported percentage only if all exact matching credential evidence is known and at or below the configured minimum. At least one known positive credential permits dispatch; unknown alternatives prevent a claim that every usable credential is exhausted.",
+    "Dispatch tickets retain task and route identity atomically for tracking. They never subtract an estimated allowance. Percentages cannot guarantee that a long task or another client will not exhaust a shared account.",
+    "The management key environment variable takes precedence. A private connection.management_key_toml_file may point to the existing ECPA config.toml; only root management-secret-key is used in memory. Python 3.11 or newer is required for this optional TOML source.",
+    "Select the installed management_api_version explicitly as v0 or v8. The collector never downloads OAuth credential files and never runs model health-check requests."
+  ],
+  "sources": [
+    "https://github.com/router-for-me/EasyCLIProxyAPI/blob/04c68c295ce0979b6719f58fe21a7da8698b20b7/src/services/quotaService.ts",
+    "https://github.com/router-for-me/CLIProxyAPI/blob/ae3ee3be303fb07fb8173279923413005bf32177/internal/api/server_management_v8.go",
+    "https://github.com/router-for-me/CLIProxyAPI/blob/ae3ee3be303fb07fb8173279923413005bf32177/internal/api/handlers/management/auth_files.go",
+    "https://github.com/router-for-me/CLIProxyAPI/blob/ae3ee3be303fb07fb8173279923413005bf32177/internal/api/handlers/management/api_tools.go"
+  ]
+}

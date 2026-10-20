@@ -1,0 +1,19 @@
+{
+  "schema_version": "generalrouter-host-config.v1",
+  "routing_config": null,
+  "state_dir": ".runs/host",
+  "quota_file": "quota.local.json",
+  "rates_file": null,
+  "routes": {},
+  "notes": [
+    "Store machine-wide settings in <DSH_HOME>/generalrouter/host.local.json; a project's host.local.json is an optional partial override.",
+    "state_dir is always resolved inside the active workspace, even when these settings are shared. Relative routing/rates/quota files are resolved beside the configuration that defines them.",
+    "The plugin bundles 12 enabled callable mappings in runtime/data/model-call-mappings.v0.1.json. Leave routes empty to use them; entries here are optional overrides.",
+    "The bundled mappings use DSH provider easy-cliproxyapi. The user configures that provider, the actual model catalog, the subagent allowlist and supported effort metadata in DSH App.",
+    "Copy the bundled quota policy example to quota.local.json and configure only the local ECPA management connection. Account/model quota metadata is read directly; no quota groups are configured.",
+    "DSH must already expose the same exact provider/model pairs in the new session's subagent allowlist.",
+    "reasoning_effort is used only when supported by the host model metadata; otherwise it is omitted and the provider default is recorded.",
+    "Null routing_config and rates_file use the plugin's bundled runtime files. Explicit custom paths are resolved beside this configuration.",
+    "Quota is read once on first use, then at most every 600 seconds during activity. No idle polling or estimated percentage deduction is performed."
+  ]
+}

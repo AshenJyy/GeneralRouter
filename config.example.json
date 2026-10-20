@@ -1,0 +1,7 @@
+{
+  "models_file": "data/model-vectors.v0.1.json",
+  "skill_dir": "skills/generalrouter-task-profile",
+  "intelligence_prior": 0.4,
+  "missing_penalty": 0.25,
+  "preferred_configuration": "gpt-6-astra:max"
+}

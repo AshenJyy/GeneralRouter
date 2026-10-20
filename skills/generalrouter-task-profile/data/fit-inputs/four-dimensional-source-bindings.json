@@ -1,0 +1,207 @@
+{
+  "schema_version": "aa-four-dimensional-model-bindings.v1",
+  "provenance": {
+    "model_vectors": {
+      "source": "data\\calibration-reference-vectors.v0.1.json",
+      "sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b"
+    },
+    "reference_configurations": {
+      "source": "data\\calibration-reference-configurations.v0.1.json",
+      "sha256": "4a1886742e2de68b0e855e97368218c87a561deba905568acb189c7c6e99b5aa"
+    },
+    "current_user_clarifications": {
+      "source": "data\\reference-configuration-clarifications.v0.1.json",
+      "sha256": "de2110f6f13f3dc4b74de25bfc5f59bb2f2c98cf8ada7bd95ae4c611a1293ef6"
+    },
+    "public_observations": {
+      "source": "skills\\generalrouter-task-profile\\references\\aa-observed-results.json",
+      "sha256": "e64a580c0dd74faa04c5861a8cb8e51c08c145ac41bc498e5e146c131d26a7df"
+    },
+    "task_and_uuid_manifest": {
+      "source": "skills\\generalrouter-task-profile\\data\\fit-inputs\\four-dimensional-task-manifest.json",
+      "sha256": "2d8e2fab7035028c60d0826005ed652552af7bcfa44b49c73de9556c0840ea80",
+      "used_for": "Self-contained task metadata and exact UUID mapping; no legacy nine-dimensional scores or caveats"
+    }
+  },
+  "dimensions": [
+    "agentic",
+    "coding",
+    "knowledge_document",
+    "scientific_reasoning"
+  ],
+  "bindings": [
+    {
+      "sample_model_slug": "claude-fable-5",
+      "sample_model_label": "Claude Fable 5",
+      "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+      "aa_name": "Claude Fable 5 (Max, Opus 4.8 Fallback)",
+      "aa_slug": "claude-fable-5",
+      "configuration_id": "claude-fable-5:max",
+      "reference_effort": "max",
+      "binding_status": "user_approved_reference_binding",
+      "binding_method": "explicit_user_directed_six_record_supplement_with_current_clarifications",
+      "binding_is_fuzzy": false,
+      "sample_configuration_alignment": {
+        "status": "user_confirmed_reference_configuration",
+        "effort": "max",
+        "fallback_model": "Opus 4.8",
+        "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+        "independent_runtime_verification_performed": false
+      },
+      "configuration_notes": [
+        "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+      ],
+      "independent_runtime_verification_performed": false,
+      "capabilities": {
+        "agentic": 0.5349030019010896,
+        "coding": 0.517098063973064,
+        "knowledge_document": 0.4956616161616162,
+        "scientific_reasoning": 0.4201972725997685
+      },
+      "missing_dimensions": [],
+      "included_in_joint_four_dimension_fit": true
+    },
+    {
+      "sample_model_slug": "claude-4-opus-thinking",
+      "sample_model_label": "Claude 4 Opus (Extended Thinking)",
+      "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+      "aa_name": "Claude 4 Opus (Reasoning)",
+      "aa_slug": "claude-4-opus-thinking",
+      "configuration_id": "claude-4-opus-thinking:unknown",
+      "reference_effort": "unknown",
+      "binding_status": "user_approved_reference_binding",
+      "binding_method": "explicit_user_directed_six_record_supplement_with_current_clarifications",
+      "binding_is_fuzzy": false,
+      "sample_configuration_alignment": null,
+      "configuration_notes": [
+        "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+      ],
+      "independent_runtime_verification_performed": false,
+      "capabilities": {
+        "agentic": null,
+        "coding": null,
+        "knowledge_document": null,
+        "scientific_reasoning": null
+      },
+      "missing_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "included_in_joint_four_dimension_fit": false
+    },
+    {
+      "sample_model_slug": "gemini-3-1-pro",
+      "sample_model_label": "Gemini 3.1 Pro Preview",
+      "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+      "aa_name": "Gemini 3.1 Pro Preview",
+      "aa_slug": "gemini-3-1-pro-preview",
+      "configuration_id": "gemini-3-1-pro-preview:unknown",
+      "reference_effort": "unknown",
+      "binding_status": "user_approved_reference_binding",
+      "binding_method": "explicit_user_directed_six_record_supplement_with_current_clarifications",
+      "binding_is_fuzzy": false,
+      "sample_configuration_alignment": {
+        "status": "user_confirmed_model_name",
+        "model_name": "Gemini 3.1 Pro Preview",
+        "effort": null,
+        "effort_status": "not_disclosed_in_sample_label",
+        "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+        "independent_runtime_verification_performed": false
+      },
+      "configuration_notes": [
+        "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+      ],
+      "independent_runtime_verification_performed": false,
+      "capabilities": {
+        "agentic": 0.10767953066349728,
+        "coding": 0.31360479797979823,
+        "knowledge_document": 0.4607208687092409,
+        "scientific_reasoning": 0.32374288362240145
+      },
+      "missing_dimensions": [],
+      "included_in_joint_four_dimension_fit": true
+    },
+    {
+      "sample_model_slug": "gpt-5-5",
+      "sample_model_label": "GPT-5.5 (xhigh)",
+      "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+      "aa_name": "GPT-5.5 (Xhigh)",
+      "aa_slug": "gpt-5-5",
+      "configuration_id": "gpt-5-5:xhigh",
+      "reference_effort": "xhigh",
+      "binding_status": "user_approved_reference_binding",
+      "binding_method": "explicit_user_directed_six_record_supplement_with_current_clarifications",
+      "binding_is_fuzzy": false,
+      "sample_configuration_alignment": null,
+      "configuration_notes": [
+        "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+      ],
+      "independent_runtime_verification_performed": false,
+      "capabilities": {
+        "agentic": 0.37970177645488856,
+        "coding": 0.352167508417508,
+        "knowledge_document": 0.422687210992205,
+        "scientific_reasoning": 0.36462994836488805
+      },
+      "missing_dimensions": [],
+      "included_in_joint_four_dimension_fit": true
+    },
+    {
+      "sample_model_slug": "o3",
+      "sample_model_label": "o3",
+      "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+      "aa_name": "o3",
+      "aa_slug": "o3",
+      "configuration_id": "o3:unknown",
+      "reference_effort": "unknown",
+      "binding_status": "user_approved_reference_binding",
+      "binding_method": "explicit_user_directed_six_record_supplement_with_current_clarifications",
+      "binding_is_fuzzy": false,
+      "sample_configuration_alignment": null,
+      "configuration_notes": [
+        "Sample and AA reference both say o3; effort remains unknown."
+      ],
+      "independent_runtime_verification_performed": false,
+      "capabilities": {
+        "agentic": null,
+        "coding": null,
+        "knowledge_document": null,
+        "scientific_reasoning": 0.1059642857142857
+      },
+      "missing_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document"
+      ],
+      "included_in_joint_four_dimension_fit": false
+    },
+    {
+      "sample_model_slug": "glm-5-2",
+      "sample_model_label": "GLM-5.2 (max)",
+      "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+      "aa_name": "GLM-5.2 (Max)",
+      "aa_slug": "glm-5-2",
+      "configuration_id": "glm-5-2:max",
+      "reference_effort": "max",
+      "binding_status": "user_approved_reference_binding",
+      "binding_method": "explicit_user_directed_six_record_supplement_with_current_clarifications",
+      "binding_is_fuzzy": false,
+      "sample_configuration_alignment": null,
+      "configuration_notes": [
+        "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+      ],
+      "independent_runtime_verification_performed": false,
+      "capabilities": {
+        "agentic": 0.3748816286834239,
+        "coding": 0.26083754208754206,
+        "knowledge_document": 0.36916740088105726,
+        "scientific_reasoning": 0.3100317754534625
+      },
+      "missing_dimensions": [],
+      "included_in_joint_four_dimension_fit": true
+    }
+  ],
+  "configuration_policy": "Use explicit user-approved reference UUIDs. Current Fable and Preview confirmations supersede historical pending caveats; unknown sample effort stays unknown."
+}

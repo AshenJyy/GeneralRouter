@@ -1,0 +1,27 @@
+{
+  "schema_version": "generalrouter-reference-clarifications.v1",
+  "user_local_date": "2026-10-19",
+  "source": "User clarification in the current conversation",
+  "overrides_by_aa_id": {
+    "cd55210d-358e-4df1-ba9c-9acb5f186cc9": {
+      "fallback_caveat": null,
+      "sample_configuration_alignment": {
+        "status": "user_confirmed_reference_configuration",
+        "effort": "max",
+        "fallback_model": "Opus 4.8",
+        "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+        "independent_runtime_verification_performed": false
+      }
+    },
+    "bbd93ebe-80da-4594-bb19-61e69d0331df": {
+      "sample_configuration_alignment": {
+        "status": "user_confirmed_model_name",
+        "model_name": "Gemini 3.1 Pro Preview",
+        "effort": null,
+        "effort_status": "not_disclosed_in_sample_label",
+        "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+        "independent_runtime_verification_performed": false
+      }
+    }
+  }
+}

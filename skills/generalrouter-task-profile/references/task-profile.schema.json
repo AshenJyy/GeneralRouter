@@ -1,0 +1,146 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "task-profile.v3"
+      ]
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Unique ID within this plan."
+          },
+          "objective": {
+            "type": "string",
+            "description": "Executable subtask objective preserving the user's constraints."
+          },
+          "context": {
+            "type": "string",
+            "description": "Necessary parent context, assumptions, and upstream inputs; do not invent facts."
+          },
+          "input_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supplied or explicitly planned artifact references. Empty if none."
+          },
+          "deliverable": {
+            "type": "string",
+            "description": "Expected concrete output and relevant completion criteria."
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Other task IDs in this plan; no cycles or self references."
+          },
+          "difficulty": {
+            "type": "string",
+            "description": "Qualitative planning estimate, not an AA task difficulty measurement.",
+            "enum": [
+              "easy",
+              "medium",
+              "hard",
+              "unknown"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Brief task-grounded justification, including material uncertainty. For planner_estimated weights, name the applicable semantic anchor IDs and explain the chosen weights or why no anchor is a close fit."
+          },
+          "source_task_id": {
+            "type": "string",
+            "description": "Exact AA task ID only for the same benchmark task; empty for a new task."
+          },
+          "task_weights": {
+            "type": "object",
+            "description": "For planner_estimated, estimate all four relative capability weights using the rubric and semantic anchors. For either AA-anchor mode, copy one complete recorded reference fit. Use four nulls only for uncalibrated. Numeric weights must be finite, nonnegative, and sum to one. Planner estimates are heuristic requirements; AA-fit weights are small-sample predictive associations. Neither measures task difficulty or success probability.",
+            "properties": {
+              "agentic": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "coding": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "knowledge_document": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "scientific_reasoning": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "agentic",
+              "coding",
+              "knowledge_document",
+              "scientific_reasoning"
+            ],
+            "additionalProperties": false
+          },
+          "calibration_anchor_id": {
+            "type": "string",
+            "description": "ID of the recorded fitted AA anchor for AA-anchor modes only. Empty for planner_estimated and uncalibrated; mention semantic anchor IDs in rationale instead."
+          },
+          "weight_source": {
+            "type": "string",
+            "description": "Planner semantic estimate, exact AA reference-task binding, AA analogy transfer, or unknown. The legacy calibrated label denotes a regularized reference fit rather than validated difficulty or semantic requirement proportions. Planner estimates require empty source_task_id and calibration_anchor_id.",
+            "enum": [
+              "planner_estimated",
+              "aa_calibrated_anchor",
+              "estimated_from_aa_anchor",
+              "uncalibrated"
+            ]
+          }
+        },
+        "required": [
+          "task_id",
+          "objective",
+          "context",
+          "input_artifacts",
+          "deliverable",
+          "depends_on",
+          "difficulty",
+          "rationale",
+          "source_task_id",
+          "task_weights",
+          "calibration_anchor_id",
+          "weight_source"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "tasks"
+  ],
+  "additionalProperties": false
+}

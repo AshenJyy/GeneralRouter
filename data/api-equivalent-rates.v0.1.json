@@ -1,0 +1,239 @@
+{
+  "schema_version": "generalrouter-api-equivalent-rates.v1",
+  "recorded_on": "2026-10-19",
+  "rates": {
+    "gpt-6-astra:low": {
+      "configuration_id": "gpt-6-astra:low",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 10,
+        "cached_input": 1,
+        "cache_write_input": 12.5,
+        "output": 50
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-astra:medium": {
+      "configuration_id": "gpt-6-astra:medium",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 10,
+        "cached_input": 1,
+        "cache_write_input": 12.5,
+        "output": 50
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-astra:high": {
+      "configuration_id": "gpt-6-astra:high",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 10,
+        "cached_input": 1,
+        "cache_write_input": 12.5,
+        "output": 50
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-astra:xhigh": {
+      "configuration_id": "gpt-6-astra:xhigh",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 10,
+        "cached_input": 1,
+        "cache_write_input": 12.5,
+        "output": 50
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-astra:max": {
+      "configuration_id": "gpt-6-astra:max",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 10,
+        "cached_input": 1,
+        "cache_write_input": 12.5,
+        "output": 50
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-1-sol:low": {
+      "configuration_id": "gpt-6-1-sol:low",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 2,
+        "cached_input": 0.1,
+        "cache_write_input": 2.5,
+        "output": 10
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-1-sol:medium": {
+      "configuration_id": "gpt-6-1-sol:medium",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 2,
+        "cached_input": 0.1,
+        "cache_write_input": 2.5,
+        "output": 10
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-1-sol:high": {
+      "configuration_id": "gpt-6-1-sol:high",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 2,
+        "cached_input": 0.1,
+        "cache_write_input": 2.5,
+        "output": 10
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-1-sol:xhigh": {
+      "configuration_id": "gpt-6-1-sol:xhigh",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 2,
+        "cached_input": 0.1,
+        "cache_write_input": 2.5,
+        "output": 10
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gpt-6-1-sol:max": {
+      "configuration_id": "gpt-6-1-sol:max",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 2,
+        "cached_input": 0.1,
+        "cache_write_input": 2.5,
+        "output": 10
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gemini-3-8-flash:high": {
+      "configuration_id": "gemini-3-8-flash:high",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 0.75,
+        "cached_input": 0.075,
+        "cache_write_input": 0.75,
+        "output": 3.75
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    },
+    "gemini-4-argon:high": {
+      "configuration_id": "gemini-4-argon:high",
+      "currency": "USD",
+      "recorded_on": "2026-10-19",
+      "usd_per_million_tokens": {
+        "uncached_input": 2,
+        "cached_input": 0.1,
+        "cache_write_input": null,
+        "output": 10
+      },
+      "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+      "source_fields": {
+        "uncached_input": "price1mInputTokens",
+        "cached_input": "cacheHitPrice",
+        "cache_write_input": "cacheWritePrice",
+        "output": "price1mOutputTokens"
+      },
+      "reasoning_accounting": "included_in_output"
+    }
+  },
+  "notes": [
+    "These are recorded AA price snapshots, not an invoice or a claim of current official API tariffs.",
+    "An unavailable token count or applicable tariff keeps the corresponding cost unknown.",
+    "Input, cache-read and cache-write counts must be disjoint. Output already includes reasoning tokens."
+  ]
+}

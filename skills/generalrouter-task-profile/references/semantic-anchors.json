@@ -1,0 +1,156 @@
+{
+  "schema_version": "generalrouter-semantic-anchors.v1",
+  "dimension_order": [
+    "agentic",
+    "coding",
+    "knowledge_document",
+    "scientific_reasoning"
+  ],
+  "provenance": "Human-defined GeneralRouter reference examples. The weights are project design choices, not AA observations, fitted coefficients, or measured success probabilities.",
+  "usage": "Estimate relative capability relevance from the actual remaining work. Cite relevant anchor IDs and adjustments in rationale; use planner_estimated with empty source_task_id and calibration_anchor_id. Difficulty is separate. Benchmark references are analogies to task formats, not evidence for these numerical weights.",
+  "anchors": [
+    {
+      "anchor_id": "semantic-small-webpage",
+      "objective": "Create one self-contained HTML page with two numeric inputs, a sum button, empty-input handling, and inline styling from a complete specification.",
+      "task_weights": {
+        "agentic": 0.0,
+        "coding": 1.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "The substantive work is straightforward UI and program logic. Saving a file is incidental tool use. Adding two numbers does not call for scientific reasoning. A harder implementation can still have this vector."
+    },
+    {
+      "anchor_id": "semantic-repository-bugfix",
+      "objective": "Locate a reproducible bug in an existing small repository, trace the responsible code, and implement a focused fix using the supplied reproduction.",
+      "task_weights": {
+        "agentic": 0.2,
+        "coding": 0.8,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "Code comprehension and debugging dominate. Navigating files and coordinating environment actions add a smaller agentic component. No substantial external evidence or scientific inference is required.",
+      "benchmark_references": ["Terminal-Bench 4.0"]
+    },
+    {
+      "anchor_id": "semantic-terminal-environment-repair",
+      "objective": "Diagnose and repair a dependency or service-configuration failure in a provided terminal environment, with at most a small configuration-script change.",
+      "task_weights": {
+        "agentic": 0.7,
+        "coding": 0.3,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "The main work is observing environment state and choosing corrective tool actions. Small scripts or configuration logic justify coding weight; a fix requiring major application changes should shift weight toward coding.",
+      "benchmark_references": ["Terminal-Bench 4.0"]
+    },
+    {
+      "anchor_id": "semantic-api-workflow",
+      "objective": "Use supplied SaaS tools to find a specified record, update its permitted fields, create a linked item, and confirm the resulting state under clear business rules.",
+      "task_weights": {
+        "agentic": 1.0,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "The work is a stateful sequence of tool operations. The task supplies the facts and rules, and no program implementation or independent research is needed.",
+      "benchmark_references": ["AutomationBench-AA"]
+    },
+    {
+      "anchor_id": "semantic-document-extraction",
+      "objective": "Read a supplied long specification and extract all requirements relevant to a named feature, retaining source locations and noting contradictions.",
+      "task_weights": {
+        "agentic": 0.0,
+        "coding": 0.0,
+        "knowledge_document": 1.0,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "Evidence retrieval and faithful interpretation of the supplied document are the substantive requirements. A structured table output does not itself require coding or a multi-step operational workflow.",
+      "benchmark_references": ["AA-LCR v1.1", "GDP.pdf"]
+    },
+    {
+      "anchor_id": "semantic-evidence-report",
+      "objective": "Gather specified public sources, reconcile factual disagreements, and write a short evidence-backed report with citations and explicit unknowns.",
+      "task_weights": {
+        "agentic": 0.2,
+        "coding": 0.0,
+        "knowledge_document": 0.8,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "Factual accuracy and synthesis dominate. Locating and retrieving multiple sources contributes tool coordination. If every source has already been supplied, reduce the agentic share.",
+      "benchmark_references": ["AA-Omniscience", "AA-LCR v1.1", "AA-Briefcase v1.1"]
+    },
+    {
+      "anchor_id": "semantic-scientific-derivation",
+      "objective": "Derive a mathematical or physics result from specified assumptions and explain the intermediate reasoning without implementing software or retrieving sources.",
+      "task_weights": {
+        "agentic": 0.0,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 1.0
+      },
+      "rationale": "The solution depends on domain reasoning and derivation. Reading the supplied assumptions is incidental; add document weight only when resolving evidence from substantial sources becomes part of the task.",
+      "benchmark_references": ["HLE", "CritPt"]
+    },
+    {
+      "anchor_id": "semantic-scientific-code",
+      "objective": "Implement a specified numerical method and resolve its mathematical edge cases, units, and numerical-stability requirements.",
+      "task_weights": {
+        "agentic": 0.0,
+        "coding": 0.5,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.5
+      },
+      "rationale": "Both scientific correctness and reliable implementation materially determine the result. The equal split is a transparent starting convention; shift toward coding if all scientific choices are already resolved.",
+      "benchmark_references": ["SciCode"]
+    },
+    {
+      "anchor_id": "semantic-paper-to-code",
+      "objective": "Read a provided research paper, reconstruct its stated algorithm and assumptions, and implement a minimal version without a large-scale training run.",
+      "task_weights": {
+        "agentic": 0.0,
+        "coding": 0.5,
+        "knowledge_document": 0.2,
+        "scientific_reasoning": 0.3
+      },
+      "rationale": "Implementation is the largest component. Document interpretation and scientific reasoning are separately needed to recover the algorithm. Add agentic weight only if substantial environment or experiment orchestration is included.",
+      "benchmark_references": ["SciCode", "AA-LCR v1.1"]
+    },
+    {
+      "anchor_id": "semantic-local-model-app",
+      "objective": "Integrate an already chosen local translation model into a simple application using its existing inference API and documentation, including startup and basic error handling.",
+      "task_weights": {
+        "agentic": 0.3,
+        "coding": 0.6,
+        "knowledge_document": 0.1,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "Application code dominates; starting and connecting the local service adds operational work, and API documentation adds a small evidence component. Using a trained model does not itself require scientific model development.",
+      "benchmark_references": ["Terminal-Bench 4.0"]
+    },
+    {
+      "anchor_id": "semantic-statistical-analysis",
+      "objective": "Analyze a supplied dataset and data dictionary, implement a modest statistical analysis, justify the chosen assumptions, and report reproducible numerical findings.",
+      "task_weights": {
+        "agentic": 0.1,
+        "coding": 0.4,
+        "knowledge_document": 0.2,
+        "scientific_reasoning": 0.3
+      },
+      "rationale": "Code transforms the data, statistical reasoning supports valid interpretation, and documentation defines variables and limitations. Executing the analysis adds a small operational share. A simple lookup or total should use less scientific reasoning.",
+      "benchmark_references": ["SciCode", "AA-LCR v1.1"]
+    },
+    {
+      "anchor_id": "semantic-professional-artifact",
+      "objective": "Use existing document and spreadsheet tools to turn supplied business evidence into a linked set of deliverables under a specified template and acceptance checklist.",
+      "task_weights": {
+        "agentic": 0.6,
+        "coding": 0.0,
+        "knowledge_document": 0.4,
+        "scientific_reasoning": 0.0
+      },
+      "rationale": "Coordinating several artifact tools and maintaining consistent outputs is the largest requirement, followed by faithful use of evidence. Tool-generated spreadsheets or documents do not imply substantive programming.",
+      "benchmark_references": ["AA-Briefcase v1.1", "GDPval-AA v2.1"]
+    }
+  ]
+}

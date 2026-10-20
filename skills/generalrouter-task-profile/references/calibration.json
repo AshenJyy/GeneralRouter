@@ -1,0 +1,1641 @@
+{
+  "schema_version": "aa-four-dimensional-calibration.v1",
+  "delivery_version": "0.3",
+  "dimensions": [
+    "agentic",
+    "coding",
+    "knowledge_document",
+    "scientific_reasoning"
+  ],
+  "snapshot": {
+    "models_sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b",
+    "model_count": 6,
+    "normalization_method": "use_prederived_component_group_values_without_rescaling",
+    "normalization": {
+      "kind": "project_derived_aa_component_groups",
+      "elo_normalization": "clamp((Elo - 500) / 2000, 0, 1)",
+      "rate_normalization": "AA raw fractions in [0, 1]; no inferred percentage conversion",
+      "missing_policy": "any missing component makes its category null; keep weighted coverage",
+      "category_component_weights": {
+        "agentic": {
+          "briefcase_elo": 0.5,
+          "gdpval_elo": 0.33333333333333337,
+          "automationbench": 0.16666666666666669
+        },
+        "coding": {
+          "terminalbench_4_0": 0.5,
+          "scicode": 0.5
+        },
+        "knowledge_document": {
+          "omniscience_accuracy": 0.33333333333333337,
+          "omniscience_nonhallucination_rate": 0.16666666666666669,
+          "gdp_pdf_all_pass": 0.33333333333333337,
+          "aa_lcr": 0.16666666666666669
+        },
+        "scientific_reasoning": {
+          "hle": 0.5,
+          "critpt": 0.5
+        }
+      },
+      "official_independent_coding_agentic_indices": false,
+      "task_weight_calibration": false,
+      "intelligence_index_used_as_component": false,
+      "runtime_effort_mapping": "not performed; mapped_if_supported_else_default"
+    },
+    "normalized_model_vectors": {
+      "cd55210d-358e-4df1-ba9c-9acb5f186cc9": [
+        0.5349030019010896,
+        0.517098063973064,
+        0.4956616161616162,
+        0.4201972725997685
+      ],
+      "8a4a5ead-7789-4389-8400-30e9d20370b7": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "bbd93ebe-80da-4594-bb19-61e69d0331df": [
+        0.10767953066349728,
+        0.31360479797979823,
+        0.4607208687092409,
+        0.32374288362240145
+      ],
+      "1f054429-397e-4fdb-9e71-67bc92c1735e": [
+        0.37970177645488856,
+        0.352167508417508,
+        0.422687210992205,
+        0.36462994836488805
+      ],
+      "16c5b637-8bce-4252-81f2-1b87a36a4e4c": [
+        null,
+        null,
+        null,
+        0.1059642857142857
+      ],
+      "f7a4ea75-e548-4069-80d4-9be8bc7c009b": [
+        0.3748816286834239,
+        0.26083754208754206,
+        0.36916740088105726,
+        0.3100317754534625
+      ]
+    },
+    "models": {
+      "cd55210d-358e-4df1-ba9c-9acb5f186cc9": {
+        "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "name": "Claude Fable 5 (Max, Opus 4.8 Fallback)",
+        "slug": "claude-fable-5",
+        "configuration_id": "claude-fable-5:max",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/claude-fable-5",
+          "retrieved_at_utc": "2026-10-20T03:38:29.296657+00:00",
+          "sha256": "9876730f6d17653354aeaed8b1e4913e791a1a878e72e0714c50aa6234702644",
+          "source_kind": "public_page"
+        },
+        "sample_configuration_alignment": {
+          "status": "user_confirmed_reference_configuration",
+          "effort": "max",
+          "fallback_model": "Opus 4.8",
+          "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+          "independent_runtime_verification_performed": false
+        }
+      },
+      "8a4a5ead-7789-4389-8400-30e9d20370b7": {
+        "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+        "name": "Claude 4 Opus (Reasoning)",
+        "slug": "claude-4-opus-thinking",
+        "configuration_id": "claude-4-opus-thinking:unknown",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/claude-4-opus-thinking",
+          "retrieved_at_utc": "2026-10-20T03:38:28.801003+00:00",
+          "sha256": "27daff236a6ffa5099c6ae9542d4539c93814e5366ee7f5594fe1aef971c7980",
+          "source_kind": "public_page"
+        },
+        "sample_configuration_alignment": null
+      },
+      "bbd93ebe-80da-4594-bb19-61e69d0331df": {
+        "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "name": "Gemini 3.1 Pro Preview",
+        "slug": "gemini-3-1-pro-preview",
+        "configuration_id": "gemini-3-1-pro-preview:unknown",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/gemini-3-1-pro-preview",
+          "retrieved_at_utc": "2026-10-20T03:38:29.129136+00:00",
+          "sha256": "d4c78664c5ee26f42ba5a64b12547b2ae2e1ac667e6d2dbb599d9b82bab89d79",
+          "source_kind": "public_page"
+        },
+        "sample_configuration_alignment": {
+          "status": "user_confirmed_model_name",
+          "model_name": "Gemini 3.1 Pro Preview",
+          "effort": null,
+          "effort_status": "not_disclosed_in_sample_label",
+          "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+          "independent_runtime_verification_performed": false
+        }
+      },
+      "1f054429-397e-4fdb-9e71-67bc92c1735e": {
+        "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "name": "GPT-5.5 (Xhigh)",
+        "slug": "gpt-5-5",
+        "configuration_id": "gpt-5-5:xhigh",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/gpt-5-5",
+          "retrieved_at_utc": "2026-10-20T03:38:29.378388+00:00",
+          "sha256": "2416fdbb071ff7d149fc0ad17cd2a6feadffdfb0982235ab81773279ee39985b",
+          "source_kind": "public_page"
+        },
+        "sample_configuration_alignment": null
+      },
+      "16c5b637-8bce-4252-81f2-1b87a36a4e4c": {
+        "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+        "name": "o3",
+        "slug": "o3",
+        "configuration_id": "o3:unknown",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/o3",
+          "retrieved_at_utc": "2026-10-20T03:38:29.604169+00:00",
+          "sha256": "9069c7231246545e777168a5e688c65e0bcc74f1d46a25d3c2559bfbbe5f12dd",
+          "source_kind": "public_page"
+        },
+        "sample_configuration_alignment": null
+      },
+      "f7a4ea75-e548-4069-80d4-9be8bc7c009b": {
+        "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+        "name": "GLM-5.2 (Max)",
+        "slug": "glm-5-2",
+        "configuration_id": "glm-5-2:max",
+        "source": {
+          "url": "https://artificialanalysis.ai/models/glm-5-2",
+          "retrieved_at_utc": "2026-10-20T03:38:29.738888+00:00",
+          "sha256": "c4152b049622be52bc7a76ec735b694d32c1cbecc090610a9e214d1239a3dd5c",
+          "source_kind": "public_page"
+        },
+        "sample_configuration_alignment": null
+      }
+    }
+  },
+  "evidence": {
+    "observations_sha256": "86eac5188197d2493c1b9679d52f8ceb611015ef802b7d0d6dab9468f618af01",
+    "metadata": {
+      "dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "scope": "Four public Briefcase-Lite business scenario tasks, six recorded models each; only four complete reference vectors enter each joint fit.",
+      "provenance": {
+        "model_vectors": {
+          "source": "data\\calibration-reference-vectors.v0.1.json",
+          "sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b"
+        },
+        "reference_configurations": {
+          "source": "data\\calibration-reference-configurations.v0.1.json",
+          "sha256": "4a1886742e2de68b0e855e97368218c87a561deba905568acb189c7c6e99b5aa"
+        },
+        "current_user_clarifications": {
+          "source": "data\\reference-configuration-clarifications.v0.1.json",
+          "sha256": "de2110f6f13f3dc4b74de25bfc5f59bb2f2c98cf8ada7bd95ae4c611a1293ef6"
+        },
+        "public_observations": {
+          "source": "skills\\generalrouter-task-profile\\references\\aa-observed-results.json",
+          "sha256": "e64a580c0dd74faa04c5861a8cb8e51c08c145ac41bc498e5e146c131d26a7df"
+        },
+        "task_and_uuid_manifest": {
+          "source": "skills\\generalrouter-task-profile\\data\\fit-inputs\\four-dimensional-task-manifest.json",
+          "sha256": "2d8e2fab7035028c60d0826005ed652552af7bcfa44b49c73de9556c0840ea80",
+          "used_for": "Self-contained task metadata and exact UUID mapping; no legacy nine-dimensional scores or caveats"
+        }
+      },
+      "official_leaderboard_scored": false,
+      "excluded_task_sources": [
+        "GDP.pdf single-model public examples"
+      ],
+      "excluded_models_policy": "Keep Opus 4 and o3 observations but exclude them from joint four-dimensional fitting due to missing capability categories."
+    },
+    "source_policy": "Exact UUID binding to user-approved reference records. Require all four model categories; preserve missing records as excluded observations without imputation."
+  },
+  "calibration_method": {
+    "requested_dimensions": [
+      "agentic",
+      "coding",
+      "knowledge_document",
+      "scientific_reasoning"
+    ],
+    "fit_kind": "joint_four_dimension_reference",
+    "algorithm": "nonnegative_ridge",
+    "optimizer": "cyclic_coordinate_descent",
+    "prediction": "score_proxy = bias + scale * dot(weights, model_capabilities)",
+    "objective": "mean((observed_normalized_score - bias - X beta)**2) + ridge * sum(beta**2), beta >= 0",
+    "ridge": 0.01,
+    "intercept_penalized": false,
+    "weight_derivation": "weights = beta / sum(beta); scale = sum(beta); bias is separate",
+    "minimum_complete_models": 4,
+    "minimum_is_project_policy_not_identifiability_guarantee": true,
+    "algorithm_origin": "GeneralRouter engineering choice, not an AA task annotation or official AA calibration algorithm.",
+    "missing_data_policy": "Exclude an observation when any of its four capability values is null; do not impute or switch to a single-dimension fit.",
+    "normalization_scope": "Use the fixed [0, 1] AA component-derived category scores in the snapshot; do not apply model-pool minmax.",
+    "score_proxy_is_success_probability": false,
+    "score_proxy_is_task_difficulty": false,
+    "validation_performed": false
+  },
+  "planner_transfer_policy": {
+    "new_task_evidence_label": "estimated_from_anchors",
+    "rules": [
+      "Numerical references require status regularized_reference_fit and fit_kind joint_four_dimension_reference.",
+      "Retain anchor ids and snapshot model hash for an analogous-task estimate.",
+      "Only close analogues of the four Briefcase-Lite business deliverables are covered. General coding, factual Q&A, long-document reasoning, and science problems remain unsupported.",
+      "An analogous task receives a planner estimate, not a newly measured or directly calibrated task vector.",
+      "Fitted weights are not semantic work percentages; score proxies are not calibrated probability or difficulty."
+    ]
+  },
+  "limitations": [
+    "Four complete reference models per task are fewer than four coefficients plus an intercept; regularization selects a reference solution, not a uniquely identified task vector.",
+    "The 16 included observations cover four outputs within one shared business scenario; the eight incomplete-model observations are retained but excluded.",
+    "Reference capabilities and public task-score runtime conditions are not independently verified as identical; user confirmations and undisclosed effort are recorded separately.",
+    "The model-side knowledge_document category still includes GDP.pdf aggregate scores. Only GDP.pdf task examples were excluded at the user's request.",
+    "No testing, review, predictive validation, or model invocations were performed."
+  ],
+  "anchors": [
+    {
+      "anchor_id": "w1_t1",
+      "task_id": "w1_t1",
+      "task_text": "基于给定资料制作新西兰鸡蛋市场结构单页图，呈现生产体系、渠道、规模和转型。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t1.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "metadata": {
+        "text_is_shortened_chinese_paraphrase": true,
+        "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+        "task_type": "market_structure_one_pager",
+        "score_metric": "binary_rubric_pass_rate",
+        "official_leaderboard_scored": false
+      },
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "weights_interpretation": "Normalized nonnegative ridge coefficients from recorded reference-model scores; not official AA task labels or semantic shares of work.",
+      "weights": {
+        "agentic": 0.9199901388041096,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.08000986119589037
+      },
+      "bias": 0.1996267972625782,
+      "scale": 0.8588956386777221,
+      "coefficients": {
+        "agentic": 0.790175517845362,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.06872012083236016
+      },
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "observations": [
+        {
+          "task_id": "w1_t1",
+          "model_slug": "claude-fable-5",
+          "model_name": "Claude Fable 5",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 7,
+          "total": 11,
+          "score": 0.6363636363636364,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t1.claude-fable-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-fable-5:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_reference_configuration",
+            "effort": "max",
+            "fallback_model": "Opus 4.8",
+            "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.6363636363636364
+        },
+        {
+          "task_id": "w1_t1",
+          "model_slug": "gemini-3-1-pro",
+          "model_name": "Gemini 3.1 Pro Preview",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 2,
+          "total": 11,
+          "score": 0.18181818181818182,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t1.gemini-3-1-pro.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gemini-3-1-pro-preview:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_model_name",
+            "model_name": "Gemini 3.1 Pro Preview",
+            "effort": null,
+            "effort_status": "not_disclosed_in_sample_label",
+            "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.18181818181818182
+        },
+        {
+          "task_id": "w1_t1",
+          "model_slug": "gpt-5-5",
+          "model_name": "GPT-5.5 (xhigh)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 7,
+          "total": 11,
+          "score": 0.6363636363636364,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t1.gpt-5-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gpt-5-5:xhigh",
+          "reference_effort": "xhigh",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.6363636363636364
+        },
+        {
+          "task_id": "w1_t1",
+          "model_slug": "glm-5-2",
+          "model_name": "GLM-5.2 (max)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 6,
+          "total": 11,
+          "score": 0.5454545454545454,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t1.glm-5-2.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "glm-5-2:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.5454545454545454
+        }
+      ],
+      "excluded_observations": [
+        {
+          "task_id": "w1_t1",
+          "model_slug": "claude-4-opus-thinking",
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 3,
+          "total": 11,
+          "score": 0.2727272727272727,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t1.claude-4-opus-thinking.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-4-opus-thinking:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.2727272727272727,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document",
+            "scientific_reasoning"
+          ]
+        },
+        {
+          "task_id": "w1_t1",
+          "model_slug": "o3",
+          "model_name": "o3",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 0,
+          "total": 11,
+          "score": 0,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t1.o3.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "o3:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.0,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document"
+          ]
+        }
+      ],
+      "fit_diagnostics": {
+        "paired_model_count": 4,
+        "minimum_complete_models": 4,
+        "ridge": 0.01,
+        "warnings": [
+          "Four coefficients plus an intercept use four complete models per task. The task vector is underidentified without regularization; these are reference coefficients, not recovered intrinsic requirements.",
+          "Capability categories correlate. Coefficients and zeros are not semantic percentages or proof of an irrelevant capability.",
+          "The anchors share one business scenario, so general coding and scientific reasoning calibration coverage is not established.",
+          "Briefcase-Lite examples do not contribute to the official leaderboard; task grading and aggregate benchmark settings need not be identical.",
+          "Fable Max with Opus 4.8 fallback is user confirmed. Gemini Preview sample effort is undisclosed. No independent runtime configuration verification was performed.",
+          "No held-out predictive validation, development testing, behavioral review, or model invocation was performed."
+        ],
+        "active_feature_count": 4,
+        "parameter_count_with_intercept": 5,
+        "design_rank": 4,
+        "rank_tolerance": 1e-10,
+        "identifiable_without_regularization": false,
+        "underdetermined_without_regularization": true,
+        "optimizer": {
+          "method": "cyclic_coordinate_descent",
+          "converged": true,
+          "iterations": 9,
+          "max_iterations": 20000,
+          "tolerance": 1e-10,
+          "last_max_coefficient_change": 3.067512910348569e-11,
+          "nonnegative_stationarity_residual": 1.1444664660409387e-13
+        },
+        "training_fit": {
+          "meaning": "In-sample fitting residuals; no held-out evaluation or predictive validation was performed.",
+          "mean_squared_error": 0.007286500371208462,
+          "mean_absolute_error": 0.06997420959928864,
+          "objective": 0.013577498411302465
+        },
+        "training_predictions": [
+          {
+            "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+            "observed_score_normalized": 0.6363636363636364,
+            "predicted_score_proxy": 0.6511700611332947
+          },
+          {
+            "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+            "observed_score_normalized": 0.18181818181818182,
+            "predicted_score_proxy": 0.3069601762471008
+          },
+          {
+            "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+            "observed_score_normalized": 0.6363636363636364,
+            "predicted_score_proxy": 0.524715259210356
+          },
+          {
+            "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+            "observed_score_normalized": 0.5454545454545454,
+            "predicted_score_proxy": 0.5171545034092485
+          }
+        ]
+      },
+      "weight_evidence_label": "fitted_to_paired_aa_observations",
+      "data_provenance": {
+        "models_sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b",
+        "observations_sha256": "86eac5188197d2493c1b9679d52f8ceb611015ef802b7d0d6dab9468f618af01",
+        "task_payload_sha256": "32528ddb8346261c67b78559133a4ae6eaa682a2302250eda07ab2a9f5972deb"
+      }
+    },
+    {
+      "anchor_id": "w1_t2",
+      "task_id": "w1_t2",
+      "task_text": "创建可更新的 Excel 市场模型，覆盖历史规模、预测、行业转型与敏感性分析。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t2.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "metadata": {
+        "text_is_shortened_chinese_paraphrase": true,
+        "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+        "task_type": "spreadsheet_market_model",
+        "score_metric": "binary_rubric_pass_rate",
+        "official_leaderboard_scored": false
+      },
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "weights_interpretation": "Normalized nonnegative ridge coefficients from recorded reference-model scores; not official AA task labels or semantic shares of work.",
+      "weights": {
+        "agentic": 0.7084321192235856,
+        "coding": 0.2161070090786004,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.07546087169781406
+      },
+      "bias": 0.022570622069066182,
+      "scale": 1.355523265740755,
+      "coefficients": {
+        "agentic": 0.9602962198055986,
+        "coding": 0.2929380786956914,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.10228896723946503
+      },
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "observations": [
+        {
+          "task_id": "w1_t2",
+          "model_slug": "claude-fable-5",
+          "model_name": "Claude Fable 5",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 10,
+          "total": 12,
+          "score": 0.8333333333333334,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t2.claude-fable-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-fable-5:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_reference_configuration",
+            "effort": "max",
+            "fallback_model": "Opus 4.8",
+            "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.8333333333333334
+        },
+        {
+          "task_id": "w1_t2",
+          "model_slug": "gemini-3-1-pro",
+          "model_name": "Gemini 3.1 Pro Preview",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 2,
+          "total": 12,
+          "score": 0.16666666666666666,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t2.gemini-3-1-pro.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gemini-3-1-pro-preview:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_model_name",
+            "model_name": "Gemini 3.1 Pro Preview",
+            "effort": null,
+            "effort_status": "not_disclosed_in_sample_label",
+            "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.16666666666666666
+        },
+        {
+          "task_id": "w1_t2",
+          "model_slug": "gpt-5-5",
+          "model_name": "GPT-5.5 (xhigh)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 5,
+          "total": 12,
+          "score": 0.4166666666666667,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t2.gpt-5-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gpt-5-5:xhigh",
+          "reference_effort": "xhigh",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.4166666666666667
+        },
+        {
+          "task_id": "w1_t2",
+          "model_slug": "glm-5-2",
+          "model_name": "GLM-5.2 (max)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 7,
+          "total": 12,
+          "score": 0.5833333333333334,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t2.glm-5-2.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "glm-5-2:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.5833333333333334
+        }
+      ],
+      "excluded_observations": [
+        {
+          "task_id": "w1_t2",
+          "model_slug": "claude-4-opus-thinking",
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 0,
+          "total": 12,
+          "score": 0,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t2.claude-4-opus-thinking.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-4-opus-thinking:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.0,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document",
+            "scientific_reasoning"
+          ]
+        },
+        {
+          "task_id": "w1_t2",
+          "model_slug": "o3",
+          "model_name": "o3",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 1,
+          "total": 12,
+          "score": 0.08333333333333333,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t2.o3.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "o3:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.08333333333333333,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document"
+          ]
+        }
+      ],
+      "fit_diagnostics": {
+        "paired_model_count": 4,
+        "minimum_complete_models": 4,
+        "ridge": 0.01,
+        "warnings": [
+          "Four coefficients plus an intercept use four complete models per task. The task vector is underidentified without regularization; these are reference coefficients, not recovered intrinsic requirements.",
+          "Capability categories correlate. Coefficients and zeros are not semantic percentages or proof of an irrelevant capability.",
+          "The anchors share one business scenario, so general coding and scientific reasoning calibration coverage is not established.",
+          "Briefcase-Lite examples do not contribute to the official leaderboard; task grading and aggregate benchmark settings need not be identical.",
+          "Fable Max with Opus 4.8 fallback is user confirmed. Gemini Preview sample effort is undisclosed. No independent runtime configuration verification was performed.",
+          "No held-out predictive validation, development testing, behavioral review, or model invocation was performed."
+        ],
+        "active_feature_count": 4,
+        "parameter_count_with_intercept": 5,
+        "design_rank": 4,
+        "rank_tolerance": 1e-10,
+        "identifiable_without_regularization": false,
+        "underdetermined_without_regularization": true,
+        "optimizer": {
+          "method": "cyclic_coordinate_descent",
+          "converged": true,
+          "iterations": 13,
+          "max_iterations": 20000,
+          "tolerance": 1e-10,
+          "last_max_coefficient_change": 5.331923791374038e-11,
+          "nonnegative_stationarity_residual": 2.061215781390402e-13
+        },
+        "training_fit": {
+          "meaning": "In-sample fitting residuals; no held-out evaluation or predictive validation was performed.",
+          "mean_squared_error": 0.009635304111851034,
+          "mean_absolute_error": 0.09764067198950405,
+          "objective": 0.019819749917268654
+        },
+        "training_predictions": [
+          {
+            "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+            "observed_score_normalized": 0.8333333333333334,
+            "predicted_score_proxy": 0.7306952111659508
+          },
+          {
+            "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+            "observed_score_normalized": 0.16666666666666666,
+            "predicted_score_proxy": 0.25095698052247795
+          },
+          {
+            "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+            "observed_score_normalized": 0.4166666666666667,
+            "predicted_score_proxy": 0.5276576967898634
+          },
+          {
+            "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+            "observed_score_normalized": 0.5833333333333334,
+            "predicted_score_proxy": 0.4906901115217078
+          }
+        ]
+      },
+      "weight_evidence_label": "fitted_to_paired_aa_observations",
+      "data_provenance": {
+        "models_sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b",
+        "observations_sha256": "86eac5188197d2493c1b9679d52f8ceb611015ef802b7d0d6dab9468f618af01",
+        "task_payload_sha256": "d79b25afaaeb2a158894ae8081cac065a0788d7029cd229fee7283b248edebda"
+      }
+    },
+    {
+      "anchor_id": "w1_t3",
+      "task_id": "w1_t3",
+      "task_text": "制作并购目标评估演示文稿，分析竞争位置、需求、成本风险和盈利持续性。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t3.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "metadata": {
+        "text_is_shortened_chinese_paraphrase": true,
+        "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+        "task_type": "acquisition_assessment_presentation",
+        "score_metric": "binary_rubric_pass_rate",
+        "official_leaderboard_scored": false
+      },
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "weights_interpretation": "Normalized nonnegative ridge coefficients from recorded reference-model scores; not official AA task labels or semantic shares of work.",
+      "weights": {
+        "agentic": 0.6403707642055355,
+        "coding": 0.2371360574849619,
+        "knowledge_document": 0.010416266558037304,
+        "scientific_reasoning": 0.11207691175146535
+      },
+      "bias": -0.13710797791432566,
+      "scale": 1.51269067356476,
+      "coefficients": {
+        "agentic": 0.9686828826372517,
+        "coding": 0.35871350252341866,
+        "knowledge_document": 0.015756589275707535,
+        "scientific_reasoning": 0.1695376991283823
+      },
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "observations": [
+        {
+          "task_id": "w1_t3",
+          "model_slug": "claude-fable-5",
+          "model_name": "Claude Fable 5",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 16,
+          "total": 22,
+          "score": 0.7272727272727273,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t3.claude-fable-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-fable-5:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_reference_configuration",
+            "effort": "max",
+            "fallback_model": "Opus 4.8",
+            "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.7272727272727273
+        },
+        {
+          "task_id": "w1_t3",
+          "model_slug": "gemini-3-1-pro",
+          "model_name": "Gemini 3.1 Pro Preview",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 1,
+          "total": 22,
+          "score": 0.045454545454545456,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t3.gemini-3-1-pro.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gemini-3-1-pro-preview:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_model_name",
+            "model_name": "Gemini 3.1 Pro Preview",
+            "effort": null,
+            "effort_status": "not_disclosed_in_sample_label",
+            "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.045454545454545456
+        },
+        {
+          "task_id": "w1_t3",
+          "model_slug": "gpt-5-5",
+          "model_name": "GPT-5.5 (xhigh)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 9,
+          "total": 22,
+          "score": 0.4090909090909091,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t3.gpt-5-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gpt-5-5:xhigh",
+          "reference_effort": "xhigh",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.4090909090909091
+        },
+        {
+          "task_id": "w1_t3",
+          "model_slug": "glm-5-2",
+          "model_name": "GLM-5.2 (max)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 9,
+          "total": 22,
+          "score": 0.4090909090909091,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t3.glm-5-2.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "glm-5-2:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.4090909090909091
+        }
+      ],
+      "excluded_observations": [
+        {
+          "task_id": "w1_t3",
+          "model_slug": "claude-4-opus-thinking",
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 1,
+          "total": 22,
+          "score": 0.045454545454545456,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t3.claude-4-opus-thinking.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-4-opus-thinking:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.045454545454545456,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document",
+            "scientific_reasoning"
+          ]
+        },
+        {
+          "task_id": "w1_t3",
+          "model_slug": "o3",
+          "model_name": "o3",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 1,
+          "total": 22,
+          "score": 0.045454545454545456,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t3.o3.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "o3:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.045454545454545456,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document"
+          ]
+        }
+      ],
+      "fit_diagnostics": {
+        "paired_model_count": 4,
+        "minimum_complete_models": 4,
+        "ridge": 0.01,
+        "warnings": [
+          "Four coefficients plus an intercept use four complete models per task. The task vector is underidentified without regularization; these are reference coefficients, not recovered intrinsic requirements.",
+          "Capability categories correlate. Coefficients and zeros are not semantic percentages or proof of an irrelevant capability.",
+          "The anchors share one business scenario, so general coding and scientific reasoning calibration coverage is not established.",
+          "Briefcase-Lite examples do not contribute to the official leaderboard; task grading and aggregate benchmark settings need not be identical.",
+          "Fable Max with Opus 4.8 fallback is user confirmed. Gemini Preview sample effort is undisclosed. No independent runtime configuration verification was performed.",
+          "No held-out predictive validation, development testing, behavioral review, or model invocation was performed."
+        ],
+        "active_feature_count": 4,
+        "parameter_count_with_intercept": 5,
+        "design_rank": 4,
+        "rank_tolerance": 1e-10,
+        "identifiable_without_regularization": false,
+        "underdetermined_without_regularization": true,
+        "optimizer": {
+          "method": "cyclic_coordinate_descent",
+          "converged": true,
+          "iterations": 14,
+          "max_iterations": 20000,
+          "tolerance": 1e-10,
+          "last_max_coefficient_change": 2.1324941812395082e-11,
+          "nonnegative_stationarity_residual": 2.386424391431774e-13
+        },
+        "training_fit": {
+          "meaning": "In-sample fitting residuals; no held-out evaluation or predictive validation was performed.",
+          "mean_squared_error": 0.004300220444588401,
+          "mean_absolute_error": 0.056401339706013354,
+          "objective": 0.015260352499972235
+        },
+        "training_predictions": [
+          {
+            "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+            "observed_score_normalized": 0.7272727272727273,
+            "predicted_score_proxy": 0.6455826768565762
+          },
+          {
+            "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+            "observed_score_normalized": 0.045454545454545456,
+            "predicted_score_proxy": 0.141839628838828
+          },
+          {
+            "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+            "observed_score_normalized": 0.4090909090909091,
+            "predicted_score_proxy": 0.4255085051186534
+          },
+          {
+            "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+            "observed_score_normalized": 0.4090909090909091,
+            "predicted_score_proxy": 0.3779782800950336
+          }
+        ]
+      },
+      "weight_evidence_label": "fitted_to_paired_aa_observations",
+      "data_provenance": {
+        "models_sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b",
+        "observations_sha256": "86eac5188197d2493c1b9679d52f8ceb611015ef802b7d0d6dab9468f618af01",
+        "task_payload_sha256": "e4623fbbd68d7330e6ccf57bd1385ee9d92e3fe3d4b40b590db66e33bd56dc23"
+      }
+    },
+    {
+      "anchor_id": "w1_t4",
+      "task_id": "w1_t4",
+      "task_text": "把初步尽调发现、关键判断和待确认问题制作成简报视频及字幕。",
+      "source_url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/blob/main/tasks/w1_t4.md",
+      "benchmark_version": "AA-Briefcase-Lite public fifth scenario demo; no official version metadata provided",
+      "metadata": {
+        "text_is_shortened_chinese_paraphrase": true,
+        "scenario_id": "AA-Briefcase-Lite-public-fifth-scenario",
+        "task_type": "briefing_video_and_captions",
+        "score_metric": "binary_rubric_pass_rate",
+        "official_leaderboard_scored": false
+      },
+      "status": "regularized_reference_fit",
+      "fit_kind": "joint_four_dimension_reference",
+      "requested_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_dimensions": [
+        "agentic",
+        "coding",
+        "knowledge_document",
+        "scientific_reasoning"
+      ],
+      "active_mask": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "weights_interpretation": "Normalized nonnegative ridge coefficients from recorded reference-model scores; not official AA task labels or semantic shares of work.",
+      "weights": {
+        "agentic": 1.0,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "bias": 0.11465032532640082,
+      "scale": 0.6737916186549493,
+      "coefficients": {
+        "agentic": 0.6737916186549493,
+        "coding": 0.0,
+        "knowledge_document": 0.0,
+        "scientific_reasoning": 0.0
+      },
+      "paired_model_ids": [
+        "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+        "bbd93ebe-80da-4594-bb19-61e69d0331df",
+        "1f054429-397e-4fdb-9e71-67bc92c1735e",
+        "f7a4ea75-e548-4069-80d4-9be8bc7c009b"
+      ],
+      "observations": [
+        {
+          "task_id": "w1_t4",
+          "model_slug": "claude-fable-5",
+          "model_name": "Claude Fable 5",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 5,
+          "total": 10,
+          "score": 0.5,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t4.claude-fable-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-fable-5:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_reference_configuration",
+            "effort": "max",
+            "fallback_model": "Opus 4.8",
+            "evidence": "User confirmed AA Fable 5 is Max with Opus 4.8 fallback.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Fable 5 AA reference Max with Opus 4.8 fallback; the old pending fallback caveat is superseded."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.5
+        },
+        {
+          "task_id": "w1_t4",
+          "model_slug": "gemini-3-1-pro",
+          "model_name": "Gemini 3.1 Pro Preview",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 1,
+          "total": 10,
+          "score": 0.1,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t4.gemini-3-1-pro.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gemini-3-1-pro-preview:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": {
+            "status": "user_confirmed_model_name",
+            "model_name": "Gemini 3.1 Pro Preview",
+            "effort": null,
+            "effort_status": "not_disclosed_in_sample_label",
+            "evidence": "User confirmed the AA label includes Preview. Preview is retained as part of model identity.",
+            "independent_runtime_verification_performed": false
+          },
+          "configuration_notes": [
+            "User confirmed Gemini 3.1 Pro Preview. Preview is model identity; sample effort is undisclosed and remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.1
+        },
+        {
+          "task_id": "w1_t4",
+          "model_slug": "gpt-5-5",
+          "model_name": "GPT-5.5 (xhigh)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 3,
+          "total": 10,
+          "score": 0.3,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t4.gpt-5-5.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "gpt-5-5:xhigh",
+          "reference_effort": "xhigh",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.3
+        },
+        {
+          "task_id": "w1_t4",
+          "model_slug": "glm-5-2",
+          "model_name": "GLM-5.2 (max)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 5,
+          "total": 10,
+          "score": 0.5,
+          "analytical_quality": {
+            "verdict": "win",
+            "opponentSlug": "claude-4-opus-thinking"
+          },
+          "presentation": {
+            "verdict": "win",
+            "opponentSlug": "o3"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t4.glm-5-2.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "glm-5-2:max",
+          "reference_effort": "max",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample effort label and user-supplied AA record effort agree, with case-only label differences."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.5
+        }
+      ],
+      "excluded_observations": [
+        {
+          "task_id": "w1_t4",
+          "model_slug": "claude-4-opus-thinking",
+          "model_name": "Claude 4 Opus (Extended Thinking)",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 0,
+          "total": 10,
+          "score": 0,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "claude-fable-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t4.claude-4-opus-thinking.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "8a4a5ead-7789-4389-8400-30e9d20370b7",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "claude-4-opus-thinking:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Source sample Extended Thinking and AA Reasoning are a user-approved reference binding; no shared thinking-budget value is inferred."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.0,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document",
+            "scientific_reasoning"
+          ]
+        },
+        {
+          "task_id": "w1_t4",
+          "model_slug": "o3",
+          "model_name": "o3",
+          "metric": "binary_rubric_pass_rate",
+          "passed": 0,
+          "total": 10,
+          "score": 0,
+          "analytical_quality": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "presentation": {
+            "verdict": "loss",
+            "opponentSlug": "gpt-5-5"
+          },
+          "source_url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+          "source_location": "module 70131, static variable ee.w1_t4.o3.grading",
+          "official_leaderboard_scored": false,
+          "aa_model_id": "16c5b637-8bce-4252-81f2-1b87a36a4e4c",
+          "score_min": 0.0,
+          "score_max": 1.0,
+          "score_direction": "higher_is_better",
+          "binding_status": "user_approved_reference_binding",
+          "configuration_id": "o3:unknown",
+          "reference_effort": "unknown",
+          "sample_configuration_alignment": null,
+          "configuration_notes": [
+            "Sample and AA reference both say o3; effort remains unknown."
+          ],
+          "configuration_match_scope": "Explicit UUID reference binding; not an assertion of independently verified identical evaluation runtime.",
+          "normalized_score": 0.0,
+          "exclusion_reason": "incomplete_four_dimensional_reference_vector",
+          "missing_dimensions": [
+            "agentic",
+            "coding",
+            "knowledge_document"
+          ]
+        }
+      ],
+      "fit_diagnostics": {
+        "paired_model_count": 4,
+        "minimum_complete_models": 4,
+        "ridge": 0.01,
+        "warnings": [
+          "Four coefficients plus an intercept use four complete models per task. The task vector is underidentified without regularization; these are reference coefficients, not recovered intrinsic requirements.",
+          "Capability categories correlate. Coefficients and zeros are not semantic percentages or proof of an irrelevant capability.",
+          "The anchors share one business scenario, so general coding and scientific reasoning calibration coverage is not established.",
+          "Briefcase-Lite examples do not contribute to the official leaderboard; task grading and aggregate benchmark settings need not be identical.",
+          "Fable Max with Opus 4.8 fallback is user confirmed. Gemini Preview sample effort is undisclosed. No independent runtime configuration verification was performed.",
+          "No held-out predictive validation, development testing, behavioral review, or model invocation was performed."
+        ],
+        "active_feature_count": 4,
+        "parameter_count_with_intercept": 5,
+        "design_rank": 4,
+        "rank_tolerance": 1e-10,
+        "identifiable_without_regularization": false,
+        "underdetermined_without_regularization": true,
+        "optimizer": {
+          "method": "cyclic_coordinate_descent",
+          "converged": true,
+          "iterations": 2,
+          "max_iterations": 20000,
+          "tolerance": 1e-10,
+          "last_max_coefficient_change": 0.0,
+          "nonnegative_stationarity_residual": 8.673617379884035e-18
+        },
+        "training_fit": {
+          "meaning": "In-sample fitting residuals; no held-out evaluation or predictive validation was performed.",
+          "mean_squared_error": 0.007704947599624826,
+          "mean_absolute_error": 0.07884704523913191,
+          "objective": 0.012244899053321393
+        },
+        "training_predictions": [
+          {
+            "aa_model_id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+            "observed_score_normalized": 0.5,
+            "predicted_score_proxy": 0.47506348480072746
+          },
+          {
+            "aa_model_id": "bbd93ebe-80da-4594-bb19-61e69d0331df",
+            "observed_score_normalized": 0.1,
+            "predicted_score_proxy": 0.1872038905881639
+          },
+          {
+            "aa_model_id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+            "observed_score_normalized": 0.3,
+            "predicted_score_proxy": 0.3704901998900999
+          },
+          {
+            "aa_model_id": "f7a4ea75-e548-4069-80d4-9be8bc7c009b",
+            "observed_score_normalized": 0.5,
+            "predicted_score_proxy": 0.36724242472100865
+          }
+        ]
+      },
+      "weight_evidence_label": "fitted_to_paired_aa_observations",
+      "data_provenance": {
+        "models_sha256": "cbcd700536da1f557af1573110358a1df60ceb7599bda3b4ab29d8af6edee19b",
+        "observations_sha256": "86eac5188197d2493c1b9679d52f8ceb611015ef802b7d0d6dab9468f618af01",
+        "task_payload_sha256": "90b9b42281a7863b4a32a6b9a932dade3205057b53fda2f52d6b45d398fa8602"
+      }
+    }
+  ]
+}

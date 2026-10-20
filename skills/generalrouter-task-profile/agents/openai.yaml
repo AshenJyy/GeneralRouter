@@ -1,0 +1,4 @@
+interface:
+  display_name: "GeneralRouter Task Profile"
+  short_description: "Plan subtasks with explained four-dimensional estimates"
+  default_prompt: "Use $generalrouter-task-profile to prepare executable subtasks and explain their four-dimensional capability weights using the bundled semantic anchors."

@@ -1,0 +1,90 @@
+{
+  "collected_at": "2026-10-19",
+  "files": [
+    {
+      "url": "https://artificialanalysis.ai/evaluations/aa-briefcase",
+      "bytes": 1757164,
+      "sha256": "b4468dafa5745f8c21a8d66feeb020c800f00f9f40bd8d91b8cd32a0547213c7",
+      "local_path": "aa-briefcase-evaluation.html",
+      "role": "public source page"
+    },
+    {
+      "url": "https://artificialanalysis.ai/_next/static/chunks/7675-c7c38f0d3fab1224.js",
+      "bytes": 107453,
+      "sha256": "79b2639c2f2d73eebbe6207bfd2dc7e1cc923a3d7e0fa2af4042e5f4939d298c",
+      "local_path": "chunks/7675-c7c38f0d3fab1224.js",
+      "role": "actual public task-model grades"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/README.md",
+      "bytes": 17059,
+      "sha256": "f22e69553d1188b6631fae9000f98f606e86105ddc26f5fc40bee4d3589985c8",
+      "local_path": "briefcase-lite-README.md",
+      "role": "official metadata and metric methodology"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/tasks.jsonl",
+      "bytes": 17373,
+      "sha256": "921293201a547e3fcefa1008fd8a0f6ae7a811c6cde7a49d5ba3c0beb6603f77",
+      "local_path": "tasks.jsonl",
+      "role": "task metadata"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/checks.jsonl",
+      "bytes": 385046,
+      "sha256": "e5a185da4b334afea79d883d81d720b846778d1ca8cab1ded53f999a8a65abd6",
+      "local_path": "checks.jsonl",
+      "role": "rubric definitions, not model outcomes"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/tasks/w1_t1.md",
+      "bytes": 913,
+      "sha256": "9c81987ef22cea43c3eba7588d86321e2791122ac96e6c9ea11e7bf58abaf8d4",
+      "local_path": "tasks/w1_t1.md",
+      "role": "public task context or rubric definition"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/tasks/w1_t2.md",
+      "bytes": 818,
+      "sha256": "43eba0f7a902e66fd415d61447c20d37452f2ee0edb766f4e86ff29bfd121ecf",
+      "local_path": "tasks/w1_t2.md",
+      "role": "public task context or rubric definition"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/tasks/w1_t3.md",
+      "bytes": 687,
+      "sha256": "dfa43a286d3ed96e98c3a0c5f515b130fda80adc8594e4dacc78c8659b2125f2",
+      "local_path": "tasks/w1_t3.md",
+      "role": "public task context or rubric definition"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/tasks/w1_t4.md",
+      "bytes": 716,
+      "sha256": "23ad1fc817fa47890ed1eb8e720f3309e119cba9d94fb7751e0d5cbc28011330",
+      "local_path": "tasks/w1_t4.md",
+      "role": "public task context or rubric definition"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/summary_docs/scenario_overview.md",
+      "bytes": 5948,
+      "sha256": "d7aebb4f89957722aa144115a30eba14b4780b9573d4dce7e7da6b352c7c67b6",
+      "local_path": "summary_docs/scenario_overview.md",
+      "role": "public task context or rubric definition"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/summary_docs/week_1/week_1_overview.md",
+      "bytes": 710,
+      "sha256": "417c1e063c31ad485d79610bf4ec994485f1985e9497d364397efe2718e77ac4",
+      "local_path": "summary_docs/week_1/week_1_overview.md",
+      "role": "public task context or rubric definition"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite/raw/main/grader/grading_rubric_w1.json",
+      "bytes": 395994,
+      "sha256": "cfbc0c46ff5ebbb76a9be3f3510171841ddb5bd83f699cacb4d8009fa74984a1",
+      "local_path": "grader/grading_rubric_w1.json",
+      "role": "public task context or rubric definition"
+    }
+  ],
+  "scope": "Public AA-Briefcase Lite demonstration only. No agent execution, rescoring, evaluation or review performed."
+}
