@@ -124,6 +124,53 @@ def api_equivalent(tokens: dict, rate: dict | None) -> dict:
     }
 
 
+def _instant(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.astimezone(timezone.utc) if parsed.tzinfo is not None else None
+    except ValueError:
+        return None
+
+
+def _usage_summary(records: list[dict]) -> dict:
+    tokens = {}
+    for field in TOKEN_FIELDS:
+        values = [entry.get("tokens", {}).get(field) for entry in records]
+        known = sum(value for value in values if value is not None)
+        unknown = sum(value is None for value in values)
+        tokens[field] = {
+            "known_sum": known,
+            "unknown_records": unknown,
+            "total": known if records and not unknown else None,
+        }
+    costs = [entry.get("api_equivalent", {}) for entry in records]
+    subtotal = math.fsum(cost.get("known_subtotal", 0.0) for cost in costs)
+    incomplete = sum(cost.get("complete") is not True for cost in costs)
+    missing = {}
+    for cost in costs:
+        for field in cost.get("missing", []):
+            missing[field] = missing.get(field, 0) + 1
+    latencies = [entry.get("latency_ms") for entry in records]
+    known_latency = math.fsum(value for value in latencies if value is not None)
+    return {
+        "usage_record_count": len(records),
+        "usage_observed": bool(records),
+        "tokens": tokens,
+        "api_equivalent_cost_usd": subtotal if records and not incomplete else None,
+        "known_api_equivalent_subtotal_usd": subtotal,
+        "incomplete_cost_records": incomplete,
+        "cost_missing_fields": missing,
+        "reported_request_latency_ms": {
+            "known_sum": known_latency,
+            "unknown_records": sum(value is None for value in latencies),
+            "total": known_latency if records and all(value is not None for value in latencies) else None,
+            "meaning": "Sum of reported request latencies, not agent or workflow wall-clock time.",
+        },
+    }
+
+
 class RunLedger:
     def __init__(self, state_dir: Path, run_id: str):
         if not isinstance(run_id, str) or not run_id.strip():
@@ -193,52 +240,81 @@ class RunLedger:
         return entry
 
     @staticmethod
-    def report(state: dict) -> dict:
+    def report(state: dict, *, detail: bool = False) -> dict:
         records = list(state.get("usage", {}).values())
-        token_totals = {}
-        for field in TOKEN_FIELDS:
-            values = [entry["tokens"].get(field) for entry in records]
-            token_totals[field] = {
-                "known_sum": sum(value for value in values if value is not None),
-                "unknown_records": sum(value is None for value in values),
-            }
-        costs = [entry["api_equivalent"] for entry in records]
-        subtotal = math.fsum(cost["known_subtotal"] for cost in costs)
-        incomplete = sum(not cost["complete"] for cost in costs)
         tasks = state.get("tasks", {})
-        instants = []
-        for value in (
+        events = state.get("events", [])
+        instants = [instant for instant in (_instant(value) for value in (
             [event.get("at") for event in state.get("events", [])]
             + [record.get(field) for record in records for field in ("started_at", "finished_at")]
-        ):
-            if isinstance(value, str):
-                try:
-                    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-                    if parsed.tzinfo is not None:
-                        instants.append(parsed.astimezone(timezone.utc))
-                except ValueError:
-                    pass
-        return {
-            "schema_version": "generalrouter-run-report.v1",
+        )) if instant is not None]
+        recorded = [instant for instant in (_instant(record.get("recorded_at")) for record in records) if instant is not None]
+        by_role: dict[str, list[dict]] = {"planner": [], "worker": []}
+        by_task: dict[str, list[dict]] = {identity: [] for identity in tasks}
+        unassigned = []
+        for record in records:
+            role = record.get("role")
+            role = role if isinstance(role, str) and role else "unknown"
+            by_role.setdefault(role, []).append(record)
+            identity = record.get("task_id")
+            if isinstance(identity, str) and identity:
+                by_task.setdefault(identity, []).append(record)
+            else:
+                unassigned.append(record)
+        task_summaries = {}
+        for identity, usage in by_task.items():
+            task = tasks.get(identity, {})
+            started = _instant(task.get("started_at"))
+            finished = _instant(task.get("finished_at"))
+            terminal = task.get("status") in ("completed", "failed")
+            elapsed = (finished - started).total_seconds() if terminal and started and finished and finished >= started else None
+            task_summaries[identity] = {
+                **_usage_summary(usage),
+                "status": task.get("status", "unknown"),
+                "outcome": task.get("outcome"),
+                "route": task.get("route"),
+                "actual_route": task.get("actual_route"),
+                "route_mismatch": task.get("route_mismatch"),
+                "started_at": task.get("started_at"),
+                "finished_at": task.get("finished_at"),
+                "recorded_start_to_finish_seconds": elapsed,
+            }
+        result = {
+            "schema_version": "generalrouter-run-report.v2",
             "run_id": state["run_id"],
+            "profile_id": state.get("profile_id"),
             "created_at": state.get("created_at"),
             "updated_at": state.get("updated_at"),
-            "usage_record_count": len(records),
-            "tokens": token_totals,
-            "api_equivalent_cost_usd": subtotal if records and not incomplete else None,
-            "known_api_equivalent_subtotal_usd": subtotal,
-            "incomplete_cost_records": incomplete,
+            "snapshot": {
+                "generated_at": utc_now(),
+                "usage_record_count": len(records),
+                "event_count": len(events),
+                "usage_recorded_through": max(recorded).isoformat() if recorded else None,
+                "scope": "Saved records at this snapshot; later requests and the final reply are not included.",
+            },
+            **_usage_summary(records),
+            "by_role": {role: _usage_summary(usage) for role, usage in by_role.items()},
+            "role_meaning": {"planner": "main_agent", "worker": "native_subagent", "unknown": "not_reported"},
+            "by_task": task_summaries,
+            "unassigned_task_usage": _usage_summary(unassigned),
             "reasoning_is_output_subset": True,
+            "cost_kind": "api_equivalent_not_subscription_invoice",
+            "prices": "Stored rate snapshots; this report does not fetch or verify current prices.",
             "task_outcomes": {identity: task.get("outcome", task.get("status")) for identity, task in tasks.items()},
-            "task_records": [
-                {"task_id": identity, **{key: task.get(key) for key in ("status", "outcome", "reservation_id", "route", "actual_route", "route_mismatch", "reserved_at", "authorized_at", "started_at", "finished_at", "child_session_id")}}
-                for identity, task in tasks.items()
-            ],
             "observed_first_at": min(instants).isoformat() if instants else None,
             "observed_last_at": max(instants).isoformat() if instants else None,
             "observed_span_seconds": (max(instants) - min(instants)).total_seconds() if instants else None,
-            "usage": records,
-            "events": state.get("events", []),
             "scope": "Observed DSH requests, including planner, workers, retries and failed attempts when reported. Missing usage stays unknown.",
-            "wall_clock": "Observed span includes recorded planning and worker events. Use a fixed case-study start/stop protocol for app completion time; no successful delivery is inferred from token records.",
+            "wall_clock": "Observed span covers saved event and request timestamps. Task start-to-finish can span retries. Neither is browser acceptance time or a fixed-protocol end-to-end app completion measurement; main-agent wall-clock time is not inferred.",
+            "detail_available": True,
         }
+        if detail:
+            result.update(
+                usage=records,
+                events=events,
+                task_records=[
+                    {"task_id": identity, **{key: task.get(key) for key in ("status", "outcome", "reservation_id", "route", "actual_route", "route_mismatch", "reserved_at", "authorized_at", "started_at", "finished_at", "child_session_id")}}
+                    for identity, task in tasks.items()
+                ],
+            )
+        return result

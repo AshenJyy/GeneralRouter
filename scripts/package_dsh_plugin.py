@@ -24,6 +24,7 @@ def public_files() -> list[tuple[Path, str]]:
         for name in (
             "package.json",
             "index.mjs",
+            "recording-diagnostics.mjs",
             "cordis.patch.yml",
             "Install-Desktop.ps1",
             "README.zh-CN.md",

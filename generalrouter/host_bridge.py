@@ -6,6 +6,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
@@ -15,8 +16,71 @@ from .quota import QuotaError, QuotaManager
 from .runner import GeneralRouter
 
 
-class SetupRequired(ValueError):
-    pass
+class BridgeError(ValueError):
+    """A deliberately public diagnostic, never a raw request or exception dump."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+class SetupRequired(BridgeError):
+    def __init__(self, message: str):
+        super().__init__("setup_required", message)
+
+
+def _profile_digest(profile: dict) -> str:
+    try:
+        serialized = json.dumps(profile, sort_keys=True, ensure_ascii=False, allow_nan=False)
+    except (ValueError, TypeError) as error:
+        raise BridgeError("profile_not_json_safe", "The profile must contain finite, JSON-compatible values.") from error
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _profile_id(run_id: str, digest: str) -> str:
+    binding = json.dumps([run_id, digest], ensure_ascii=False).encode("utf-8")
+    return "profile-" + hashlib.sha256(binding).hexdigest()[:32]
+
+
+def _window_summary(window: dict) -> dict:
+    return {key: window.get(key) for key in (
+        "id", "reported_label", "window", "remaining_percent", "reset_at", "duration_seconds", "applicability"
+    ) if key in window}
+
+
+def _quota_summary(snapshot: dict, run_id: str) -> dict:
+    accounts = snapshot.get("accounts", {})
+    values = accounts.values() if isinstance(accounts, dict) else accounts
+    return {
+        **{key: snapshot.get(key) for key in (
+            "generated_at", "status", "last_attempt_at", "last_success_at", "stale", "refresh_due_seconds", "error"
+        )},
+        "accounts": [
+            {
+                **{key: account.get(key) for key in ("provider", "status", "models_status", "age_seconds", "stale", "error")},
+                "windows": [_window_summary(window) for window in account.get("windows", [])],
+            }
+            for account in values
+        ],
+        "active_ticket_count": sum(ticket.get("run_id") == run_id for ticket in snapshot.get("reservations", [])),
+        "reservation_unit": "Dispatch identity only; no percentage is deducted.",
+    }
+
+
+def _admission_summary(decision: dict) -> dict:
+    return {
+        **{key: decision.get(key) for key in (
+            "accepted", "quota_status", "reason", "detail", "remaining_percent", "minimum_remaining_percent", "catalog_incomplete"
+        ) if key in decision},
+        "account_evidence": [
+            {
+                **{key: account.get(key) for key in ("provider", "status", "reason", "remaining_percent")},
+                "windows": [_window_summary(window) for window in account.get("windows", [])],
+            }
+            for account in decision.get("accounts", [])
+        ],
+        "limitation": "Cached percentages; unknown stays unknown and no task consumption is pre-deducted.",
+    }
 
 
 def _path(base: Path, value: Any, label: str) -> Path:
@@ -28,10 +92,10 @@ def _path(base: Path, value: Any, label: str) -> Path:
 
 def _object_file(path: Path) -> dict:
     if not path.is_file():
-        raise SetupRequired(f"Create the local configuration file: {path}")
+        raise SetupRequired("A required configuration or bundled data file is missing; check the selected file locations.")
     value = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(value, dict):
-        raise ValueError(f"Expected a JSON object in {path.name}")
+        raise BridgeError("configuration_object_required", "A configuration or bundled data file must contain a JSON object.")
     return value
 
 
@@ -62,7 +126,7 @@ class HostBridge:
         self.request = request
         self.host = request.get("host") or {}
         if not isinstance(self.host, dict):
-            raise ValueError("host must be an object")
+            raise BridgeError("invalid_host", "host must be an object.")
         supplied = request.get("config_file", request.get("host_config"))
         project = request.get("project_root") or self.host.get("project_root") or self.host.get("cwd")
         if not project and isinstance(supplied, str) and supplied.strip():
@@ -82,7 +146,7 @@ class HostBridge:
         for path in dict.fromkeys(layers):
             if not path.exists():
                 if path == self.config_path and explicit:
-                    raise SetupRequired(f"Create the explicitly selected local configuration file: {path}")
+                    raise SetupRequired("The explicitly selected local configuration file does not exist.")
                 continue
             layer = _object_file(path)
             for field in ("routing_config", "rates_file", "quota_file"):
@@ -104,7 +168,7 @@ class HostBridge:
             raise SetupRequired("state_dir must be inside the current project workspace.")
         self.run_id = request.get("run_id") or self.host.get("session_id")
         if not isinstance(self.run_id, str) or not self.run_id:
-            raise ValueError("A DSH session_id or run_id is required")
+            raise BridgeError("run_id_required", "A DSH session_id or run_id is required.")
         self.ledger = RunLedger(self.state_dir, self.run_id)
         bundled_mappings = _object_file(self.runtime_root / "data/model-call-mappings.v0.1.json")
         self.routes = copy.deepcopy(bundled_mappings.get("routes", {}))
@@ -205,35 +269,93 @@ class HostBridge:
         # A failed attempt is cached too; repeated dispatches do not increase polling.
         return self.quota.snapshot(refresh=True) if enabled and snapshot.get("stale", True) else snapshot
 
+    def _planner_input(self) -> tuple[dict, str, str, str]:
+        supplied = self.request.get("profile")
+        reference = self.request.get("profile_id")
+        if supplied is not None and not isinstance(supplied, dict):
+            raise BridgeError("profile_object_required", "profile must be a task-profile.v3 object.")
+        if reference is not None and (not isinstance(reference, str) or not reference):
+            raise BridgeError("invalid_profile_id", "profile_id must be a nonempty saved profile identifier.")
+        if supplied is None and reference is None:
+            raise BridgeError("profile_required", "Submit the complete profile once, then reuse its returned profile_id.")
+        with self.ledger.edit() as state:
+            saved_digest = state.get("profile_sha256")
+            saved_profile = state.get("profile")
+            if saved_digest is not None:
+                expected_id = _profile_id(self.run_id, saved_digest)
+                if state.get("profile_id") not in (None, expected_id):
+                    raise BridgeError("saved_profile_identity_mismatch", "The saved profile identity is inconsistent; preserve the run records and use a new run.")
+                if reference is not None and reference != expected_id:
+                    raise BridgeError("profile_id_not_in_run", "This profile_id does not belong to the current run.")
+                if isinstance(saved_profile, dict) and _profile_digest(saved_profile) != saved_digest:
+                    raise BridgeError("saved_profile_digest_mismatch", "The saved profile content no longer matches its registered digest; do not dispatch from this record.")
+            elif reference is not None and supplied is None:
+                raise BridgeError("profile_not_registered", "This run has no saved profile; submit its complete task-profile.v3 object.")
+            if supplied is None:
+                if not isinstance(saved_profile, dict):
+                    raise BridgeError("saved_profile_body_missing", "This older run stores only a profile digest. Resubmit the original complete profile to enable profile_id reuse.")
+                profile = copy.deepcopy(saved_profile)
+            else:
+                profile = copy.deepcopy(supplied)
+            digest = _profile_digest(profile)
+            if saved_digest is not None and saved_digest != digest:
+                raise BridgeError("profile_changed", "This run already has a different plan. Keep the original profile or start a new run.")
+            identity = _profile_id(self.run_id, digest)
+            if reference is not None and reference != identity:
+                raise BridgeError("profile_id_not_in_run", "The profile_id does not match this run and profile.")
+            if "original_request" in self.request:
+                original = self.request["original_request"]
+            elif "request" in self.request:
+                original = self.request["request"]
+            else:
+                original = state.get("original_request", "")
+            if not isinstance(original, str):
+                raise BridgeError("invalid_original_request", "original_request must be a string.")
+            if saved_digest is not None and original != state.get("original_request", ""):
+                raise BridgeError("original_request_changed", "The original request is fixed for this run; omit it on later calls or resend the same text.")
+        return profile, original, digest, identity
+
+    def _diagnostics_reference(self) -> dict:
+        return {
+            "ledger_reference": self.ledger.path.relative_to(self.project_root).as_posix(),
+            "detail_request": "Use detail:true on status/report or match when specific diagnostics are needed.",
+        }
+
     def match(self) -> dict:
+        profile, original, digest, profile_id = self._planner_input()
         routing_path = (
             _path(self.config_path.parent, self.config["routing_config"], "routing_config")
             if self.config.get("routing_config") else self.runtime_root / "config.example.json"
         )
         router = GeneralRouter(load_config(routing_path))
-        profile = self.request.get("profile")
-        if not isinstance(profile, dict):
-            raise ValueError("match requires the planner's task-profile.v3 object")
-        original = self.request.get("original_request", self.request.get("request", ""))
-        if not isinstance(original, str):
-            raise ValueError("original_request must be a string")
         handoff = router.route(profile, original_request=original)
-        digest = hashlib.sha256(json.dumps(profile, sort_keys=True, ensure_ascii=False, allow_nan=False).encode("utf-8")).hexdigest()
+        detail = self.request.get("detail") is True
         # Refresh before acquiring the run lock; collection can involve network latency.
         snapshot = self._refresh_if_needed()
         with self.ledger.edit() as state:
             if state.get("profile_sha256") not in (None, digest):
-                raise ValueError("This run already has another plan. Keep the same profile or use a new run_id.")
+                raise BridgeError("profile_changed", "This run already has a different plan. Keep the original profile or start a new run.")
+            if state.get("profile_sha256") is not None and state.get("original_request", "") != original:
+                raise BridgeError("original_request_changed", "The saved original request changed before registration; retry with the existing plan.")
             if "profile_sha256" not in state:
                 state["profile_sha256"] = digest
                 state["original_request"] = original
                 state["host"] = {key: self.host.get(key) for key in ("name", "version", "session_id", "agent_id", "cwd")}
                 for task in handoff["tasks"]:
                     state["tasks"][task["task_id"]] = {"status": "pending", "depends_on": task["depends_on"], "objective": task["objective"]}
-                self.ledger.event(state, "plan_registered", profile_sha256=digest, candidate_snapshot=handoff["candidate_snapshot"])
+                self.ledger.event(state, "plan_registered", profile_id=profile_id, profile_sha256=digest, candidate_snapshot=handoff["candidate_snapshot"])
+            if not isinstance(state.get("profile"), dict):
+                state["profile"] = copy.deepcopy(profile)
+                self.ledger.event(state, "profile_saved", profile_id=profile_id, profile_sha256=digest)
+            elif _profile_digest(state["profile"]) != digest:
+                raise BridgeError("saved_profile_digest_mismatch", "The saved profile content no longer matches its registered digest.")
+            state["profile_id"] = profile_id
+            state.setdefault("original_request", original)
+            if {task["task_id"] for task in handoff["tasks"]} != set(state["tasks"]):
+                raise BridgeError("saved_task_set_mismatch", "The saved task states do not match this profile; preserve the records and use a new run.")
             requested = self.request.get("task_id")
-            if requested is not None and requested not in state["tasks"]:
-                raise ValueError("task_id is not present in this plan")
+            if requested is not None and (not isinstance(requested, str) or requested not in state["tasks"]):
+                raise BridgeError("task_not_in_plan", "task_id is not present in this plan.")
             if self.request.get("retry_failed") is True and requested:
                 item = state["tasks"][requested]
                 if item["status"] == "failed":
@@ -248,7 +370,13 @@ class HostBridge:
             if not ready:
                 statuses = {identity: task["status"] for identity, task in state["tasks"].items()}
                 done = bool(statuses) and all(value == "completed" for value in statuses.values())
-                return {"ok": True, "status": "completed" if done or not statuses else "awaiting_worker_or_dependencies", "run_id": self.run_id, "tasks": [], "task_statuses": statuses}
+                response = {"ok": True, "status": "completed" if done or not statuses else "awaiting_worker_or_dependencies", "run_id": self.run_id, "profile_id": profile_id, "task_statuses": statuses}
+                if detail:
+                    response["details"] = {"task_matching": {
+                        identity: item.get("matching") for identity, item in state["tasks"].items()
+                        if requested is None or requested == identity
+                    }}
+                return response
             task = ready[0]
             eligibility = []
             chosen = None
@@ -266,11 +394,19 @@ class HostBridge:
                 eligibility.append(item)
             if chosen is None:
                 self.ledger.event(state, "no_admissible_route", task_id=task["task_id"], ranking=eligibility)
-                return {
+                reasons = {}
+                for item in eligibility:
+                    reason = item["eligibility_reason"]
+                    reasons[reason] = reasons.get(reason, 0) + 1
+                response = {
                     "ok": False, "status": "setup_required_or_no_allowance", "run_id": self.run_id,
-                    "task_id": task["task_id"], "ranking": eligibility, "quota": snapshot,
-                    "message": "Provide your local model mappings and session allowlist, or wait for reported exhausted ECPA allowance to reset. No model was dispatched.",
+                    "profile_id": profile_id, "task_id": task["task_id"], "rejection_summary": reasons,
+                    "quota": _quota_summary(snapshot, self.run_id), "detail_available": True,
+                    "message": "No candidate currently passes the session allowlist and reported allowance checks. No model was dispatched.",
                 }
+                if detail:
+                    response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": handoff["routing_policy"]}
+                return response
             rank, route, decision = chosen
             reservation_id = decision["reservation_id"]
             marker = f"[generalrouter-reservation:{reservation_id}]"
@@ -283,43 +419,54 @@ class HostBridge:
             }
             if route.get("reasoning_effort"):
                 dispatch["reasoning_effort"] = route["reasoning_effort"]
-            job = {
-                "task_id": task["task_id"], "reservation_id": reservation_id,
-                "configuration_id": rank["configuration_id"], "route": route, "dispatch": dispatch,
-                "worker_request": worker_request, "depends_on": task["depends_on"],
-                "task_profile": task["task_profile"], "matching": {**task["matching"], "ranking": eligibility},
-                "admission": decision,
+            reason = "Highest capability-ranked callable candidate not excluded by reported ECPA percentages; unknown allowance is retained."
+            common_score = task["matching"]["selected_score"]
+            selection = {
+                "score": rank["score"], "coverage": rank["coverage"],
+                "capability_rank": next(index for index, row in enumerate(eligibility, 1) if row["configuration_id"] == rank["configuration_id"]),
+                "candidate_count": len(eligibility),
+                "weight_source": task["task_profile"]["weight_source"],
+                "task_weights": task["task_profile"]["task_weights"],
+                "effective_weights": common_score["effective_weights"],
+                "weight_policy": common_score["weight_policy"],
+                "reason": reason,
+                "score_is_success_probability": False,
             }
-            selected_details = dict(rank)
-            job["matching"]["selected_score"] = selected_details
-            job["matching"]["selection_reason"] = "Highest capability-ranked callable candidate not excluded by reported ECPA percentages. Unknown allowance is recorded without pretending it is unlimited."
             entry = state["tasks"][task["task_id"]]
-            entry.update(status="reserved", reservation_id=reservation_id, route=route, dispatch=dispatch, reserved_at=utc_now())
+            entry.update(status="reserved", reservation_id=reservation_id, route=route, dispatch=dispatch, reserved_at=utc_now(),
+                         matching={"ranking": eligibility, "selection": selection, "task_profile": task["task_profile"], "routing_policy": handoff["routing_policy"]},
+                         admission=decision)
             self.ledger.event(state, "route_reserved", task_id=task["task_id"], reservation_id=reservation_id, configuration_id=rank["configuration_id"], route=route, ranking=eligibility)
-            return {
+            response = {
                 "ok": True, "status": "ready_for_main_agent", "run_id": self.run_id,
-                **job, "tasks": [job],
+                "profile_id": profile_id, "task_id": task["task_id"], "reservation_id": reservation_id,
+                "configuration_id": rank["configuration_id"], "route": route, "dispatch": dispatch,
+                "depends_on": task["depends_on"], "selection": selection,
+                "admission": _admission_summary(decision), "detail_available": True,
                 "main_agent_instructions": [
                     "Call DSH's native subagent using dispatch. Keep its reservation marker in the prompt.",
                     "Forward necessary upstream results alongside the worker request; preserve user constraints.",
                     "Use exactly the returned provider/model and supported effort, or the recorded provider default.",
                     "Do not dispatch the same reservation twice. If no call was made, release it as not_dispatched.",
                     "Wait for the worker to finish. A started worker is not a completed dependency.",
-                    "Call generalrouter_match again with the same plan to obtain the next ready task.",
+                    "Reuse profile_id with generalrouter_match to obtain the next ready task; do not resend the plan.",
                 ],
             }
+            if detail:
+                response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": handoff["routing_policy"], "admission": decision}
+            return response
 
     def started(self) -> dict:
         reservation_id = self.request.get("reservation_id")
         with self.ledger.edit() as state:
             task = next((item for item in state["tasks"].values() if item.get("reservation_id") == reservation_id), None)
             if task is None:
-                raise ValueError("Reservation does not belong to this run")
+                raise BridgeError("reservation_not_in_run", "The reservation does not belong to this run.")
             if task["status"] not in ("reserved", "running"):
                 return {"ok": False, "status": "reservation_already_finished"}
             actual = self.request.get("actual_route") or {}
             if not isinstance(actual, dict):
-                raise ValueError("actual_route must be an object")
+                raise BridgeError("actual_route_required", "actual_route must be an object.")
             expected = task["route"]
             mismatch = any(actual.get(key) is not None and actual[key] != expected.get(key) for key in ("provider", "model", "reasoning_effort"))
             task.update(status="running", started_at=task.get("started_at", utc_now()), child_session_id=self.request.get("child_session_id"), actual_route=actual, route_mismatch=mismatch)
@@ -331,10 +478,10 @@ class HostBridge:
         reservation_id = self.request.get("reservation_id")
         call_id = self.request.get("call_id", self.host.get("call_id"))
         if not isinstance(call_id, str) or not call_id:
-            raise ValueError("Dispatch authorization needs the native tool call_id")
+            raise BridgeError("dispatch_call_id_required", "Dispatch authorization needs the native tool call_id.")
         actual = self.request.get("actual_route")
         if not isinstance(actual, dict):
-            raise ValueError("Dispatch authorization needs actual_route")
+            raise BridgeError("actual_route_required", "Dispatch authorization needs an actual_route object.")
         self._refresh_if_needed()
         with self.ledger.edit() as state:
             task = next((item for item in state["tasks"].values() if item.get("reservation_id") == reservation_id), None)
@@ -361,11 +508,11 @@ class HostBridge:
         reservation_id = self.request.get("reservation_id")
         outcome = self.request.get("outcome", "completed")
         if outcome not in ("completed", "failed", "cancelled", "not_dispatched", "cancelled_before_dispatch"):
-            raise ValueError("Unsupported worker outcome")
+            raise BridgeError("unsupported_worker_outcome", "The worker outcome is not supported.")
         with self.ledger.edit() as state:
             task = next((item for item in state["tasks"].values() if item.get("reservation_id") == reservation_id), None)
             if task is None:
-                raise ValueError("Reservation does not belong to this run")
+                raise BridgeError("reservation_not_in_run", "The reservation does not belong to this run.")
             if task.get("status") in ("completed", "failed", "pending") and task.get("outcome") == outcome:
                 return {"ok": True, "status": "already_released", "reservation_id": reservation_id}
             result = self.quota.release(reservation_id, outcome)
@@ -377,7 +524,7 @@ class HostBridge:
     def record_usage(self) -> dict:
         record = self.request.get("record")
         if not isinstance(record, dict):
-            raise ValueError("record_usage requires a record object")
+            raise BridgeError("usage_record_required", "record_usage requires a record object.")
         with self.ledger.edit() as state:
             entry = RunLedger.record_usage(state, record, self._rate(record))
         return {"ok": True, "status": "usage_recorded", "record_id": entry["record_id"], "api_equivalent": entry["api_equivalent"]}
@@ -385,12 +532,33 @@ class HostBridge:
     def status(self) -> dict:
         snapshot = self.quota.snapshot(refresh=self.request.get("refresh") is True)
         mapped = [identity for identity, route in self.routes.items() if isinstance(route, dict) and route.get("enabled") is True]
+        detail = self.request.get("detail") is True
         with self.ledger.edit() as state:
-            report = RunLedger.report(state)
-        return {"ok": True, "status": "configured" if mapped else "setup_required", "run_id": self.run_id,
-                "enabled_route_ids": mapped, "quota": snapshot, "report": report,
-                "configuration": {"project_root": str(self.project_root), "state_dir": str(self.state_dir),
-                                  "loaded_files": self.loaded_config_files}}
+            statuses = {identity: task.get("status", "unknown") for identity, task in state.get("tasks", {}).items()}
+            counts = {}
+            for status in statuses.values():
+                counts[status] = counts.get(status, 0) + 1
+            result = {
+                "ok": True, "status": "configured" if mapped else "setup_required", "run_id": self.run_id,
+                "profile_id": state.get("profile_id"),
+                "progress": {"total_tasks": len(statuses), "counts": counts, "task_statuses": statuses},
+                "active_tickets": [
+                    {key: ticket.get(key) for key in ("reservation_id", "task_id", "route", "created_at")}
+                    for ticket in snapshot.get("reservations", []) if ticket.get("run_id") == self.run_id
+                ],
+                "quota": _quota_summary(snapshot, self.run_id),
+                "configuration": {"status": "configured" if mapped else "setup_required", "enabled_route_count": len(mapped), "loaded_file_count": len(self.loaded_config_files)},
+                "diagnostics": self._diagnostics_reference(),
+                "detail_available": True,
+            }
+            if detail:
+                result.update(
+                    enabled_route_ids=mapped,
+                    quota=snapshot,
+                    report=RunLedger.report(state, detail=True),
+                    configuration={**result["configuration"], "project_root": str(self.project_root), "state_dir": str(self.state_dir), "loaded_files": self.loaded_config_files},
+                )
+        return result
 
     def refresh_quota(self) -> dict:
         # The host scheduler shares this cache with admissions; it creates no run.
@@ -404,8 +572,102 @@ class HostBridge:
 
     def report(self) -> dict:
         with self.ledger.edit() as state:
-            report = RunLedger.report(state)
-        return {"ok": True, "status": "report", "report": report}
+            report = RunLedger.report(state, detail=self.request.get("detail") is True)
+        return {"ok": True, "status": "report", "run_id": self.run_id, "report": report, "diagnostics": self._diagnostics_reference()}
+
+
+def _error_response(error: Exception, action: str, stage: str) -> dict:
+    """Expose useful categories and safe constants, never arbitrary exception text."""
+    code = "local_operation_failed"
+    message = "The local operation failed. Use the error type, action and stage to locate the failing operation."
+    diagnostic = {"type": type(error).__name__, "action": action, "stage": stage}
+    if isinstance(error, BridgeError):
+        code, message = error.code, str(error)
+    elif isinstance(error, json.JSONDecodeError):
+        code, message = "invalid_json", "A JSON request or local data file could not be parsed."
+        diagnostic.update(line=error.lineno, column=error.colno)
+    elif isinstance(error, TimeoutError):
+        code, message = "local_operation_timeout", "The local operation timed out; retry after the current operation finishes."
+    elif isinstance(error, PermissionError):
+        code, message = "local_permission_denied", "The local operation lacks permission to read or write a required file."
+    elif isinstance(error, FileNotFoundError):
+        code, message = "required_file_missing", "A required local or bundled file is missing."
+    elif isinstance(error, OSError):
+        code, message = "local_io_failed", "A local file or process operation failed; use the OS error code to diagnose it."
+    elif isinstance(error, QuotaError):
+        safe_quota_errors = {
+            "quota state lock timed out": ("quota_lock_timeout", "Quota records are busy; retry after the current operation."),
+            "quota state is unreadable; existing tickets were preserved": ("quota_state_unreadable", "Quota records could not be read; existing tickets were preserved."),
+            "quota state format is unsupported; existing tickets were preserved": ("quota_state_unsupported", "Quota records use an unsupported format; existing tickets were preserved."),
+            "refresh_interval_seconds must be at least 600": ("quota_refresh_interval_invalid", "The quota refresh interval must be at least 600 seconds."),
+            "minimum_remaining_percent must be between 0 and 100, excluding 100": ("quota_minimum_invalid", "minimum_remaining_percent must be at least 0 and below 100."),
+            "management_key_not_configured": ("management_key_not_configured", "The management key source is not configured."),
+            "local_management_key_source_unreadable": ("management_key_source_unreadable", "The configured management key source could not be read."),
+        }
+        code, message = safe_quota_errors.get(str(error), ("quota_operation_failed", "The quota operation failed; inspect the cached quota status and connection settings."))
+    elif type(error).__name__ == "ProfileError":
+        code, message = "profile_contract_invalid", "The profile does not satisfy task-profile.v3 or its recorded reference rules."
+        raw = str(error)
+        location = re.match(r"^(\$(?:\.[A-Za-z_][A-Za-z0-9_]*|\[\d+\])*)\: (.*)", raw)
+        if location:
+            diagnostic["field"] = location.group(1)[:180]
+            reason = location.group(2)
+            for prefix, description in (
+                ("missing fields", "Required profile fields are missing at the reported location."),
+                ("unexpected fields", "Unexpected profile fields are present at the reported location."),
+                ("expected", "A profile value has the wrong type at the reported location."),
+                ("value must be one of", "A profile value is outside the allowed choices at the reported location."),
+                ("must be at least", "A profile number is below its allowed minimum at the reported location."),
+                ("must be at most", "A profile number exceeds its allowed maximum at the reported location."),
+            ):
+                if reason.startswith(prefix):
+                    message = description
+                    break
+        elif raw == "Task dependency graph contains a cycle":
+            code, message = "profile_dependency_cycle", "Task dependencies contain a cycle."
+        elif raw.startswith("Duplicate task_id:"):
+            code, message = "profile_duplicate_task_id", "Each task must have a distinct task_id."
+        else:
+            safe_profile_rules = {
+                "uncalibrated requires empty source/anchor IDs and four null weights": "Uncalibrated tasks require empty source and anchor IDs and four null weights.",
+                "planner_estimated requires empty source/AA anchor IDs": "Planner estimates require empty source and AA anchor IDs.",
+                "planner_estimated requires four numeric weights": "Planner estimates require four numeric weights.",
+                "planner_estimated weights must sum to one": "The four planner-estimated weights must sum to one.",
+                "referenced anchor is not recorded": "The selected AA reference anchor is not present in the bundled records.",
+                "direct source binding requires the exact AA task ID": "Direct AA references require the exact recorded source task ID.",
+                "an analogous new task requires an empty source task ID": "An analogous new task requires an empty source task ID.",
+                "duplicate dependency": "A task repeats the same dependency.",
+                "self dependency": "A task cannot depend on itself.",
+                "input artifact references must not be blank": "Input artifact references must not be blank.",
+            }
+            for rule, description in safe_profile_rules.items():
+                if raw.endswith(": " + rule):
+                    message = description
+                    break
+    elif isinstance(error, ValueError):
+        safe_value_errors = {
+            "Run record identity mismatch": ("run_record_identity_mismatch", "The saved run identity does not match this request."),
+            "Usage needs a stable record_id; stream updates replace the same attempt.": ("usage_record_id_required", "Usage needs a stable record_id so updates replace the same request attempt."),
+            "A usage record needs a tokens object with disjoint input and output counts.": ("usage_tokens_required", "Usage needs a tokens object with disjoint input and output counts."),
+            "Canonical output includes reasoning; reasoning cannot exceed output.": ("usage_reasoning_exceeds_output", "Reasoning tokens are included in output and cannot exceed it."),
+            "latency_ms must be a nonnegative finite number or null": ("usage_latency_invalid", "latency_ms must be a nonnegative finite number or null."),
+            "Task references and candidate profiles use different capability derivations": ("capability_derivation_mismatch", "Task references and model vectors use different capability derivations."),
+            "Model vector data has no enabled routing candidates": ("no_enabled_candidates", "The model vector data has no enabled routing candidates."),
+        }
+        for field in ("uncached_input", "cached_input", "cache_write_input", "output", "reasoning"):
+            safe_value_errors[f"tokens.{field} must be a nonnegative integer or null"] = (
+                "usage_token_count_invalid", f"tokens.{field} must be a nonnegative integer or null."
+            )
+        code, message = safe_value_errors.get(str(error), ("local_validation_failed", "The request or local routing data failed validation at the reported stage."))
+    elif isinstance(error, (KeyError, TypeError, AttributeError)):
+        code, message = "local_data_shape_invalid", "The request or saved data has an unexpected structure at the reported stage."
+    if isinstance(error, OSError):
+        for field in ("errno", "winerror"):
+            value = getattr(error, field, None)
+            if isinstance(value, int):
+                diagnostic[field] = value
+    diagnostic.update(code=code, message=message)
+    return {"ok": False, "status": "setup_required" if isinstance(error, SetupRequired) else "error", "message": message, "error": diagnostic}
 
 
 def main() -> int:
@@ -413,22 +675,22 @@ def main() -> int:
         sys.stdin.reconfigure(encoding="utf-8")
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    action = "unknown"
+    stage = "decode_request"
     try:
         request = json.loads(sys.stdin.read())
         if not isinstance(request, dict):
-            raise ValueError("Host request must be a JSON object")
+            raise BridgeError("request_object_required", "The host request must be a JSON object.")
+        requested_action = request.get("action", "match")
+        if requested_action not in ("match", "status", "refresh_quota", "authorize_dispatch", "started", "release", "record_usage", "report"):
+            raise BridgeError("unsupported_action", "The requested host action is not supported.")
+        action = requested_action
+        stage = "load_host_configuration"
         bridge = HostBridge(request)
-        action = request.get("action", "match")
-        if action not in ("match", "status", "refresh_quota", "authorize_dispatch", "started", "release", "record_usage", "report"):
-            raise ValueError("Unsupported host action")
+        stage = "execute_action"
         response = getattr(bridge, action)()
-    except SetupRequired as error:
-        response = {"ok": False, "status": "setup_required", "message": str(error)}
-    except (ValueError, TypeError, KeyError, OSError, QuotaError) as error:
-        response = {"ok": False, "status": "error", "message": str(error)}
-    except Exception:
-        # Keep credentials and provider response bodies out of tool errors.
-        response = {"ok": False, "status": "error", "message": "The local host operation failed; inspect local configuration and preserved run records."}
+    except Exception as error:
+        response = _error_response(error, action, stage)
     sys.stdout.write(json.dumps(response, ensure_ascii=False, allow_nan=False) + "\n")
     return 0
 

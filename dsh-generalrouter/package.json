@@ -1,10 +1,10 @@
 {
   "name": "dsh-generalrouter",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Task-level GeneralRouter matching and usage recording for DeepSeek Harness Desktop 0.2.1-rc.2",
   "type": "module",
   "main": "index.mjs",
-  "files": ["index.mjs", "cordis.patch.yml", "runtime/", "examples/", "Install-Desktop.ps1", "README.zh-CN.md"],
+  "files": ["index.mjs", "recording-diagnostics.mjs", "cordis.patch.yml", "runtime/", "examples/", "Install-Desktop.ps1", "README.zh-CN.md"],
   "keywords": ["dsh-plugin", "deepseek-harness", "model-routing"],
   "exports": { ".": "./index.mjs", "./package.json": "./package.json", "./cordis.patch.yml": "./cordis.patch.yml" },
   "engines": { "dsh": "0.2.1-rc.2" },

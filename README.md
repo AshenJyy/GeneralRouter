@@ -1,6 +1,6 @@
 # GeneralRouter
 
-GeneralRouter 是基于 DeepSeek Harness（DSH）的任务级模型路由插件，当前版本为 **v0.1.5 experimental**。它根据任务参考向量、候选模型能力和可用额度选择模型，并记录选择理由、实际调用和用量。
+GeneralRouter 是基于 DeepSeek Harness（DSH）的任务级模型路由插件，当前版本为 **v0.1.6 experimental**。它根据任务参考向量、候选模型能力和可用额度选择模型，并记录选择理由、实际调用和用量。
 
 DSH 主 agent 配合 planner skill 拆分任务，将任务资料提交给 GeneralRouter；主 agent 收到匹配结果后，通过 DSH 原生 `subagent` 派遣工作。
 
@@ -18,6 +18,8 @@ DSH 主 agent 配合 planner skill 拆分任务，将任务资料提交给 Gener
 - 将匹配结果交回 DSH 主 agent；effort 有对应支持时传入，否则使用模型默认设置。
 - 读取 ECPA 报告的适用额度百分比；活动期间最多每十分钟自动刷新，空闲时停止刷新。
 - 记录调用、重试、tokens、观测耗时和 API 等效成本；未提供的数据保留未知值。
+- 默认向主 agent 返回精简结果，使用 `detail: true` 可获取细节；首次提交任务 profile 后可用返回的 `profile_id` 继续匹配。
+- 按 run 在本地保存记录失败的诊断与同项补写恢复信息，避免诊断只随一次工具回复出现。
 
 当前匹配按能力评分和可用约束选取模型。成本和耗时用于记录与后续比较，尚未用于优化选择，也尚未证明节省效果。额度快照不能保证未来任务绝不耗尽账号。
 
@@ -34,7 +36,9 @@ v0.1.5 已有两次由用户在 DSH 发起的闭环运行记录：
 
 数值检查的依据是子 agent 的报告及持久运行记录，浏览器功能尚未完整验收。这些记录说明具体流程已跑通，不能证明全部候选均适用，也未证明成本、耗时或额度节省。公开榜单题评测与正式对照尚未执行。
 
-已知问题包括部分告警诊断信息丢失，以及主 agent 输出和上下文开销偏大，均待修复。项目目前适合实验性使用。
+v0.1.6 针对告警诊断信息丢失和主 agent 上下文开销增加了四项改动：match/status/report 默认精简返回、`profile_id` 复用、skill 的简短调用流程，以及独立的 run 级记录诊断。正常流程不要求主 agent 读取内部账本。诊断保存在实际工作区的 `.runs/generalrouter/diagnostics/<run-id-hash>.json`，可用于定位失败记录及后续同项补写的恢复状态。
+
+本次发布未运行测试、review、编译校验、模拟路由或实际模型验收。上述改动尚未证明减少 tokens，也不能保证全部记录错误已根治；v0.1.5 的两次记录不能替代 v0.1.6 的运行验收。
 
 ## 构建与使用
 
@@ -44,7 +48,7 @@ v0.1.5 已有两次由用户在 DSH 发起的闭环运行记录：
 py -3 scripts/package_dsh_plugin.py
 ```
 
-生成的 `dsh-generalrouter-0.1.5.tgz` 位于仓库根目录。通过 DSH App 的 **Add plugin** 输入该文件在本机的绝对路径，安装并启用；已有安装通过 App 插件管理更新包并新建会话，本机配置继续保留。打包命令只生成发布文件，不运行模型。
+生成的 `dsh-generalrouter-0.1.6.tgz` 位于仓库根目录。通过 DSH App 的 **Add plugin** 输入该文件在本机的绝对路径，安装并启用；已有安装通过 App 插件管理更新包并新建会话，本机配置继续保留。打包命令只生成发布文件，不运行模型。
 
 插件在各会话中提供包内 planner skill；本机连接配置共用 `$DSH_HOME/generalrouter/host.local.json`（未设置 `DSH_HOME` 时为 `~/.dsh/generalrouter/host.local.json`）。换工作区后新建会话即可，无需复制配置或 skill。项目根目录下的同名配置和 skill 可覆盖共享默认，用量与任务记录始终保存在实际工作区。首次接入仍需配置 DSH provider、子模型允许列表和 ECPA 管理连接；缺失额度连接时保留 unknown，不阻止内置默认模型匹配。详见[插件安装说明](dsh-generalrouter/README.zh-CN.md)。
 

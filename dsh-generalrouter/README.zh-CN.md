@@ -1,8 +1,8 @@
 # GeneralRouter 的 DSH Desktop 插件
 
-GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件，当前版本为 **v0.1.5 experimental**。DSH 提供主 agent、会话、工具和原生子 agent 的执行编排；GeneralRouter 提供模型能力与任务资料、候选匹配、额度准入、选择解释和用量记录。主 agent 接收路由结果后，通过 DSH 原生 `subagent` 发起执行。
+GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件，当前版本为 **v0.1.6 experimental**。DSH 提供主 agent、会话、工具和原生子 agent 的执行编排；GeneralRouter 提供模型能力与任务资料、候选匹配、额度准入、选择解释和用量记录。主 agent 接收路由结果后，通过 DSH 原生 `subagent` 发起执行。
 
-面向 **DeepSeek Harness Desktop 0.2.1-rc.2**，按官方 bundle 方式分发标准 npm tarball：`dsh-generalrouter-0.1.5.tgz`。包内包含预先写好的 JavaScript ESM 入口、`dsh.bundle.patch`、完整 Python 匹配模块、能力快照和 planner skill；没有编译、安装生命周期脚本，也不依赖原始源码仓库。Python 解释器需要在本机可用，Windows 默认 `py -3`。
+面向 **DeepSeek Harness Desktop 0.2.1-rc.2**，按官方 bundle 方式分发标准 npm tarball：`dsh-generalrouter-0.1.6.tgz`。包内包含预先写好的 JavaScript ESM 入口、`dsh.bundle.patch`、完整 Python 匹配模块、能力快照和 planner skill；没有编译、安装生命周期脚本，也不依赖原始源码仓库。Python 解释器需要在本机可用，Windows 默认 `py -3`。
 
 主 agent 使用 skill 生成四维任务资料，调用 `generalrouter_match`，再将返回的 `dispatch` 交给 DSH 原生 `subagent`。插件保留原生派遣接口，通过派遣前授权检查选择结果。包内 `runtime/data/model-call-mappings.v0.1.json` 内置 12 组候选的 provider、模型 ID 和 effort 调用映射，默认全部启用；DSH 原生允许列表仍限制实际可派遣范围。用户负责在 DSH App 注册相应 provider 并设置子模型允许列表与 effort 元数据。插件不代改 DSH App 的这些设置。
 
@@ -11,13 +11,13 @@ GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件�
 在 DSH App 内安装，无需运行 PowerShell 脚本，也无需退出 App：
 
 1. 打开 **Plugins（插件）→ Add plugin（添加插件）**。
-2. 在 **Package name or address（包名或地址）** 中输入已下载或构建的 `dsh-generalrouter-0.1.5.tgz` 在本机的完整绝对路径，点击 **Install（安装）**。
+2. 在 **Package name or address（包名或地址）** 中输入已下载或构建的 `dsh-generalrouter-0.1.6.tgz` 在本机的完整绝对路径，点击 **Install（安装）**。
 3. 安装完成后选择 **Enable now（立即启用）**。
 4. 在任意实际工作区新建主会话。`projectRoot` 和 `hostConfig` 均可留空，工作区内不必预先放置 GeneralRouter 配置或 skill。
 
 包内 planner skill 由插件向 DSH 的 skill 服务提供，供各工作区会话使用；不再要求逐项目复制。项目中已有同名 skill 时，使用项目版本作为覆盖。安装插件不改变 DSH 的主模型、provider、原生子模型允许列表或 effort 元数据，这些仍由用户在 DSH App 配置。
 
-已有安装通过 App 的插件管理更新到 0.1.5 包，然后新建主会话使用新版 skill。现有共享连接配置、项目覆盖和历史运行记录继续保留，无需重新填写。项目或用户目录中的同名旧 skill 仍会优先于包内版本；使用这类覆盖时，应同步其内容或备份后移走覆盖，才能使用本次更新。
+已有安装通过 App 的插件管理更新到 0.1.6 包，然后新建主会话使用新版 skill。现有共享连接配置、项目覆盖和历史运行记录继续保留，无需重新填写。项目或用户目录中的同名旧 skill 仍会优先于包内版本；使用这类覆盖时，应同步其内容或备份后移走覆盖，才能使用本次更新。
 
 ## 任务向量
 
@@ -55,18 +55,28 @@ planner 默认参考包内四维定义、榜单说明和 12 个人工语义任�
 
 ## 执行与记录
 
-- `generalrouter_match` 接收 `profile_json`、`original_request`，每次选择一个依赖就绪任务；主 agent 保留返回的派遣标记，再调用原生 `subagent`。
+- `generalrouter_match` 首次接收完整的 `profile_json`、`original_request`，返回 `profile_id`；同一 run 后续可使用该 ID 继续匹配，无需重复发送完整任务资料。原有完整 profile 调用方式继续兼容，已有计划内容保持不变。
+- match/status/report 默认返回 compact 精简结果，供主 agent 继续当前工作；需要候选评分或记录详情时显式传入 `detail: true`。精简回复不表示相应持久记录被删除。
+- 每次匹配选择一个依赖就绪任务；主 agent 保留返回的完整 `dispatch` 和派遣标记，再调用原生 `subagent`。
 - 原生派遣前核对 provider/model/effort、允许列表和已选任务。插件不改写工具参数，worker 的进一步派遣交回主 agent。
 - effort 仅在本地映射和宿主支持列表均允许时传入；否则省略，使用 provider default 并记录差异。
 - `generalrouter_status` 查看百分比、已选任务和剩余工作；`refresh: true` 手动读取。
 - `generalrouter_report` 汇总 run，`generalrouter_release` 取消尚未启动的选择。派遣授权标记用来防止错误或重复执行，不代表估算并预扣额度。
-- 失败任务可由原 `profile_json`、`task_id` 和 `retry_failed: true` 重新匹配。实际完成事件才记为 completed，错误和中断分别保留。
+- 失败任务可由当前 `profile_id`（或原完整 `profile_json`）、`task_id` 和 `retry_failed: true` 重新匹配。实际完成事件才记为 completed，错误和中断分别保留。
+
+skill 采用简短流程：准备一次 profile → 匹配 → 原样派遣 → 等待完成 → 使用 `profile_id` 匹配下一个任务 → 输出精简报告。主 agent 直接使用工具结果，正常工作不读取内部账本，也不反复抄写完整 profile、候选列表或用量明细。用户需要解释或排错时再请求 `detail: true`。
 
 插件使用原生会话事件记录主 agent 和 worker 的 provider/model、重试次数及宿主报告的 tokens。不写完整提示词到用量日志，未报告的数值保留为空；reasoning 已包含在 output 时不重复计价。缓存读写与未缓存输入分别计算 API 等效成本。该指标按模型 token 用量和价格快照计算，不是分摊订阅账单。
 
 当前匹配依据能力与可调用约束，成本和耗时用于记录与后续对照。缩短工期、控制订阅用量是评估目标；已有最小闭环记录尚不足以证明这些目标已实现。
 
 记录从本次插件加载后的事件开始；正式对照使用新会话。匹配前暂存的 planner 用量会在建立 run 后补写，不回填更早的历史调用。
+
+## 记录诊断
+
+记录写入失败的诊断独立按 run 保存到实际工作区的 `.runs/generalrouter/diagnostics/<run-id-hash>.json`。它与主要任务、用量账本分开，用于定位失败发生在哪一项记录，并保留同一项后续补写成功时的恢复状态。诊断仍属于本地运行资料，不放进安装包或共享连接目录。
+
+这项改动补充诊断留存与恢复信息，不能据此保证所有错误已根治。出现告警时先看工具返回的摘要，排错时再请求详情；正常任务流程无需读取诊断文件或内部账本。
 
 ## 包与开发状态
 
@@ -87,7 +97,7 @@ package/
   README.zh-CN.md
 ```
 
-在仓库根目录运行以下命令，生成根目录下的 `dsh-generalrouter-0.1.5.tgz`、安装说明和配置模板：
+在仓库根目录运行以下命令，生成根目录下的 `dsh-generalrouter-0.1.6.tgz`、安装说明和配置模板：
 
 ```text
 py -3 scripts/package_dsh_plugin.py
@@ -97,7 +107,9 @@ py -3 scripts/package_dsh_plugin.py
 
 v0.1.5 已有两次用户在 DSH 发起的闭环运行记录：一次加法网页任务，以及一次有 A → B 依赖关系的离线 CSV 分析任务。记录涵盖路由派遣、子任务完成与用量。数值检查来自子 agent 报告及持久运行记录，浏览器功能未完整验收。这里列出的是已有运行记录，本次文档整理没有重新执行测试。
 
-这两次运行不代表全部候选已验证，也未证明成本、耗时或额度节省。公开榜单题实跑和正式对照仍留作后续工作。已知问题是部分告警诊断信息丢失，以及主 agent 输出和上下文开销偏大，均待修复。
+这两次运行不代表全部候选已验证，也未证明成本、耗时或额度节省。公开榜单题实跑和正式对照仍留作后续工作。
+
+v0.1.6 为部分告警诊断丢失和主 agent 上下文开销偏大增加了 compact 默认输出、profile ID 复用、简短 skill 流程及独立诊断留存。本次保留 12 组候选、评分与默认 0.4 综合先验，以及活动期间每十分钟额度刷新规则；没有加入价格或 effort 资源优化。发布时未运行测试、review、编译校验、模拟或实际模型验收，尚不能声称这些改动已经节省 tokens 或完全解决记录问题。
 
 接口依据官方 tag `dsh-v0.2.1-rc.2`：
 

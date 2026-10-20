@@ -13,7 +13,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/generalrouter-task-profile"
 MATERIALS = ROOT / "项目资料"
-EXPORT_VERSION = "0.4"
+EXPORT_VERSION = "0.5"
 
 
 def main() -> None:

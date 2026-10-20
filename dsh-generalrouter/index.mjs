@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { lastAssistantStreamChunk } from '@deepseek-ai/dsh-llm'
+import { isRecordingAction, RecordingDiagnostics } from './recording-diagnostics.mjs'
 
 export const name = 'generalrouter'
 export const inject = ['tools', 'systemPrompt', 'sessionProjections', 'skills']
@@ -172,7 +173,7 @@ export function apply(ctx, config = {}) {
   const runSettings = new Map()
   const authorizedCalls = new Set()
   let queue = Promise.resolve()
-  let observationFailure
+  const recordingDiagnostics = new Map()
   let quotaRefreshTimer
   const pendingMatches = new Map()
   let quotaRefreshInFlight
@@ -229,22 +230,59 @@ export function apply(ctx, config = {}) {
       return { ok: false, status: 'setup_required', message: safeError(error) }
     }
   }
-  const bridge = (envelope, signal) => {
+  const diagnosticsFor = runId => {
+    let diagnostics = recordingDiagnostics.get(runId)
+    if (!diagnostics) {
+      const bound = runSettings.get(runId)
+      if (!bound) return undefined
+      diagnostics = new RecordingDiagnostics(bound.projectRoot, runId)
+      recordingDiagnostics.set(runId, diagnostics)
+    }
+    return diagnostics
+  }
+  const bridge = async (envelope, signal) => {
     const bound = runSettings.get(envelope.run_id)
-    if (!bound) return Promise.reject(new Error('GeneralRouter run has no bound project directory.'))
-    return callBridge(bound, envelope, signal)
+    if (!bound) throw new Error('GeneralRouter run has no bound project directory.')
+    const diagnostics = isRecordingAction(envelope.action) ? diagnosticsFor(envelope.run_id) : undefined
+    const reservation = reservations.get(envelope.reservation_id || envelope.record?.reservation_id)
+    const identified = { ...envelope, ...(reservation?.taskId ? { task_id: reservation.taskId } : {}) }
+    let result
+    try {
+      result = await callBridge(bound, envelope, signal)
+    } catch (error) {
+      await diagnostics?.update(identified, error)
+      if (diagnostics) ctx.logger.warn(`generalrouter: ${envelope.action} recording transport failed for run ${envelope.run_id}; see recording_diagnostics`)
+      throw error
+    }
+    if (diagnostics) {
+      await diagnostics.update(identified, result.ok === true ? undefined : result)
+      if (result.ok !== true) ctx.logger.warn(`generalrouter: ${envelope.action} recording rejected for run ${envelope.run_id}; see recording_diagnostics`)
+    }
+    return result
+  }
+  const withDiagnostics = async (result, runId, detail = false, includeHealthy = true) => {
+    const diagnostics = diagnosticsFor(runId)
+    if (!diagnostics) return result
+    const summary = await diagnostics.summary(detail)
+    if (!includeHealthy && !detail && !summary.unresolved_count && !summary.storage_error) return result
+    return {
+      ...result, recording_diagnostics: summary,
+      ...(summary.unresolved_count || summary.storage_error ? {
+        recording_warning: summary.storage_error || `${summary.unresolved_count} unresolved recording operation(s); see recording_diagnostics`,
+      } : {}),
+    }
+  }
+  const toolBridge = async (envelope, signal) => {
+    try { return await bridge(envelope, signal) } catch (error) {
+      if (signal?.aborted) throw error
+      // Keep the independent recorder diagnostics available even when Python
+      // itself cannot run. This is a failure result, never an empty report.
+      return { ok: false, status: 'bridge_unavailable', action: envelope.action, message: safeError(error) }
+    }
   }
   const enqueue = envelope => {
     const operation = queue.then(() => bridge(envelope, lifecycle.signal))
-    queue = operation.then(result => {
-      if (result.ok === false) {
-        observationFailure = result.status || 'bridge_recording_failed'
-        ctx.logger.warn(`generalrouter: recording not accepted (${observationFailure})`)
-      }
-    }, error => {
-      observationFailure = safeError(error)
-      ctx.logger.warn(`generalrouter: ${observationFailure}`)
-    })
+    queue = operation.then(() => undefined, () => undefined)
     return operation
   }
   const writeRecord = (state, record) => {
@@ -514,12 +552,14 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(defineTool({
     name: 'generalrouter_match',
-    description: 'Match one ready development subtask using GeneralRouter. Supply the GeneralRouter task-profile.v3 JSON. The result selects a callable route and returns a dispatch ticket with exact arguments for the native subagent tool; dispatch it promptly. The ticket prevents duplicate dispatch and does not deduct quota in advance. This tool does not execute a model.',
+    description: 'Select one ready task and return exact native subagent dispatch arguments. Submit a complete task-profile.v3 once; use the returned profile_id for later tasks in this run. Tickets prevent duplicate dispatch and do not deduct quota. Detail is opt-in; this tool does not call a model.',
     parameters: {
-      profile_json: { type: 'string', required: true, description: 'Complete task-profile.v3 JSON from the GeneralRouter task-profile skill. Ordinary tasks use planner_estimated weights with a brief rationale; use four nulls only when the task cannot be meaningfully assessed.' },
-      original_request: { type: 'string', description: 'Original project request and agreed constraints.' },
+      profile_json: { type: 'string', description: 'First call: complete task-profile.v3 JSON from the skill. Later calls may omit it and use profile_id. Repeated full profiles remain supported.' },
+      profile_id: { type: 'string', description: 'Exact identifier returned by the first match in this run. Reuses the saved plan and original request.' },
+      original_request: { type: 'string', description: 'Original request and constraints for the first call. Omit on later calls to reuse the saved value.' },
       task_id: { type: 'string', description: 'Optional task id from this profile to select a particular ready task.' },
       retry_failed: { type: 'boolean', description: 'With task_id, explicitly retry that failed task. Keep false for ordinary matching.' },
+      detail: { type: 'boolean', description: 'Include full candidate scoring and task explanation. Default false; dispatch is always complete.' },
     },
     output: jsonOutput,
     async execute(args, exec) {
@@ -530,7 +570,13 @@ export function apply(ctx, config = {}) {
       const setupError = prepareProject(exec.agent)
       if (setupError) return setupError
       let profile
-      try { profile = JSON.parse(args.profile_json) } catch { return { ok: false, status: 'invalid_profile_json' } }
+      if (args.profile_json !== undefined) {
+        try { profile = JSON.parse(args.profile_json) } catch { return { ok: false, status: 'invalid_profile_json' } }
+        if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return { ok: false, status: 'invalid_profile_json' }
+      }
+      if (!profile && !args.profile_id) return {
+        ok: false, status: 'profile_required', message: 'Submit profile_json once, or pass the profile_id previously returned in this run.',
+      }
       let allowedModels
       try {
         allowedModels = ctx.sessionProjections.stateOf(exec.agent.session, 'subagentModelSelectionPolicy')
@@ -562,9 +608,12 @@ export function apply(ctx, config = {}) {
       reconcileQuotaTimer()
       let result
       try {
-        result = await bridge({
+        result = await toolBridge({
           action: 'match', run_id: runId,
-          profile, original_request: args.original_request || '',
+          ...(profile ? { profile } : {}),
+          ...(args.profile_id !== undefined ? { profile_id: args.profile_id } : {}),
+          ...(args.original_request !== undefined ? { original_request: args.original_request } : {}),
+          detail: args.detail === true,
           ...(args.task_id ? { task_id: args.task_id } : {}),
           ...(args.retry_failed === true ? { retry_failed: true } : {}),
           host: { ...hostInfo(exec.agent), call_id: exec.callId, available_models: routes },
@@ -581,24 +630,28 @@ export function apply(ctx, config = {}) {
         else pendingMatches.delete(runId)
         reconcileQuotaTimer()
       }
-      return { ...result, ...(observationFailure ? { recording_warning: observationFailure } : {}) }
+      return withDiagnostics(result, runId, args.detail === true, false)
     },
   }))
 
   ctx.tools.register(defineTool({
     name: 'generalrouter_status',
-    description: 'Read GeneralRouter run status, quota percentage cache and dispatch tickets. Optionally request a live quota refresh. This never makes a model generation call.',
-    parameters: { refresh: { type: 'boolean', description: 'Refresh quota information now rather than only reading the cache.' } },
+    description: 'Read concise task progress, active tickets, cached quota and recording diagnostics. Use only when status is needed; normal completion is recorded automatically.',
+    parameters: {
+      refresh: { type: 'boolean', description: 'Explicit live quota refresh; normally use the ten-minute cache.' },
+      detail: { type: 'boolean', description: 'Include configuration and full run details. Default false.' },
+    },
     output: jsonOutput,
     async execute(args, exec) {
       if (!exec.agent) throw new Error('generalrouter_status requires an Agent Session')
       const setupError = prepareProject(exec.agent)
       if (setupError) return setupError
       await queue
-      const result = await bridge({ action: 'status', run_id: currentRun(exec.agent),
-        refresh: args.refresh === true, host: hostInfo(exec.agent) }, exec.signal)
+      const runId = currentRun(exec.agent)
+      const result = await toolBridge({ action: 'status', run_id: runId,
+        refresh: args.refresh === true, detail: args.detail === true, host: hostInfo(exec.agent) }, exec.signal)
       if (args.refresh === true) reconcileQuotaTimer({ restart: true })
-      return { ...result, ...(observationFailure ? { recording_warning: observationFailure } : {}) }
+      return withDiagnostics(result, runId, args.detail === true)
     },
   }))
   ctx.tools.register(defineTool({
@@ -614,30 +667,32 @@ export function apply(ctx, config = {}) {
       const setupError = prepareProject(exec.agent)
       if (setupError) return setupError
       await queue
-      const result = await bridge({ action: 'release', run_id: currentRun(exec.agent),
+      const result = await toolBridge({ action: 'release', run_id: currentRun(exec.agent),
         reservation_id: args.reservation_id, outcome: args.outcome }, exec.signal)
       if (result.ok === true && reservations.has(args.reservation_id)) {
         reservations.get(args.reservation_id).end = args.outcome
         reconcileQuotaTimer()
       }
-      return result
+      return withDiagnostics(result, currentRun(exec.agent))
     },
   }))
   ctx.tools.register(defineTool({
     name: 'generalrouter_report',
-    description: 'Read the recorded GeneralRouter run report with provider token usage and API-equivalent cost. Missing usage and price data remain explicit.',
-    parameters: {}, output: jsonOutput,
-    async execute(_args, exec) {
+    description: 'Read totals and planner/worker/task usage summaries, API-equivalent cost, observed timing and recording diagnostics. Missing data remain unknown. Normally request once at delivery; detail opts into the full local record.',
+    parameters: { detail: { type: 'boolean', description: 'Include individual usage records, task records and events. Default false.' } }, output: jsonOutput,
+    async execute(args, exec) {
       if (!exec.agent) throw new Error('generalrouter_report requires an Agent Session')
       const setupError = prepareProject(exec.agent)
       if (setupError) return setupError
       await queue
-      return bridge({ action: 'report', run_id: currentRun(exec.agent) }, exec.signal)
+      const runId = currentRun(exec.agent)
+      const result = await toolBridge({ action: 'report', run_id: runId, detail: args.detail === true }, exec.signal)
+      return withDiagnostics(result, runId, args.detail === true)
     },
   }))
 
   ctx.systemPrompt.section({
     name: 'generalrouter:dispatch', order: 90,
-    text: `GeneralRouter is enabled for task-level model selection. The parent planner uses the generalrouter-task-profile skill to create task-profile.v3. Call generalrouter_match for the next ready task. When status is ready, copy its dispatch object into the native ${settings.delegationToolName} tool, including the returned reservation marker in prompt. That marker identifies an anti-replay dispatch ticket; it does not reserve or deduct subscription quota. Do not substitute an AA slug, change the returned provider/model, omit a returned effort, or infer an unsupported effort. If dispatch has no reasoning_effort, omit that native parameter so the chosen route uses its default. Start only the task covered by that ticket; repeat matching after its completion. Native subagent completion and provider usage are recorded automatically. Do not call release completed yourself. If status is setup_required, quota_unavailable, budget_exhausted or another refusal, report the returned reason; do not bypass it with a selection lacking a valid dispatch ticket. Workers perform their assigned task and leave routing to the parent. Use generalrouter_status to inspect quota and generalrouter_report for measured results. Recorder coverage starts when this plugin loads; use a new conversation for a complete comparison run.`,
+    text: `GeneralRouter routes development subtasks. The parent uses generalrouter-task-profile to prepare one plan, submits profile_json and original_request to generalrouter_match once, then reuses its profile_id for subsequent tasks. When ready_for_main_agent, copy dispatch into native ${settings.delegationToolName}, preserving the reservation marker, provider/model and any returned reasoning_effort; absent effort means provider default. Add only necessary upstream results. A ticket authorizes one task and never deducts subscription quota. Completion and usage are recorded automatically; do not manually release completed workers or routinely reread ledgers/source, poll status, or repeat matching solely to test completion. Match again only for remaining work; after delivery read one summary report. Use detail:true for a specific diagnostic need. Preserve acceptance requirements and disclose unverified results; a worker's completion is not app acceptance. Workers return artifact references, actual acceptance evidence and blockers, leaving routing to the parent. Respect refusals and use the explicit retry path; never bypass a ticket or add a reviewer without task need. Recording diagnostics describe observed failures, not guaranteed coverage; new sessions give a clean observation scope.`,
   })
 }

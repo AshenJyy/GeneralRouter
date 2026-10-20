@@ -22,27 +22,24 @@ def skill_body(text: str) -> str:
     return text.strip()
 
 
-def build_prompt(include_examples: bool = False) -> str:
+def build_prompt(include_examples: bool = False, include_references: bool = False) -> str:
     sections = [
         "# GeneralRouter Planner Contract\n\n"
-        "Apply the loaded contract below while preparing executable subtasks. "
-        "All required references are already included. No filesystem access or "
-        "skill-discovery mechanism is needed. Treat example requests as examples, "
-        "not as tasks to execute. Return only a task-profile.v3 JSON object. "
-        "For ordinary tasks, use the capability rubric and manually authored semantic "
-        "anchors to estimate four relative weights with weight_source=planner_estimated. "
-        "Explain the relevant semantic anchors and any adjustments in rationale; keep "
-        "source_task_id and calibration_anchor_id empty. Numeric estimates must be "
-        "finite, nonnegative, and sum to one. These are heuristic estimates, not AA "
-        "measurements or calibrated success probabilities. Preserve the separate "
-        "legacy AA-anchor modes only when their exact recorded binding applies. "
-        "Use uncalibrated with four nulls when the available task information is "
-        "insufficient for a defensible estimate.",
+        "Use the compact contract below to prepare executable subtasks. Its definitions "
+        "and semantic-anchor table are sufficient for ordinary planning; filesystem "
+        "access and skill discovery are not required. Supporting references are embedded "
+        "only when explicitly included below. Do not claim to have read an omitted "
+        "historical reference; obtain it before using an AA-anchor source. Treat example "
+        "requests as examples, not tasks to execute. As a standalone planner, return "
+        "only a task-profile.v3 JSON object. Native-host dispatch instructions apply "
+        "only when that host actually provides the corresponding tools.",
         skill_body((SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8-sig")),
     ]
-    references = ["capability-rubric.md", "semantic-anchors.json", "planner-anchors.json", "task-profile.schema.json"]
+    references = []
+    if include_references:
+        references.extend(["capability-rubric.md", "semantic-anchors.json", "task-profile.schema.json"])
     if include_examples:
-        references.append("examples.json")
+        references.extend(["planner-anchors.json", "examples.json"])
     for name in references:
         content = (SKILL_ROOT / "references" / name).read_text(encoding="utf-8-sig")
         if name.endswith(".json"):
@@ -70,9 +67,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", "-o", default="-")
     parser.add_argument("--provider-format", choices=("schema", "openai-responses", "openai-chat", "claude-messages", "gemini-interactions"))
-    parser.add_argument("--include-examples", action="store_true", help="Also embed the larger legacy AA task examples in the portable prompt")
+    parser.add_argument("--include-references", action="store_true", help="Embed the expanded rubric, semantic-anchor records, and JSON Schema; the default prompt uses only the compact contract")
+    parser.add_argument("--include-examples", action="store_true", help="Embed the optional historical AA fitted anchors and their task examples")
     args = parser.parse_args()
-    content = (json.dumps(provider_fragment(args.provider_format), ensure_ascii=False, indent=2) + "\n") if args.provider_format else build_prompt(include_examples=args.include_examples)
+    content = (json.dumps(provider_fragment(args.provider_format), ensure_ascii=False, indent=2) + "\n") if args.provider_format else build_prompt(include_examples=args.include_examples, include_references=args.include_references)
     if args.output == "-":
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8")
