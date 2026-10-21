@@ -31,6 +31,14 @@ flowchart LR
 | GeneralRouter | 任务参考资料、模型能力匹配、额度准入、路由解释和用量记录 |
 | EasyCLIProxyAPI（ECPA） | 模型网关及上游报告的额度状态 |
 
+## 数据来源与架构选择
+
+模型评测分项成绩来自 **Artificial Analysis（AA）**，类别划分与比例也参考其资料。保存的成绩见 [AA 分项快照](data/aa-components.v0.1.json)，项目生成的能力向量见 [模型向量](data/model-vectors.v0.1.json)。这些成绩不是 GeneralRouter 自行运行榜单测得的结果。
+
+**从九维改为四维由项目作者提出，是核心架构调整。** 模型能力表示、任务权重合同和匹配计算随后统一采用 agentic、coding、knowledge/document、scientific reasoning 四个类别。这是能力表示的重新设计，不是把旧九维向量通过 PCA 等算法投影到四维；也尚未证明四维在路由效果上优于九维。
+
+GeneralRouter 实现数据转换与聚合、任务权重流程、匹配和调用准入。普通任务权重由 planner 依据项目规则估计，不是 AA 官方提供的任务向量。详细过程见 [核心算法](docs/CORE-ALGORITHM.md) 与 [架构决策](docs/DESIGN-DECISIONS.md)。
+
 ## v0.1 范围
 
 - 四维能力资料：agentic、coding、knowledge/document、scientific reasoning；候选池包含 12 组模型与 effort 配置。

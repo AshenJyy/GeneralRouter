@@ -4,6 +4,8 @@ This document describes the implementation retained in v0.1.7. The core work is 
 
 The benchmark measurements and category proportions come from retained Artificial Analysis (AA) material. The grouping, fixed transforms, missing-data policy, task-profile contract and routing calculation are implemented in this project. Weighted averages, dot products and ridge regression are established methods; they are not claimed as new mathematical algorithms.
 
+The project author proposed replacing the initial nine-dimensional representation with four capability groups. Model-vector construction, task weights and the matching interface were updated around that shared representation. This was an architectural redesign informed by AA's categories, not a learned projection of the old nine-dimensional vectors. No comparative experiment has established that four dimensions outperform nine.
+
 ## 1. Model capability vectors
 
 Each exact model/effort configuration has a vector:
