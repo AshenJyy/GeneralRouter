@@ -32,3 +32,7 @@ The AA-Briefcase-Lite dataset's Apache license is not asserted to cover Artifici
 GeneralRouter's routing code, schemas, human-defined semantic anchors and numerical reference fits are project-authored material. The derived task weights are not published, verified or endorsed by Artificial Analysis. Historical task fits are limited reference fits; the human-defined semantic anchors are heuristic examples, not measured benchmark outcomes.
 
 This notice does not imply affiliation with or endorsement by Artificial Analysis or any benchmark author.
+
+## Memento handoff reference
+
+The v0.1.8 repair handoff references Anthropic's [Memento harness, Appendix A](https://www.anthropic.com/research/self-replicating-ai): a new instance receives prior work and concise notes. The fixed-model routing policy and main-agent repair decisions are GeneralRouter's design. The reference is conceptual; no performance result from that research is a GeneralRouter result.

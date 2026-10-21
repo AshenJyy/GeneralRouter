@@ -467,6 +467,8 @@ class RunLedger:
                 "execution_status": task.get("status", "unknown"),
                 "acceptance_status": task.get("acceptance_status", "unknown"),
                 "repairs_task_id": task.get("repairs_task_id"),
+                "selection_kind": task.get("selection_kind"),
+                "selection_origin_task_id": task.get("selection_origin_task_id"),
                 "outcome": task.get("outcome"),
                 "route": task.get("route"),
                 "actual_route": task.get("actual_route"),
@@ -523,7 +525,7 @@ class RunLedger:
                 usage_attribution=attributions,
                 events=events,
                 task_records=[
-                    {"task_id": identity, **{key: task.get(key) for key in ("status", "outcome", "acceptance_status", "acceptance_history", "repairs_task_id", "reservation_id", "route", "frozen_route", "selected_at", "actual_route", "route_mismatch", "reserved_at", "authorized_at", "started_at", "finished_at", "child_session_id", "attempts")}}
+                    {"task_id": identity, **{key: task.get(key) for key in ("status", "outcome", "acceptance_status", "acceptance_history", "repairs_task_id", "selection_kind", "selection_origin_task_id", "repair_prepared_at", "memento", "historical_task_profile", "original_selection", "reservation_id", "route", "frozen_route", "selected_at", "actual_route", "route_mismatch", "reserved_at", "authorized_at", "started_at", "finished_at", "child_session_id", "attempts")}}
                     for identity, task in tasks.items()
                 ],
             )

@@ -5,10 +5,22 @@
     "positioning": "A subtask-level model-routing plugin for DeepSeek Harness; no separate orchestrator is planned.",
     "dsh_responsibilities": "Main agent, sessions, tools, native subagent execution and orchestration.",
     "generalrouter_responsibilities": "Capability and task reference data, candidate matching, reported-quota admission, selection explanations and usage records.",
-    "dispatch_ownership": "The DSH main agent receives GeneralRouter's selection and explicitly calls the native subagent tool. DSH retains execution ownership.",
+    "dispatch_ownership": "The DSH main agent receives the first selection and explicitly dispatches native subagents. After failure, it decides whether to arrange a fresh worker on the same frozen model and effort; repairs bypass candidate matching.",
     "optimization_boundary": "Cost and timing are recorded for evaluation. The current matcher does not establish cost or completion-time optimality."
   },
-  "status": "v0.1.5_implemented_without_runtime_validation_prior_v0.1.4_user_smoke_completed",
+  "status": "v0.1.8_implemented_without_runtime_validation_v0.1.7_case_retained_as_history",
+  "repair_policy": {
+    "decision_owner": "main_agent",
+    "tool": "generalrouter_prepare_repair",
+    "request": ["profile_id", "repairs_task_id", "task_id", "objective", "memento", "input_artifacts?", "detail?"],
+    "selection": "Inherit exact predecessor frozen provider/model/effort; no new task-weight estimate, candidate scoring or model substitution.",
+    "execution": "New native subagent, existing workspace artifacts, inherited constraints and concise memento; main agent explicitly dispatches the returned ticket.",
+    "admission": "Recheck only the inherited route for native callability and quota admission. Unavailable routes are reported to the main agent, not replaced.",
+    "records": "Preserve predecessor outcome and acceptance; linked repair receives separate identity, ticket, outcome and usage. No autonomous loop.",
+    "legacy_path": "append_task repair metadata and match on pending linked repairs return actionable guidance instead of selecting again.",
+    "conceptual_reference": "https://www.anthropic.com/research/self-replicating-ai (Appendix A: Memento)",
+    "evidence": "Implemented only; no new runtime validation or experiment."
+  },
   "target_dsh_version": "0.2.1-rc.2",
   "model_mapping_owner": "Plugin bundles the 12 AA-to-callable-model/effort mappings. The user owns DSH App provider registration, allowed models and effort metadata.",
   "source_snapshots": {
@@ -43,7 +55,7 @@
     "effort_policy": "Inspect supported effort settings, apply only a corresponding supported mapping, otherwise omit reasoning_effort. Record the actual setting and any fallback. Invalid efforts must not be sent with an assumption that DSH will automatically downgrade them.",
     "skill_location_in_app_workspace": "Bundled runtime/skills/generalrouter-task-profile registered with the DSH skill service for all workspaces; a same-name project skill takes precedence.",
     "gateway": "Use the user's configured compatible provider with the actual ECPA baseURL, API protocol, model IDs and secret source. The user completed one native-subagent smoke workflow in v0.1.4; provider and execution-backend configuration remain user-owned and are not changed by this release.",
-    "installation_after_package_exists": "In DSH App, open Plugins > Add plugin, enter the absolute path to the downloaded dsh-generalrouter-0.1.5.tgz package, install and enable the bundle. Existing users update the package through App plugin management and start a new main session. Keep existing shared settings and project records. Leave projectRoot and hostConfig empty. Shared configuration and the bundled skill work across workspaces; no per-workspace copying is required. Same-name project or user skills still override the bundle and may need updating to use its new instructions. DSH provider registration, the native model allowlist and effort metadata remain user-owned.",
+    "installation_after_package_exists": "In DSH App, open Plugins > Add plugin, enter the absolute path to dsh-generalrouter-0.1.8.tgz, install and enable the bundle. Existing users update the package through App plugin management and start a new main session. Keep existing shared settings and project records. Leave projectRoot and hostConfig empty. Shared configuration and the bundled skill work across workspaces; no per-workspace copying is required. Same-name project or user skills still override the bundle and may need updating to use its new instructions. DSH provider registration, the native model allowlist and effort metadata remain user-owned.",
     "project_path_defaults": "Prefer session.header.cwd from main-session creation; use workingDirectory.get(session) only if that header is absent. Never infer the root from the package or DSH process directory. A nonempty projectRoot overrides the default. Bind the workspace when establishing a run and retain it across children, retries and records. A missing root is a setup error. Switching workspaces requires a new main session.",
     "hook_boundary": "Do not mutate subagent arguments from tools/pre-execute or assume subagent/start/end can reroute a call.",
     "sources": [
@@ -158,8 +170,8 @@
       "scope": "One workflow does not establish all-candidate compatibility, quality, lower cost, quota savings or a guarantee against allowance exhaustion."
     },
     "current_release": {
-      "version": "0.1.5",
-      "work": "Implementation, source and resource reading, documentation and artifact generation.",
+      "version": "0.1.8",
+      "work": "Same-model repair handoff, skill and documentation updates, source reading and artifact generation. The v0.1.7 case remains separate historical evidence in docs/experiments/translation-ab-v2.",
       "validation": "No development tests, review, validators, compilation checks, simulated routing, API/model calls or developer plugin installation for this update.",
       "configuration": "Preserve shared connection settings and user DSH provider/backend configuration; do not read secret contents.",
       "future_work": "Public benchmark execution is deferred and contributes no results to this release."
@@ -168,9 +180,9 @@
   "distribution": {
     "kind": "standard_npm_tarball_supported_by_dsh",
     "package": "dsh-generalrouter",
-    "version": "0.1.5",
-    "artifact": "dsh-generalrouter-0.1.5.tgz",
-    "local_delivery_path": "dsh-generalrouter-0.1.5.tgz",
+    "version": "0.1.8",
+    "artifact": "dsh-generalrouter-0.1.8.tgz",
+    "local_delivery_path": "dsh-generalrouter-0.1.8.tgz",
     "contents": "Prebuilt JavaScript entry point, DSH bundle patch, Python runtime, task-profile skill with 12 human-defined semantic anchors, required model/rate data and blank configuration examples.",
     "external_configuration": "Optional shared host.local.json and quota.local.json under $DSH_HOME/generalrouter, with optional project overrides. Installed package contents do not store local paths or credentials. Workspace task and usage state remains under that workspace.",
     "source_repository_required_at_runtime": false

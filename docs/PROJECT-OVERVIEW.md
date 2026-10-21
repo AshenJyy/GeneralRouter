@@ -1,8 +1,8 @@
 # GeneralRouter
 
-**Task-level model routing for DeepSeek Harness · v0.1.7 experimental**
+**Task-level model routing for DeepSeek Harness · v0.1.8 experimental**
 
-GeneralRouter is a plugin that matches development subtasks to model configurations and records what happened after selection. It separates capability scoring, execution constraints, acceptance outcomes and resource use, so a completed model call does not automatically count as a successful task.
+GeneralRouter is a plugin that matches independent development subtasks to model configurations once and records what happened after selection. Failures return to the main agent; repairs use fresh native subagents with the same fixed configuration. It separates capability scoring, execution constraints, acceptance outcomes and resource use, so a completed model call does not automatically count as a successful task.
 
 [中文项目说明](../README.md) · [Core algorithm](CORE-ALGORITHM.md) · [Design decisions](DESIGN-DECISIONS.md) · [Case study](experiments/translation-ab-v2/README.md)
 
@@ -24,14 +24,21 @@ flowchart LR
     D --> W[DSH native subagent]
     W --> E[Execution and acceptance recorded separately]
     W --> U[Actual route, tokens and equivalent cost]
+    E --> F[Failure reported to main agent]
+    F --> M[Main agent decides repair and writes memento]
+    M --> H[Inherited route: admission and new ticket]
+    H --> N[New native subagent, same model and effort]
+    N --> E
 ```
 
 - **Four capability dimensions:** agentic work, coding, knowledge/document work and scientific reasoning. The planner estimates their relative importance using documented semantic examples. The weights are not measured task difficulty or success probabilities.
 - **Twelve model/effort configurations across four model families:** capability records come from retained Artificial Analysis data. A score is distinct from permission to execute that configuration.
-- **A stable task history:** a task's selected provider, model and effort stay fixed. Further repair is a new linked task, preserving the original outcome and its resource use.
+- **A stable task history:** a task's selected provider, model and effort stay fixed. If the main agent arranges a repair, a new linked task inherits that configuration without reranking or generating new weights. The original outcome and each repair's resource use remain separate. An unavailable route blocks dispatch rather than switching models.
 - **Observable execution:** selected and actual routes, reported token usage, acceptance records and API-equivalent cost are kept separately. Missing measurements stay unknown.
 
 Cost and time are currently recorded for comparison; they are not optimization terms in the selection policy. Reported quota snapshots cannot guarantee that an account will never run out.
+
+The project author proposed both the nine-to-four-dimensional redesign and the v0.1.8 first-selection-only repair architecture. A short memento carries prior attempts, failures, evidence and next steps into the new worker alongside existing files and constraints. The new [repair handoff](REPAIR-HANDOFF.md) is implemented but has not been runtime-verified; the case below remains a v0.1.7 observation.
 
 ## Core implementation
 
@@ -64,7 +71,7 @@ The [case data](experiments/translation-ab-v2/results.json) include the candidat
 
 ## What comes next
 
-The next useful extension would connect the execution paths and establish which model/effort settings each exposes. More independent real tasks would then be needed before changing weights or adding cost-aware selection. v0.1.7 is retained as the documented milestone; no further run was selected to replace this result.
+The current v0.1.8 update changes repair handoff while retaining the original matching formula. It adds no new experiment and does not replace the v0.1.7 case. Further work may connect execution paths and establish which model/effort settings each exposes. More independent real tasks would be needed before changing weights or adding cost-aware selection.
 
 ## Inspect the work
 

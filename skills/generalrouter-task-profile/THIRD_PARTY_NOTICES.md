@@ -8,3 +8,5 @@ The continuous regression method, skill instructions, schema, and helper code ar
 
 Source: https://huggingface.co/datasets/ArtificialAnalysis/AA-Briefcase-Lite
 Score page: https://artificialanalysis.ai/evaluations/aa-briefcase
+
+The same-model repair instructions reference Anthropic's Memento harness (Appendix A) for brief-note handoff between fresh instances: https://www.anthropic.com/research/self-replicating-ai. Model locking and main-agent-controlled repairs are GeneralRouter design choices. No performance benefit is established by this citation.

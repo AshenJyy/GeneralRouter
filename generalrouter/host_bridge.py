@@ -400,8 +400,8 @@ class HostBridge:
         if not isinstance(task, dict):
             raise BridgeError("task_object_required", "task must be one complete task object from task-profile.v3.")
         repairs = self.request.get("repairs_task_id")
-        if repairs is not None and (not isinstance(repairs, str) or not repairs.strip()):
-            raise BridgeError("invalid_repairs_task_id", "repairs_task_id must identify an existing ended task or be omitted.")
+        if repairs is not None:
+            raise BridgeError("prepare_repair_required", "Repairs do not select a model again. Use generalrouter_prepare_repair with profile_id, repairs_task_id, a fresh task_id, objective and memento; it inherits the original frozen route.")
         profile, _, digest, profile_id = self._planner_input()
         payload = {"task": copy.deepcopy(task), "repairs_task_id": repairs}
         payload_digest = _profile_digest(payload)
@@ -421,12 +421,6 @@ class HostBridge:
                         "task_id": identity, "repairs_task_id": repairs}
             if identity in state["tasks"]:
                 raise BridgeError("task_id_collision", "This task_id is already registered. Use a new task_id.")
-            if repairs is not None:
-                source = state["tasks"].get(repairs)
-                if source is None or source.get("status") not in ("completed", "failed"):
-                    raise BridgeError("repair_target_not_ended", "A repair must link to an existing task whose execution has ended.")
-                if repairs in task.get("depends_on", []):
-                    raise BridgeError("repair_target_is_dependency", "Use repairs_task_id and input_artifacts for the failed output, not depends_on on the repair target.")
             combined["tasks"].append(copy.deepcopy(task))
             # The same public v3 contract validates both original and appended tasks.
             router.skill.normalize(combined)
@@ -442,6 +436,165 @@ class HostBridge:
         return {"ok": True, "status": "task_appended", "profile_id": profile_id,
                 "task_id": identity, "repairs_task_id": repairs,
                 "next_step": "Call generalrouter_match with this profile_id and task_id to select the new task once."}
+
+    @staticmethod
+    def _repair_guidance() -> str:
+        return ("Report the failure to the main agent. If the main agent decides to repair, use "
+                "generalrouter_prepare_repair with profile_id, repairs_task_id, a fresh task_id, objective "
+                "and memento. It prepares a new native subagent with the original frozen provider/model/effort "
+                "without model matching. Never reopen the ended task or silently switch models.")
+
+    @staticmethod
+    def _worker_request(task: dict, original: str) -> dict:
+        return {"original_request": original, "objective": task["objective"], "context": task["context"],
+                "input_artifacts": copy.deepcopy(task["input_artifacts"]), "deliverable": task["deliverable"],
+                "upstream_task_ids": copy.deepcopy(task["depends_on"])}
+
+    def _repair_response(self, entry: dict, profile_id: str, identity: str) -> dict:
+        response = {
+            "ok": True, "status": "ready_for_main_agent", "run_id": self.run_id,
+            "profile_id": profile_id, "task_id": identity, "repairs_task_id": entry["repairs_task_id"],
+            "selection_origin_task_id": entry["selection_origin_task_id"], "selection_kind": "inherited_repair",
+            "reservation_id": entry["reservation_id"], "configuration_id": entry["frozen_route"]["configuration_id"],
+            "route": copy.deepcopy(entry["frozen_route"]), "dispatch": copy.deepcopy(entry["dispatch"]),
+            "depends_on": copy.deepcopy(entry["depends_on"]), "selection": copy.deepcopy(entry["selection"]),
+            "admission": _admission_summary(entry["admission"]), "detail_available": True,
+            "main_agent_instructions": [
+                "Call a NEW DSH native subagent using dispatch, including its reservation marker. Do not resume the predecessor session.",
+                "Keep the inherited provider/model/effort exactly as returned. No model matching was performed for this repair.",
+                "Forward the referenced artifacts and original constraints. The memento is the main agent's handoff, not verified execution evidence.",
+                "Do not dispatch the same reservation twice. If no call was made, release it as not_dispatched.",
+                "Wait for this worker to finish, then record its acceptance separately. Keep the predecessor's failure and usage unchanged.",
+                self._repair_guidance(),
+            ],
+        }
+        if self.request.get("detail") is True:
+            response["details"] = {"memento": entry["memento"], "historical_task_profile": entry.get("historical_task_profile"),
+                                   "repair_context": entry["worker_request"]["repair_context"],
+                                   "original_selection": entry.get("original_selection"), "admission": entry["admission"]}
+        return response
+
+    def prepare_repair(self) -> dict:
+        """Prepare fresh execution of a main-agent repair decision; never rank models."""
+        for field in ("profile_id", "repairs_task_id", "task_id", "objective", "memento"):
+            if not isinstance(self.request.get(field), str) or not self.request[field].strip():
+                raise BridgeError("repair_field_required", f"prepare_repair requires a nonempty {field} string.")
+        artifacts = self.request.get("input_artifacts", [])
+        if not isinstance(artifacts, list) or any(not isinstance(item, str) or not item.strip() for item in artifacts):
+            raise BridgeError("repair_artifacts_invalid", "input_artifacts must be a list of nonempty artifact references.")
+        if any(field in self.request for field in ("profile", "task", "task_weights", "weight_source", "model", "provider", "reasoning_effort", "configuration_id")):
+            raise BridgeError("repair_selection_override_forbidden", "Repairs inherit the saved task metadata and frozen route. Do not submit a new profile, vector or model override.")
+        profile, original, digest, profile_id = self._planner_input()
+        identity, repairs = self.request["task_id"], self.request["repairs_task_id"]
+        payload = {"repairs_task_id": repairs, "task_id": identity, "objective": self.request["objective"],
+                   "memento": self.request["memento"], "input_artifacts": copy.deepcopy(artifacts)}
+        request_digest = _profile_digest(payload)
+        snapshot = self._refresh_if_needed()
+        with self.ledger.edit() as state:
+            if state.get("profile_sha256") != digest:
+                raise BridgeError("profile_not_registered", "Register the original plan before preparing a repair.")
+            combined = self._combined_profile(state, profile)
+            specs = {item["task_id"]: item for item in combined["tasks"]}
+            if set(specs) != set(state["tasks"]):
+                raise BridgeError("saved_task_set_mismatch", "The saved task states do not match this profile; preserve the run records.")
+            source = state["tasks"].get(repairs)
+            if source is None or source.get("status") not in ("completed", "failed"):
+                raise BridgeError("repair_target_not_ended", "A repair must identify an existing predecessor whose execution has ended.")
+            entry = state["tasks"].get(identity)
+            if entry is not None:
+                if entry.get("selection_kind") != "inherited_repair" or entry.get("repair_request_sha256") != request_digest:
+                    raise BridgeError("task_id_collision", "This task_id is already registered with a different repair request. Use a fresh task_id.")
+                if entry["status"] in ("completed", "failed"):
+                    return {"ok": True, "status": "task_ended", "profile_id": profile_id, "task_id": identity,
+                            "execution_status": entry["status"], "acceptance_status": entry.get("acceptance_status", "unknown"),
+                            "route": entry["frozen_route"], "next_step": self._repair_guidance()}
+                if entry["status"] == "running" or entry.get("dispatch_call_id") and entry["status"] == "reserved":
+                    return {"ok": True, "status": "awaiting_worker", "profile_id": profile_id, "task_id": identity,
+                            "reservation_id": entry.get("reservation_id"), "route": entry["frozen_route"],
+                            "next_step": "This repair already has an authorized or running worker. Wait for its outcome; do not dispatch it again."}
+            else:
+                origin_id, lineage = repairs, set()
+                while True:
+                    if origin_id in lineage or origin_id not in state["tasks"]:
+                        raise BridgeError("repair_lineage_invalid", "The saved repair lineage is inconsistent; preserve the records instead of choosing a substitute model.")
+                    lineage.add(origin_id)
+                    parent = state["tasks"][origin_id].get("repairs_task_id")
+                    if parent is None:
+                        break
+                    origin_id = parent
+                origin = state["tasks"][origin_id]
+                frozen = origin.get("frozen_route", origin.get("route"))
+                if not isinstance(frozen, dict) or not all(isinstance(frozen.get(field), str) and frozen[field] for field in ("configuration_id", "provider", "model")):
+                    raise BridgeError("repair_frozen_route_missing", "The original task has no recorded frozen route. No repair model can be inferred or selected.")
+                origin_spec = specs[origin_id]
+                task = copy.deepcopy(origin_spec)
+                task.update(task_id=identity, objective=payload["objective"],
+                            input_artifacts=list(dict.fromkeys(origin_spec["input_artifacts"] + specs[repairs]["input_artifacts"] + artifacts)),
+                            depends_on=[dependency for dependency in origin_spec["depends_on"] if dependency not in lineage])
+                worker_request = self._worker_request(task, original)
+                worker_request["repair_context"] = {
+                    "repairs_task_id": repairs, "selection_origin_task_id": origin_id,
+                    "original_objective": origin_spec["objective"], "predecessor_objective": specs[repairs]["objective"],
+                    "execution_status": source["status"], "outcome": source.get("outcome"),
+                    "acceptance_status": source.get("acceptance_status", "unknown"), "acceptance": copy.deepcopy(source.get("acceptance")),
+                    "predecessor_actual_route": copy.deepcopy(source.get("actual_route")), "predecessor_route_mismatch": source.get("route_mismatch"),
+                    "memento": payload["memento"], "memento_source": "main_agent_handoff_not_independently_verified",
+                    "execution_policy": "New subagent session, same original frozen provider/model/effort; report remaining failures to the main agent.",
+                }
+                appended = {"task": task, "repairs_task_id": repairs}
+                prepared_at = utc_now()
+                state.setdefault("appended_tasks", []).append({**copy.deepcopy(appended), "digest": _profile_digest(appended), "appended_at": prepared_at})
+                entry = {"status": "pending", "depends_on": copy.deepcopy(task["depends_on"]), "objective": task["objective"],
+                         "repairs_task_id": repairs, "acceptance_status": "unknown", "acceptance_history": [],
+                         "selection_kind": "inherited_repair", "selection_origin_task_id": origin_id,
+                         "frozen_route": copy.deepcopy(frozen), "selected_at": origin.get("selected_at", origin.get("reserved_at")),
+                         "repair_prepared_at": prepared_at, "repair_request_sha256": request_digest,
+                         "memento": payload["memento"], "worker_request": worker_request,
+                         "historical_task_profile": copy.deepcopy(origin.get("matching", {}).get("task_profile")),
+                         "original_selection": copy.deepcopy(origin.get("matching", {}).get("selection")),
+                         "selection": {"selection_kind": "inherited_repair", "selection_origin_task_id": origin_id,
+                                       "selection_fixed_for_task": True, "matching_performed": False,
+                                       "reason": "Main-agent repair decision; inherit the original frozen configuration without ranking."}}
+                state["tasks"][identity] = entry
+                self.ledger.event(state, "repair_prepared", profile_id=profile_id, task_id=identity, repairs_task_id=repairs,
+                                  selection_origin_task_id=origin_id, configuration_id=frozen["configuration_id"], repair_request_sha256=request_digest)
+            blocked = [dependency for dependency in entry["depends_on"]
+                       if state["tasks"][dependency]["status"] != "completed"
+                       or state["tasks"][dependency].get("acceptance_status", "unknown") == "failed"]
+            if blocked:
+                return {"ok": False, "status": "repair_dependencies_unavailable", "profile_id": profile_id, "task_id": identity,
+                        "dependencies": blocked, "route": entry["frozen_route"],
+                        "next_step": "Report unavailable upstream inputs to the main agent. The failed predecessor is a repair link, not a successful dependency."}
+            route, reason = self._frozen_route(entry["frozen_route"])
+            decision = None
+            if route is not None:
+                decision = (self.quota.admit(route, entry["reservation_id"]) if entry["status"] == "reserved"
+                            else self.quota.reserve(route, identity, self.run_id))
+                reason = decision["reason"]
+            if route is None or not decision.get("accepted"):
+                self.ledger.event(state, "repair_route_unavailable", task_id=identity, reason=reason, route=entry["frozen_route"])
+                return {"ok": False, "status": "fixed_route_unavailable", "profile_id": profile_id, "task_id": identity,
+                        "route": entry["frozen_route"], "reason": reason, "quota": _quota_summary(snapshot, self.run_id),
+                        "message": "The inherited route is unavailable. Report this to the main agent; no substitute or new ranking was used.",
+                        "admission": _admission_summary(decision) if decision else None}
+            if entry["status"] == "reserved":
+                entry["admission"] = decision
+                return self._repair_response(entry, profile_id, identity)
+            reservation_id = decision.get("reservation_id") or decision.get("reservation", {}).get("reservation_id")
+            dispatch = {"description": entry["objective"][:120], "provider": route["provider"], "model": route["model"],
+                        "prompt": f"[generalrouter-reservation:{reservation_id}]\n" + json.dumps(entry["worker_request"], ensure_ascii=False, indent=2)}
+            if route.get("reasoning_effort"):
+                dispatch["reasoning_effort"] = route["reasoning_effort"]
+            self._remember_attempt(entry)
+            for field in ("dispatch_call_id", "authorized_at", "child_session_id", "started_at", "finished_at", "outcome", "actual_route", "route_mismatch"):
+                entry.pop(field, None)
+            entry.update(status="reserved", reservation_id=reservation_id, route=route, dispatch=dispatch,
+                         reserved_at=utc_now(), admission=decision)
+            self._remember_attempt(entry)
+            self.ledger.event(state, "repair_reserved", task_id=identity, repairs_task_id=repairs,
+                              selection_origin_task_id=entry["selection_origin_task_id"], reservation_id=reservation_id,
+                              configuration_id=route["configuration_id"], route=route)
+            return self._repair_response(entry, profile_id, identity)
 
     def record_acceptance(self) -> dict:
         identity = self.request.get("task_id")
@@ -465,7 +618,8 @@ class HostBridge:
             history = task.setdefault("acceptance_history", [])
             if history and history[-1].get("payload_sha256") == payload_digest:
                 return {"ok": True, "status": "acceptance_already_recorded", "task_id": identity,
-                        "execution_status": task["status"], "acceptance_status": task.get("acceptance_status", "unknown")}
+                        "execution_status": task["status"], "acceptance_status": task.get("acceptance_status", "unknown"),
+                        "next_step": self._repair_guidance() if outcome == "failed" else "No repair is started automatically."}
             entry = {**copy.deepcopy(payload), "recorded_at": utc_now(), "payload_sha256": payload_digest}
             history.append(entry)
             task["acceptance_status"] = outcome
@@ -476,6 +630,7 @@ class HostBridge:
         return {"ok": True, "status": "acceptance_recorded", "task_id": identity,
                 "execution_status": task["status"], "acceptance_status": outcome,
                 "dependency_failures": dependency_failures,
+                "next_step": self._repair_guidance() if outcome == "failed" else "No repair is started automatically.",
                 "note": "Acceptance is the main agent's recorded assessment. It does not reopen execution or change linked tasks."}
 
     def _diagnostics_reference(self) -> dict:
@@ -486,7 +641,6 @@ class HostBridge:
 
     def match(self) -> dict:
         profile, original, digest, profile_id = self._planner_input()
-        router = self._router()
         detail = self.request.get("detail") is True
         # Refresh before acquiring the run lock; collection can involve network latency.
         snapshot = self._refresh_if_needed()
@@ -495,15 +649,19 @@ class HostBridge:
                 raise BridgeError("profile_changed", "The original profile is immutable. Reuse profile_id and append a new task instead of replacing the plan.")
             if state.get("profile_sha256") is not None and state.get("original_request", "") != original:
                 raise BridgeError("original_request_changed", "The saved original request changed before registration; retry with the existing plan.")
-            handoff = router.route(self._combined_profile(state, profile), original_request=original)
+            combined = self._combined_profile(state, profile)
             if "profile_sha256" not in state:
+                router = self._router()
+                # Validate the complete DAG at registration, without ranking tasks
+                # which have not yet become ready for their first selection.
+                normalized = router.skill.normalize(combined)
                 state["profile_sha256"] = digest
                 state["original_request"] = original
                 state["host"] = {key: self.host.get(key) for key in ("name", "version", "session_id", "agent_id", "cwd")}
-                for task in handoff["tasks"]:
+                for task in normalized["tasks"]:
                     state["tasks"][task["task_id"]] = {"status": "pending", "depends_on": task["depends_on"], "objective": task["objective"],
                                                         "repairs_task_id": None, "acceptance_status": "unknown", "acceptance_history": []}
-                self.ledger.event(state, "plan_registered", profile_id=profile_id, profile_sha256=digest, candidate_snapshot=handoff["candidate_snapshot"])
+                self.ledger.event(state, "plan_registered", profile_id=profile_id, profile_sha256=digest, candidate_snapshot=router.model_snapshot)
             if not isinstance(state.get("profile"), dict):
                 state["profile"] = copy.deepcopy(profile)
                 self.ledger.event(state, "profile_saved", profile_id=profile_id, profile_sha256=digest)
@@ -511,7 +669,7 @@ class HostBridge:
                 raise BridgeError("saved_profile_digest_mismatch", "The saved profile content no longer matches its registered digest.")
             state["profile_id"] = profile_id
             state.setdefault("original_request", original)
-            if {task["task_id"] for task in handoff["tasks"]} != set(state["tasks"]):
+            if {task["task_id"] for task in combined["tasks"]} != set(state["tasks"]):
                 raise BridgeError("saved_task_set_mismatch", "The saved task states do not match this profile; preserve the records and use a new run.")
             requested = self.request.get("task_id")
             if requested is not None and (not isinstance(requested, str) or requested not in state["tasks"]):
@@ -522,11 +680,21 @@ class HostBridge:
                         "task_id": requested, "execution_status": item["status"],
                         "acceptance_status": item.get("acceptance_status", "unknown"),
                         "route": item.get("frozen_route", item.get("route")),
-                        "next_step": "Ended tasks are never reopened. If more work is needed, append a new task linked by repairs_task_id, then match its new task_id."}
+                        "next_step": self._repair_guidance()}
+            pending_repairs = [identity for identity, item in state["tasks"].items()
+                               if item.get("repairs_task_id") and item["status"] == "pending"]
+            if requested and state["tasks"][requested].get("repairs_task_id"):
+                item = state["tasks"][requested]
+                return {"ok": False, "status": "prepare_repair_required", "profile_id": profile_id, "task_id": requested,
+                        "execution_status": item["status"], "repairs_task_id": item["repairs_task_id"],
+                        "legacy_repair": item.get("selection_kind") != "inherited_repair",
+                        "message": "Repair tasks never enter model matching. For a pending inherited repair, repeat its identical prepare_repair request; for a legacy appended repair, preserve its record and use a fresh repair task_id. Authorized or running workers must finish before any further repair.",
+                        "next_step": self._repair_guidance()}
             ready = [
-                task for task in handoff["tasks"]
+                task for task in combined["tasks"]
                 if (requested is None or task["task_id"] == requested)
                 and state["tasks"][task["task_id"]]["status"] == "pending"
+                and not state["tasks"][task["task_id"]].get("repairs_task_id")
                 and all(state["tasks"][dependency]["status"] == "completed"
                         and state["tasks"][dependency].get("acceptance_status", "unknown") != "failed"
                         for dependency in task["depends_on"])
@@ -535,28 +703,48 @@ class HostBridge:
                 statuses = {identity: task["status"] for identity, task in state["tasks"].items()}
                 done = bool(statuses) and all(value == "completed" for value in statuses.values())
                 dependency_failures = self._dependency_failures(state)
-                response = {"ok": True, "status": "completed" if done or not statuses else "awaiting_worker_or_dependencies", "run_id": self.run_id,
+                response = {"ok": not bool(pending_repairs), "status": "prepare_repair_required" if pending_repairs else "completed" if done or not statuses else "awaiting_worker_or_dependencies", "run_id": self.run_id,
                             "profile_id": profile_id, "task_statuses": statuses, "acceptance_statuses": self._acceptance_statuses(state),
                             "dependency_failures": dependency_failures,
                             "completion_meaning": "Execution ended; consult acceptance_statuses for the recorded quality result.",
-                            "next_step": "Append a new linked task for additional work; completed and failed tasks cannot be reopened."}
+                            "pending_repair_task_ids": pending_repairs,
+                            "pending_repairs": {identity: {"repairs_task_id": state["tasks"][identity]["repairs_task_id"],
+                                                           "legacy_repair": state["tasks"][identity].get("selection_kind") != "inherited_repair"}
+                                                for identity in pending_repairs},
+                            "repair_migration": "Repeat the identical prepare_repair request for a pending inherited repair. Preserve legacy pending repairs and use prepare_repair with their ended predecessor and a fresh task_id; they are never matched automatically.",
+                            "next_step": self._repair_guidance()}
                 if detail:
                     response["details"] = {"task_matching": {
                         identity: item.get("matching") for identity, item in state["tasks"].items()
                         if requested is None or requested == identity
                     }}
                 return response
-            task = ready[0]
-            entry = state["tasks"][task["task_id"]]
+            task_spec = ready[0]
+            entry = state["tasks"][task_spec["task_id"]]
             frozen = entry.get("frozen_route", entry.get("route"))
             if isinstance(frozen, dict):
                 entry.setdefault("frozen_route", copy.deepcopy(frozen))
                 entry.setdefault("selected_at", entry.get("reserved_at", utc_now()))
-                prior_ranking = entry.get("matching", {}).get("ranking", task["matching"]["ranking"])
+                saved_matching = entry.get("matching", {})
+                prior_ranking = saved_matching.get("ranking", [])
                 ranks = [row for row in prior_ranking if row.get("configuration_id") == frozen.get("configuration_id")]
-                if not ranks:
+                if not ranks or not isinstance(saved_matching.get("selection"), dict):
                     raise BridgeError("saved_selection_missing", "The frozen configuration has no saved matching record; preserve the run records.")
+                task = {**copy.deepcopy(task_spec), "task_profile": saved_matching.get("task_profile", {}),
+                        "worker_request": copy.deepcopy(entry.get("worker_request") or self._worker_request(task_spec, original))}
+                routing_policy = saved_matching.get("routing_policy", {})
             else:
+                router = self._router()
+                # Registration/append already validates the complete DAG. Match
+                # just this ready task with a temporary dependency-free view;
+                # restore its real dependencies for admission and execution.
+                one_task = copy.deepcopy(task_spec)
+                one_task["depends_on"] = []
+                handoff = router.route({**combined, "tasks": [one_task]}, original_request=original)
+                task = handoff["tasks"][0]
+                task["depends_on"] = copy.deepcopy(task_spec["depends_on"])
+                task["worker_request"]["upstream_task_ids"] = copy.deepcopy(task_spec["depends_on"])
+                routing_policy = handoff["routing_policy"]
                 ranks = task["matching"]["ranking"]
             eligibility = []
             chosen = None
@@ -582,22 +770,16 @@ class HostBridge:
                     "ok": False, "status": "fixed_route_unavailable" if isinstance(frozen, dict) else "setup_required_or_no_allowance", "run_id": self.run_id,
                     "profile_id": profile_id, "task_id": task["task_id"], "rejection_summary": reasons,
                     "quota": _quota_summary(snapshot, self.run_id), "detail_available": True,
-                    "message": ("This task's selected model and effort are fixed and currently unavailable. Restore its availability or append a new task; no substitute was selected."
+                    "message": ("This task's selected model and effort are fixed and currently unavailable. Report this to the main agent or restore its availability; no substitute was selected."
                                 if isinstance(frozen, dict) else "No candidate currently passes the session allowlist and reported allowance checks. No model was dispatched."),
                 }
                 if detail:
-                    response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": handoff["routing_policy"]}
+                    response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": routing_policy}
                 return response
             rank, route, decision = chosen
-            reservation_id = decision["reservation_id"]
+            reservation_id = decision.get("reservation_id") or decision.get("reservation", {}).get("reservation_id")
             marker = f"[generalrouter-reservation:{reservation_id}]"
             worker_request = copy.deepcopy(task["worker_request"])
-            if entry.get("repairs_task_id"):
-                source = state["tasks"][entry["repairs_task_id"]]
-                worker_request["repair_context"] = {"repairs_task_id": entry["repairs_task_id"],
-                                                     "execution_status": source["status"],
-                                                     "acceptance_status": source.get("acceptance_status", "unknown"),
-                                                     "acceptance": source.get("acceptance")}
             dispatch = {
                 "description": task["objective"][:120],
                 "prompt": marker + "\n" + json.dumps(worker_request, ensure_ascii=False, indent=2),
@@ -606,37 +788,41 @@ class HostBridge:
             }
             if route.get("reasoning_effort"):
                 dispatch["reasoning_effort"] = route["reasoning_effort"]
-            reason = "Highest capability-ranked callable candidate not excluded by reported ECPA percentages; unknown allowance is retained."
-            common_score = task["matching"]["selected_score"]
-            selection = {
-                "score": rank["score"], "coverage": rank["coverage"],
-                "capability_rank": next(index for index, row in enumerate(eligibility, 1) if row["configuration_id"] == rank["configuration_id"]),
-                "candidate_count": len(eligibility),
-                "weight_source": task["task_profile"]["weight_source"],
-                "task_weights": task["task_profile"]["task_weights"],
-                "effective_weights": common_score["effective_weights"],
-                "weight_policy": common_score["weight_policy"],
-                "reason": reason,
-                "score_is_success_probability": False,
-            }
-            if isinstance(frozen, dict) and isinstance(entry.get("matching", {}).get("selection"), dict):
+            if isinstance(frozen, dict):
                 selection = copy.deepcopy(entry["matching"]["selection"])
+            else:
+                common_score = task["matching"]["selected_score"]
+                selection = {
+                    "score": rank["score"], "coverage": rank["coverage"],
+                    "capability_rank": next(index for index, row in enumerate(eligibility, 1) if row["configuration_id"] == rank["configuration_id"]),
+                    "candidate_count": len(eligibility),
+                    "weight_source": task["task_profile"]["weight_source"],
+                    "task_weights": task["task_profile"]["task_weights"],
+                    "effective_weights": common_score["effective_weights"],
+                    "weight_policy": common_score["weight_policy"],
+                    "reason": "Highest capability-ranked callable candidate not excluded by reported ECPA percentages; unknown allowance is retained.",
+                    "score_is_success_probability": False,
+                }
             selection["selection_fixed_for_task"] = True
+            selection["selection_kind"] = "initial_match"
+            selection["selection_origin_task_id"] = task["task_id"]
             self._remember_attempt(entry)
             for field in ("dispatch_call_id", "authorized_at", "child_session_id", "started_at", "finished_at", "outcome", "actual_route", "route_mismatch"):
                 entry.pop(field, None)
             entry.update(status="reserved", reservation_id=reservation_id, route=route, dispatch=dispatch, reserved_at=utc_now(),
-                         admission=decision)
+                         admission=decision, worker_request=worker_request,
+                         selection_kind="initial_match", selection_origin_task_id=task["task_id"])
             entry.setdefault("frozen_route", copy.deepcopy(route))
             entry.setdefault("selected_at", entry["reserved_at"])
             if not isinstance(frozen, dict):
-                entry["matching"] = {"ranking": eligibility, "selection": selection, "task_profile": task["task_profile"], "routing_policy": handoff["routing_policy"]}
+                entry["matching"] = {"ranking": eligibility, "selection": selection, "task_profile": task["task_profile"], "routing_policy": routing_policy}
             self._remember_attempt(entry)
             self.ledger.event(state, "route_reserved", task_id=task["task_id"], reservation_id=reservation_id, configuration_id=rank["configuration_id"], route=route, ranking=eligibility)
             response = {
                 "ok": True, "status": "ready_for_main_agent", "run_id": self.run_id,
                 "profile_id": profile_id, "task_id": task["task_id"], "reservation_id": reservation_id,
                 "configuration_id": rank["configuration_id"], "route": route, "dispatch": dispatch,
+                "selection_kind": "initial_match", "selection_origin_task_id": task["task_id"],
                 "depends_on": task["depends_on"], "repairs_task_id": entry.get("repairs_task_id"), "selection": selection,
                 "admission": _admission_summary(decision), "detail_available": True,
                 "main_agent_instructions": [
@@ -646,11 +832,11 @@ class HostBridge:
                     "Do not dispatch the same reservation twice. If no call was made, release it as not_dispatched.",
                     "Wait for the worker to finish, then record the available acceptance evidence. Execution completion alone is not acceptance.",
                     "Reuse profile_id with generalrouter_match to obtain the next ready task; do not resend the plan.",
-                    "This task's model and effort are fixed. Append a new linked task for repairs; never reopen an ended task.",
+                    self._repair_guidance(),
                 ],
             }
             if detail:
-                response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": handoff["routing_policy"], "admission": decision}
+                response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": routing_policy, "admission": decision}
             return response
 
     def started(self) -> dict:
@@ -665,6 +851,15 @@ class HostBridge:
             if task["status"] not in ("reserved", "running"):
                 return {"ok": False, "status": "reservation_already_finished"}
             child_session_id = self.request.get("child_session_id")
+            if task.get("selection_kind") == "inherited_repair":
+                if not isinstance(child_session_id, str) or not child_session_id:
+                    raise BridgeError("repair_child_session_required", "A repair must report the fresh subagent's child_session_id.")
+                previous_sessions = {value for other_id, other in state["tasks"].items() if other_id != identity
+                                     for value in [other.get("child_session_id"), *[attempt.get("child_session_id") for attempt in other.get("attempts", [])]]
+                                     if isinstance(value, str) and value}
+                if child_session_id in previous_sessions:
+                    return {"ok": False, "status": "repair_requires_fresh_subagent", "reservation_id": reservation_id,
+                            "message": "This child session belongs to an earlier task. A repair must start a new native subagent."}
             if task.get("child_session_id") not in (None, child_session_id):
                 return {"ok": False, "status": "reservation_already_claimed_by_another_session", "reservation_id": reservation_id}
             actual = self.request.get("actual_route") or {}
@@ -708,6 +903,11 @@ class HostBridge:
                 return {"ok": False, "accepted": False, "status": "dispatch_denied", "reason": "route_mismatch"}
             if task.get("dispatch_call_id") not in (None, call_id):
                 return {"ok": False, "accepted": False, "status": "dispatch_denied", "reason": "reservation_already_claimed_by_another_call"}
+            available, reason = self._frozen_route(task.get("frozen_route", expected))
+            if available is None:
+                self.ledger.event(state, "dispatch_denied", task_id=identity, reservation_id=reservation_id, reason=reason)
+                return {"ok": False, "accepted": False, "status": "dispatch_denied", "reason": reason,
+                        "message": "The frozen route is unavailable. Report it to the main agent; do not select a replacement."}
             decision = self.quota.admit(expected, reservation_id)
             if not decision.get("accepted"):
                 self.ledger.event(state, "dispatch_denied", task_id=identity, reservation_id=reservation_id, reason=decision.get("reason"))
@@ -734,7 +934,9 @@ class HostBridge:
                     return {"ok": previous.get("outcome") == outcome, "status": "reservation_already_finished", "reservation_id": reservation_id}
                 raise BridgeError("reservation_not_in_run", "The reservation does not belong to this run.")
             if task.get("status") in ("completed", "failed", "pending") and task.get("outcome") == outcome:
-                return {"ok": True, "status": "already_released", "reservation_id": reservation_id}
+                return {"ok": True, "status": "already_released", "reservation_id": reservation_id,
+                        "task_id": identity, "execution_status": task["status"],
+                        "next_step": self._repair_guidance() if task["status"] == "failed" else "No new worker is started automatically."}
             if task.get("status") in ("completed", "failed", "pending"):
                 return {"ok": False, "status": "reservation_already_finished", "reservation_id": reservation_id}
             if outcome in ("not_dispatched", "cancelled_before_dispatch") and (task.get("status") == "running" or task.get("child_session_id")):
@@ -745,7 +947,16 @@ class HostBridge:
                 self._remember_attempt(task)
                 self.ledger.event(state, "worker_finished", task_id=identity, reservation_id=reservation_id,
                                   child_session_id=task.get("child_session_id"), outcome=outcome)
-        return {"ok": result.get("released", False), "status": "released", **result}
+        response = {"ok": result.get("released", False), "status": "released", **result,
+                    "task_id": identity, "execution_status": task.get("status"),
+                    "acceptance_status": task.get("acceptance_status", "unknown")}
+        if task.get("status") == "failed":
+            response["next_step"] = self._repair_guidance()
+        elif task.get("status") == "pending":
+            response["next_step"] = ("Repeat the identical generalrouter_prepare_repair request to reissue an unstarted repair ticket; its model remains fixed."
+                                     if task.get("selection_kind") == "inherited_repair"
+                                     else "Reuse generalrouter_match for this unstarted task; its model remains fixed.")
+        return response
 
     def record_usage(self) -> dict:
         record = self.request.get("record")
@@ -911,7 +1122,7 @@ def main() -> int:
         if not isinstance(request, dict):
             raise BridgeError("request_object_required", "The host request must be a JSON object.")
         requested_action = request.get("action", "match")
-        if requested_action not in ("match", "append_task", "record_acceptance", "status", "refresh_quota", "authorize_dispatch", "started", "release", "record_usage", "report"):
+        if requested_action not in ("match", "append_task", "prepare_repair", "record_acceptance", "status", "refresh_quota", "authorize_dispatch", "started", "release", "record_usage", "report"):
             raise BridgeError("unsupported_action", "The requested host action is not supported.")
         action = requested_action
         stage = "load_host_configuration"

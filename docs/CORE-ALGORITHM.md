@@ -1,6 +1,6 @@
 # Core algorithm: capability vectors, task weights and matching
 
-This document describes the implementation retained in v0.1.7. The core work is a pipeline: convert recorded benchmark components into comparable capability groups, obtain an explicit task-weight profile, and rank configurations while keeping missing evidence and execution constraints visible.
+This document describes the v0.1.8 implementation. The first-selection algorithm remains unchanged from v0.1.7: convert recorded benchmark components into comparable capability groups, obtain an explicit task-weight profile, and rank configurations while keeping missing evidence and execution constraints visible. Repair handoff now inherits the selected route without another ranking. The new handoff path has not been runtime-verified.
 
 The benchmark measurements and category proportions come from retained Artificial Analysis (AA) material. The grouping, fixed transforms, missing-data policy, task-profile contract and routing calculation are implemented in this project. Weighted averages, dot products and ridge regression are established methods; they are not claimed as new mathematical algorithms.
 
@@ -131,7 +131,9 @@ Return its fixed route and dispatch arguments to the DSH main agent.
 Record the actual route, execution, acceptance and usage separately.
 ```
 
-Once selected, a task's configuration stays fixed. A later repair is a new linked task and selection. Cost, latency and difficulty are not current scoring terms, and the prototype does not automatically select a lower effort for a simple task.
+Once selected, a task's provider, model and effort stay fixed. An independent added task receives its own first selection. A repair instead inherits the predecessor's fixed configuration: the main agent receives the failure, decides whether to repair, and dispatches a new native subagent with a short memento. `generalrouter_prepare_repair` retains the relationship, checks admission and issues a fresh dispatch ticket; it does not generate new weights or call the ranking algorithm. An unavailable inherited route blocks execution rather than triggering fallback. See [repair handoff](REPAIR-HANDOFF.md).
+
+Cost, latency and difficulty are not current scoring terms, and the prototype does not automatically select a lower effort for a simple task.
 
 The saved case makes the distinction concrete: Argon high ranked first, Flash high ranked twelfth, but eleven configurations were excluded by the native allowlist. Flash was the sole admitted configuration; neither the Codex nor Antigravity plugin tool was called. This is a recorded execution-path limitation, not evidence that the score optimized price. See the [candidate ranking and actual dispatch](experiments/translation-ab-v2/results.json).
 

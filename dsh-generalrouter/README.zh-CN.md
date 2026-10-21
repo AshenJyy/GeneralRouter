@@ -1,8 +1,8 @@
 # GeneralRouter 的 DSH Desktop 插件
 
-GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件，当前版本为 **v0.1.7 experimental**。DSH 提供主 agent、会话、工具和原生子 agent 的执行编排；GeneralRouter 提供模型能力与任务资料、候选匹配、额度准入、选择解释和用量记录。主 agent 接收路由结果后，通过 DSH 原生 `subagent` 发起执行。
+GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件，当前版本为 **v0.1.8 experimental**。DSH 提供主 agent、会话、工具和原生子 agent 的执行编排；GeneralRouter 为独立任务首次选模并固定配置，提供额度准入、选择解释和用量记录。主 agent 接收路由结果后，通过 DSH 原生 `subagent` 发起执行。失败由主 agent 决定如何处理；需要修复时，以原配置新开 subagent，不重新选模。
 
-面向 **DeepSeek Harness Desktop 0.2.1-rc.2**，按官方 bundle 方式分发标准 npm tarball：`dsh-generalrouter-0.1.7.tgz`。包内包含预先写好的 JavaScript ESM 入口、`dsh.bundle.patch`、完整 Python 匹配模块、能力快照和 planner skill；没有编译、安装生命周期脚本，也不依赖原始源码仓库。Python 解释器需要在本机可用，Windows 默认 `py -3`。
+面向 **DeepSeek Harness Desktop 0.2.1-rc.2**，按官方 bundle 方式分发标准 npm tarball：`dsh-generalrouter-0.1.8.tgz`。包内包含预先写好的 JavaScript ESM 入口、`dsh.bundle.patch`、完整 Python 匹配模块、能力快照和 planner skill；没有编译、安装生命周期脚本，也不依赖原始源码仓库。Python 解释器需要在本机可用，Windows 默认 `py -3`。新修复交接路径已实现，尚未运行验证。
 
 主 agent 使用 skill 生成四维任务资料，调用 `generalrouter_match`，再将返回的 `dispatch` 交给 DSH 原生 `subagent`。插件保留原生派遣接口，通过派遣前授权检查选择结果。包内 `runtime/data/model-call-mappings.v0.1.json` 内置 12 组候选的 provider、模型 ID 和 effort 调用映射，默认全部启用；DSH 原生允许列表仍限制实际可派遣范围。用户负责在 DSH App 注册相应 provider 并设置子模型允许列表与 effort 元数据。插件不代改 DSH App 的这些设置。
 
@@ -13,13 +13,13 @@ GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件�
 在 DSH App 内安装，无需运行 PowerShell 脚本，也无需退出 App：
 
 1. 打开 **Plugins（插件）→ Add plugin（添加插件）**。
-2. 在 **Package name or address（包名或地址）** 中输入已下载或构建的 `dsh-generalrouter-0.1.7.tgz` 在本机的完整绝对路径，点击 **Install（安装）**。
+2. 在 **Package name or address（包名或地址）** 中输入已下载或构建的 `dsh-generalrouter-0.1.8.tgz` 在本机的完整绝对路径，点击 **Install（安装）**。
 3. 安装完成后选择 **Enable now（立即启用）**。
 4. 在任意实际工作区新建主会话。`projectRoot` 和 `hostConfig` 均可留空，工作区内不必预先放置 GeneralRouter 配置或 skill。
 
 包内 planner skill 由插件向 DSH 的 skill 服务提供，供各工作区会话使用；不再要求逐项目复制。项目中已有同名 skill 时，使用项目版本作为覆盖。安装插件不改变 DSH 的主模型、provider、原生子模型允许列表或 effort 元数据，这些仍由用户在 DSH App 配置。
 
-已有安装通过 App 的插件管理更新到 0.1.7 包，然后新建主会话使用新版 skill。现有共享连接配置、项目覆盖和历史运行记录继续保留，无需重新填写。项目或用户目录中的同名旧 skill 仍会优先于包内版本；使用这类覆盖时，应同步其内容或备份后移走覆盖，才能使用本次更新。
+已有安装通过 App 的插件管理更新到 0.1.8 包，然后新建主会话使用新版 skill。现有共享连接配置、项目覆盖和历史运行记录继续保留，无需重新填写。项目或用户目录中的同名旧 skill 仍会优先于包内版本；使用这类覆盖时，应同步其内容或备份后移走覆盖，才能使用本次更新。
 
 ## 任务向量
 
@@ -64,15 +64,19 @@ planner 默认参考包内四维定义、榜单说明和 12 个人工语义任�
 - effort 仅在本地映射和宿主支持列表均允许时传入；否则省略，使用 provider default 并记录差异。
 - `generalrouter_status` 查看百分比、已选任务和剩余工作；`refresh: true` 手动读取。
 - `generalrouter_report` 汇总 run，`generalrouter_release` 取消尚未启动的选择。派遣授权标记用来防止错误或重复执行，不代表估算并预扣额度。
-- 未派遣的票据释放后，继续匹配可为同一配置发出新票据。实际执行结束的任务不重开，旧 `retry_failed` 参数不能重开 completed/failed；需要后续工作时追加新任务。
+- 未派遣的票据释放后，继续处理该任务时保留同一配置。实际执行结束的任务不重开，旧 `retry_failed` 参数不能重开 completed/failed；发现失败后先汇报主 agent，由其决定是否准备修复。
 - `generalrouter_record_acceptance(task_id, outcome, summary, evidence)` 在任务执行结束后记录主 agent 报告的验收结果。`outcome` 为 `unknown`、`passed` 或 `failed`，`evidence` 为证据引用字符串数组；工具不运行测试，也不自动验证证据。
 - 执行 completed 不等于验收 passed。已知验收失败的依赖会阻止新的下游派遣；unknown 保留未知含义，不自动记为通过。
 
 skill 采用简短流程：准备一次 profile → 匹配 → 原样派遣 → 等待完成并记录验收 → 使用 `profile_id` 匹配下一个任务 → 输出精简报告。子 agent 保存实际检查结果和证据路径；主 agent 阅读必要证据，发现缺失或矛盾时针对性补查，不自动重复整套验收，也不默认增设 reviewer。正常工作不读取内部账本，不反复抄写完整 profile、候选列表或用量明细；解释或排错时再请求 `detail: true`。
 
-需要追加工作时，调用 `generalrouter_append_task(profile_id, task_json, repairs_task_id?)`。`task_json` 是一个完整普通 v3 任务对象的 JSON 字符串，使用新 task ID；工具只保存任务，返回 `task_appended`（相同提交为 `task_already_appended`），不派遣。随后用 `generalrouter_match(profile_id, task_id)` 选择配置，并启动新的原生 subagent。原 profile 及其 ID 保持不变，不用替换整份计划。
+需要追加独立工作时，调用 `generalrouter_append_task(profile_id, task_json)`。`task_json` 是一个完整普通 v3 任务对象的 JSON 字符串，使用新 task ID；工具只保存任务，返回 `task_appended`（相同提交为 `task_already_appended`），不派遣。随后用 `generalrouter_match(profile_id, task_id)` 首次选择配置，并启动新的原生 subagent。原 profile 及其 ID 保持不变，不用替换整份计划。该入口不用于失败任务的修复重新选模。
 
-修复任务通过可选 `repairs_task_id` 指向已结束的原任务，在 context/input_artifacts/deliverable 中提供失败用例、预期和实际结果、已有文件与修复验收标准。修复关联独立于 `depends_on`，不能同时把原任务列为依赖；其他真实依赖可保留。新任务重新估计剩余工作并选择一次，可能仍选中同一模型。本版不实现自动升级、排除原模型或无限返修，主 agent 仍遵守用户授权范围和停止条件。若已知失败的依赖由修复产物替代，应追加使用修复产物的新下游任务，不改写原有依赖。
+修复由主 agent 调用 `generalrouter_prepare_repair(profile_id, repairs_task_id, task_id, objective, memento, input_artifacts?, detail?)` 准备。`repairs_task_id` 指向已结束的前序任务，`task_id` 是新的修复任务 ID；`objective` 给出修复目标，`memento` 是简述既有尝试、失败、证据和下一步的非空字符串，`input_artifacts` 是可选的产物路径字符串数组。新 worker 继承已有代码、工作区和原任务约束，不重新生成能力权重。
+
+prepare 工具沿用前序任务冻结的 provider/model/effort，保存关联并检查当前准入，返回通常的 `dispatch` 与新票据。主 agent 原样调用原生 `subagent` 开始执行；不用再调用 match，也不把准备工具当作自动修复调度器。原配置不可调用或额度条件阻止派遣时汇报阻塞，不选择其他模型或 effort。是否再次修复及何时停止由主 agent 在用户授权范围内决定。
+
+修复关联独立于成功依赖，不把失败的原任务伪装为已通过依赖。若已知失败的依赖由修复产物替代，应追加使用修复产物的新下游任务，不改写原有依赖。原任务及每次修复分别记录执行、验收和用量；这条路径替代 v0.1.7 的修复新任务重新匹配机制。交接与参考来源见[同模型修复说明](../docs/REPAIR-HANDOFF.md)。
 
 插件使用原生会话事件记录主 agent 和 worker 的 provider/model、重试次数及宿主报告的 tokens。不写完整提示词到用量日志，未报告的数值保留为空；reasoning 已包含在 output 时不重复计价。缓存读写与未缓存输入分别计算 API 等效成本。该指标按模型 token 用量和价格快照计算，不是分摊订阅账单。
 
@@ -107,7 +111,7 @@ package/
   README.zh-CN.md
 ```
 
-在仓库根目录运行以下命令，生成根目录下的 `dsh-generalrouter-0.1.7.tgz`、安装说明和配置模板：
+在仓库根目录运行以下命令，生成根目录下的 `dsh-generalrouter-0.1.8.tgz`、安装说明和配置模板：
 
 ```text
 py -3 scripts/package_dsh_plugin.py
@@ -117,11 +121,13 @@ py -3 scripts/package_dsh_plugin.py
 
 v0.1.5 已有两次用户在 DSH 发起的闭环运行记录：一次加法网页任务，以及一次有 A → B 依赖关系的离线 CSV 分析任务。记录涵盖路由派遣、子任务完成与用量。数值检查来自子 agent 报告及持久运行记录，浏览器功能未完整验收。这里列出的是已有运行记录，本次文档整理没有重新执行测试。
 
-这两次运行不代表全部候选已验证，也未证明成本、耗时或额度节省。公开榜单题实跑和正式对照仍留作后续工作。
+这两次运行不代表全部候选已验证，也未证明成本、耗时或额度节省。公开榜单题实跑未执行；后来的 v0.1.7 翻译扩展配对开发案例及其质量局限见[实验报告](../docs/experiments/translation-ab-v2/README.md)。
 
 v0.1.6 的后续 CSV 与数值修复运行暴露了新的边界：子 agent 执行结束仍可能有验收缺陷，旧任务无法重开且原计划不能替换，角色用量也未归属到任务。主 agent 的针对性核查保留了真实微小截距被归零的反例，没有宣称修复全部通过。
 
 v0.1.7 增加固定任务配置、追加关联任务、独立验收结果和逐任务/修复组记账，保留 v0.1.6 的 compact 输出、profile ID 复用和独立诊断。本次保留 12 组候选、评分与默认 0.4 综合先验，以及活动期间每十分钟额度刷新规则；没有加入价格、effort 资源优化或模型升级策略。发布时未运行开发测试、review、编译校验、模拟或实际模型验收；旧运行不代表本版验收通过，也不能证明资源节省或完整用量覆盖。
+
+v0.1.8 按项目作者提出的架构调整，新增同模型修复交接：首次选模后，失败汇报主 agent，由其准备 memento 并派遣相同 provider/model/effort 的新 subagent。修复不再进入匹配算法；不可调用时阻塞并汇报。独立追加任务仍可首次选模，原结果、修复结果与用量继续分开。本次仅实现和生成交付文件，未进行测试、review、编译/导入校验、模拟路由、模型试调用或代安装；既有 v0.1.7 记录不构成新路径的运行验证。
 
 接口依据官方 tag `dsh-v0.2.1-rc.2`：
 
