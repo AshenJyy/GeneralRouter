@@ -1,6 +1,6 @@
 {
   "name": "dsh-generalrouter",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Task-level GeneralRouter matching and usage recording for DeepSeek Harness Desktop 0.2.1-rc.2",
   "type": "module",
   "main": "index.mjs",

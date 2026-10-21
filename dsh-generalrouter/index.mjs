@@ -290,12 +290,15 @@ export function apply(ctx, config = {}) {
     if (!rootId) return
     state.rootId = rootId
     const reservationId = state.reservationId
+    const reservation = reservationId ? reservations.get(reservationId) : undefined
     void enqueue({
       action: 'record_usage', run_id: rootId,
       record: {
         ...record,
         role: state.session.id === rootId ? 'planner' : 'worker',
         ...(reservationId ? { reservation_id: reservationId } : {}),
+        ...(reservation?.taskId ? { task_id: reservation.taskId } : {}),
+        ...(reservation?.configurationId ? { configuration_id: reservation.configurationId } : {}),
       },
     }).catch(() => {})
   }
@@ -387,7 +390,7 @@ export function apply(ctx, config = {}) {
       const target = typeof targetId === 'string' ? sessionStates.get(targetId) : undefined
       const ended = target?.ended || [...reservations.values()].some(entry => entry.childId === targetId && entry.end)
       if (ended) return {
-        denial: 'This worker already ended. Create or retry a task with generalrouter_match and dispatch a new reserved worker instead of resuming this one.',
+        denial: 'This worker already ended. Append a new task with generalrouter_append_task (repairs_task_id links the original), then match and dispatch a new worker. Ended tasks cannot be reopened.',
       }
       return undefined
     }
@@ -552,13 +555,13 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(defineTool({
     name: 'generalrouter_match',
-    description: 'Select one ready task and return exact native subagent dispatch arguments. Submit a complete task-profile.v3 once; use the returned profile_id for later tasks in this run. Tickets prevent duplicate dispatch and do not deduct quota. Detail is opt-in; this tool does not call a model.',
+    description: 'Select one ready task and return exact native subagent dispatch arguments. Its provider/model/effort are fixed after selection. Submit task-profile.v3 once; reuse profile_id. Append new tasks separately; ended tasks never reopen. Tickets prevent duplicate dispatch without deducting quota. This tool does not call a model.',
     parameters: {
       profile_json: { type: 'string', description: 'First call: complete task-profile.v3 JSON from the skill. Later calls may omit it and use profile_id. Repeated full profiles remain supported.' },
       profile_id: { type: 'string', description: 'Exact identifier returned by the first match in this run. Reuses the saved plan and original request.' },
       original_request: { type: 'string', description: 'Original request and constraints for the first call. Omit on later calls to reuse the saved value.' },
       task_id: { type: 'string', description: 'Optional task id from this profile to select a particular ready task.' },
-      retry_failed: { type: 'boolean', description: 'With task_id, explicitly retry that failed task. Keep false for ordinary matching.' },
+      retry_failed: { type: 'boolean', description: 'Legacy parameter; cannot reopen an ended task. Use generalrouter_append_task for new repair work. A never-started pending task can be matched again with its fixed route.' },
       detail: { type: 'boolean', description: 'Include full candidate scoring and task explanation. Default false; dispatch is always complete.' },
     },
     output: jsonOutput,
@@ -622,7 +625,8 @@ export function apply(ctx, config = {}) {
         const tasks = Array.isArray(result.tasks) ? result.tasks : result.reservation_id ? [result] : []
         for (const task of tasks) {
           if (!task.reservation_id || !task.dispatch) continue
-          reservations.set(task.reservation_id, { rootId: runId, taskId: task.task_id, dispatch: task.dispatch })
+          reservations.set(task.reservation_id, { rootId: runId, taskId: task.task_id,
+            configurationId: task.configuration_id, dispatch: task.dispatch })
         }
       } finally {
         const remainingMatches = (pendingMatches.get(runId) || 1) - 1
@@ -631,6 +635,69 @@ export function apply(ctx, config = {}) {
         reconcileQuotaTimer()
       }
       return withDiagnostics(result, runId, args.detail === true, false)
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'generalrouter_append_task',
+    description: 'Append one new task to this run without changing the original plan or selecting a model. For a repair, use a new task_id and link repairs_task_id to an ended task; the link is not a successful dependency. Then call generalrouter_match with profile_id and the new task_id. Identical additions are idempotent.',
+    parameters: {
+      profile_id: { type: 'string', required: true, description: 'Saved profile_id from this run; remains unchanged after additions.' },
+      task_json: { type: 'string', required: true, description: 'One complete task object using the existing task-profile.v3 task fields, not a whole profile. Include specific input artifacts, failure evidence and acceptance requirements in context/deliverable.' },
+      repairs_task_id: { type: 'string', description: 'Optional ended task in this run that the new task repairs. Do not put a failed task in depends_on merely to link its repair.' },
+    },
+    output: jsonOutput,
+    async execute(args, exec) {
+      if (!exec.agent) throw new Error('generalrouter_append_task requires an Agent Session')
+      if (exec.agent.session.header.origin === 'subagent') return {
+        ok: false, status: 'delegate_to_parent', message: 'The parent planner owns task additions.',
+      }
+      const setupError = prepareProject(exec.agent)
+      if (setupError) return setupError
+      let task
+      try { task = JSON.parse(args.task_json) } catch { return { ok: false, status: 'invalid_task_json' } }
+      if (!task || typeof task !== 'object' || Array.isArray(task)) return { ok: false, status: 'invalid_task_json' }
+      const runId = exec.agent.session.id
+      roots.set(runId, true)
+      const state = stateFor(exec.agent.session)
+      state.rootId = runId
+      flushState(state)
+      await queue
+      const result = await toolBridge({ action: 'append_task', run_id: runId,
+        profile_id: args.profile_id, task,
+        ...(args.repairs_task_id !== undefined ? { repairs_task_id: args.repairs_task_id } : {}),
+        host: hostInfo(exec.agent) }, exec.signal)
+      return withDiagnostics(result, runId, false, false)
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'generalrouter_record_acceptance',
+    description: 'Record the parent’s acceptance result for an ended task, separately from worker completion. This records supplied evidence; it does not run tests or verify claims. Later corrections preserve history. A successful repair does not rewrite the original task’s failed result.',
+    parameters: {
+      task_id: { type: 'string', required: true },
+      outcome: { type: 'string', required: true, enum: ['unknown', 'passed', 'failed'] },
+      summary: { type: 'string', required: true, description: 'Concise result and scope; distinguish child-reported results from checks actually performed. Include remaining failures or unverified requirements.' },
+      evidence: { type: 'array', required: true, items: { type: 'string' }, description: 'Artifact/log references or concise expected-versus-actual observations. Use an empty list when no evidence is available and outcome unknown.' },
+    },
+    output: jsonOutput,
+    async execute(args, exec) {
+      if (!exec.agent) throw new Error('generalrouter_record_acceptance requires an Agent Session')
+      if (exec.agent.session.header.origin === 'subagent') return {
+        ok: false, status: 'delegate_to_parent', message: 'Return acceptance evidence to the parent planner.',
+      }
+      const setupError = prepareProject(exec.agent)
+      if (setupError) return setupError
+      const runId = exec.agent.session.id
+      roots.set(runId, true)
+      const state = stateFor(exec.agent.session)
+      state.rootId = runId
+      flushState(state)
+      await queue
+      const result = await toolBridge({ action: 'record_acceptance', run_id: runId,
+        task_id: args.task_id, outcome: args.outcome, summary: args.summary,
+        evidence: args.evidence, host: hostInfo(exec.agent) }, exec.signal)
+      return withDiagnostics(result, runId, false, false)
     },
   }))
 
@@ -678,7 +745,7 @@ export function apply(ctx, config = {}) {
   }))
   ctx.tools.register(defineTool({
     name: 'generalrouter_report',
-    description: 'Read totals and planner/worker/task usage summaries, API-equivalent cost, observed timing and recording diagnostics. Missing data remain unknown. Normally request once at delivery; detail opts into the full local record.',
+    description: 'Read totals, planner/worker/task usage, linked repair-group costs, execution and acceptance results, API-equivalent cost and observed timing. Group totals overlap task totals; never add them together. Missing or ambiguous attribution remains unknown. Normally request once at delivery; detail includes full records.',
     parameters: { detail: { type: 'boolean', description: 'Include individual usage records, task records and events. Default false.' } }, output: jsonOutput,
     async execute(args, exec) {
       if (!exec.agent) throw new Error('generalrouter_report requires an Agent Session')
@@ -693,6 +760,6 @@ export function apply(ctx, config = {}) {
 
   ctx.systemPrompt.section({
     name: 'generalrouter:dispatch', order: 90,
-    text: `GeneralRouter routes development subtasks. The parent uses generalrouter-task-profile to prepare one plan, submits profile_json and original_request to generalrouter_match once, then reuses its profile_id for subsequent tasks. When ready_for_main_agent, copy dispatch into native ${settings.delegationToolName}, preserving the reservation marker, provider/model and any returned reasoning_effort; absent effort means provider default. Add only necessary upstream results. A ticket authorizes one task and never deducts subscription quota. Completion and usage are recorded automatically; do not manually release completed workers or routinely reread ledgers/source, poll status, or repeat matching solely to test completion. Match again only for remaining work; after delivery read one summary report. Use detail:true for a specific diagnostic need. Preserve acceptance requirements and disclose unverified results; a worker's completion is not app acceptance. Workers return artifact references, actual acceptance evidence and blockers, leaving routing to the parent. Respect refusals and use the explicit retry path; never bypass a ticket or add a reviewer without task need. Recording diagnostics describe observed failures, not guaranteed coverage; new sessions give a clean observation scope.`,
+    text: `GeneralRouter routes development subtasks. The parent uses generalrouter-task-profile to prepare one plan, submits profile_json and original_request to generalrouter_match once, then reuses its profile_id. A task's selected provider/model/effort are fixed. When ready_for_main_agent, copy dispatch into native ${settings.delegationToolName}, preserving its reservation marker and exact route; absent effort means provider default. Add only necessary upstream results. Execution completion and usage are recorded automatically. After reading the worker's evidence, record acceptance separately with generalrouter_record_acceptance: passed, failed or unknown, with scope and evidence. Check contradictions or missing evidence as needed; do not routinely rerun the entire acceptance suite. An ended task/worker is never reopened. To fix an ended task, use generalrouter_append_task with a new task_id, a complete task_json and repairs_task_id, then match and dispatch a new subagent. New repairs may independently select the same configuration; there is no automatic upgrade. The repair link is not depends_on; a known failed dependency cannot be treated as successful. A passing repair never changes its original task's failure. Keep the original profile unchanged. Never bypass tickets, automatically loop repairs, or add a reviewer without task need. Tickets do not deduct quota. Do not routinely reread ledgers/source, poll status, or repeat matching just to test completion. After delivery read one summary report; use detail:true only for specific diagnostics. Task and repair-group totals are alternate views, not additive costs. Recording diagnostics cover observed failures, not guaranteed usage completeness.`,
   })
 }

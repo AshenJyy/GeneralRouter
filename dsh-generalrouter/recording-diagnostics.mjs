@@ -4,18 +4,19 @@ import { dirname, resolve } from 'node:path'
 
 const digest = value => createHash('sha256').update(value).digest('hex')
 const identifier = value => typeof value === 'string' && /^[A-Za-z0-9:._-]{1,240}$/.test(value) ? value : undefined
-const recordingActions = new Set(['record_usage', 'started', 'release'])
+const recordingActions = new Set(['record_usage', 'started', 'release', 'record_acceptance'])
 
 export const isRecordingAction = action => recordingActions.has(action)
 
 function operationOf(envelope) {
   const record = envelope.record || {}
   const identity = envelope.action === 'record_usage' ? record.record_id
+    : envelope.action === 'record_acceptance' ? JSON.stringify([envelope.task_id, envelope.outcome, envelope.summary, envelope.evidence])
     : `${envelope.reservation_id || ''}:${envelope.action === 'release' ? envelope.outcome || '' : envelope.child_session_id || ''}`
   return {
     id: digest(`${envelope.action}:${identity}`),
     action: envelope.action,
-    ...(identifier(envelope.task_id) ? { task_id: envelope.task_id } : {}),
+    ...(identifier(envelope.task_id || record.task_id) ? { task_id: envelope.task_id || record.task_id } : {}),
     ...(identifier(record.record_id) ? { record_id: record.record_id } : {}),
     ...(identifier(record.session_id || envelope.child_session_id) ? { session_id: record.session_id || envelope.child_session_id } : {}),
     ...(identifier(envelope.reservation_id || record.reservation_id) ? { reservation_id: envelope.reservation_id || record.reservation_id } : {}),
