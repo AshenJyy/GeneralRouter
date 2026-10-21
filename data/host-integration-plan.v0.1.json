@@ -8,14 +8,16 @@
     "dispatch_ownership": "The DSH main agent receives the first selection and explicitly dispatches native subagents. After failure, it decides whether to arrange a fresh worker on the same frozen model and effort; repairs bypass candidate matching.",
     "optimization_boundary": "Cost and timing are recorded for evaluation. The current matcher does not establish cost or completion-time optimality."
   },
-  "status": "v0.1.8_implemented_without_runtime_validation_v0.1.7_case_retained_as_history",
+  "status": "v0.1.9_implemented_without_runtime_validation_v0.1.7_case_retained_as_history",
+  "native_allowlist_filter": false,
+  "invocation_verified": false,
   "repair_policy": {
     "decision_owner": "main_agent",
     "tool": "generalrouter_prepare_repair",
     "request": ["profile_id", "repairs_task_id", "task_id", "objective", "memento", "input_artifacts?", "detail?"],
     "selection": "Inherit exact predecessor frozen provider/model/effort; no new task-weight estimate, candidate scoring or model substitution.",
     "execution": "New native subagent, existing workspace artifacts, inherited constraints and concise memento; main agent explicitly dispatches the returned ticket.",
-    "admission": "Recheck only the inherited route for native callability and quota admission. Unavailable routes are reported to the main agent, not replaced.",
+    "admission": "Recheck the inherited enabled mapping, unchanged provider/model and quota admission. Do not check native catalog or allowlist membership; preserve the frozen effort. Mapping, quota or actual DSH invocation failures are reported to the main agent, not replaced.",
     "records": "Preserve predecessor outcome and acceptance; linked repair receives separate identity, ticket, outcome and usage. No autonomous loop.",
     "legacy_path": "append_task repair metadata and match on pending linked repairs return actionable guidance instead of selecting again.",
     "conceptual_reference": "https://www.anthropic.com/research/self-replicating-ai (Appendix A: Memento)",
@@ -41,7 +43,7 @@
   "dispatch_flow": [
     "DSH main agent uses the GeneralRouter planner skill and 12 human-defined semantic anchors to prepare task-profile.v3, normally with planner_estimated weights and a task-grounded rationale.",
     "A Cordis ESM plugin registers generalrouter_match and sends the profile to the existing local Python CLI.",
-    "The matcher returns candidate scores and the selection. The adapter resolves the AA configuration to an allowed DSH provider/model route.",
+    "The matcher scores candidates and selects through enabled mappings and quota admission. Native catalog or allowlist membership does not exclude a candidate; optional model metadata only resolves first-selection effort.",
     "Read applicable reported ECPA percentages and exclude explicitly exhausted applicable allowance; unknown percentage stays unknown. Issue a one-use dispatch ticket without deducting an estimated percentage.",
     "The main agent explicitly calls DSH's native subagent tool with the selected provider/model and a supported reasoning_effort, or omits effort to use the selected model's default.",
     "DSH owns worker execution and completion; the plugin records selections, actual dispatch settings, usage and timing."
@@ -50,12 +52,12 @@
     "implementation_style": "Standard DSH npm tarball with prebuilt Cordis ESM entry point and a bundled Python runtime; retain main-agent dispatch ownership.",
     "tool_registration": "Export apply(ctx); register a tool using defineTool and ctx.tools.register().",
     "subagent_backend": "Prefer in-process spawn. Native model overrides are supported by in-process and DSH SDK backends, not by the official Codex, Claude Code or ACP subagent backends.",
-    "model_selection_setup": "Enable child model selection and configure the precise allowed provider/model list in Plugins > Subagent. Start a new session after changing this policy.",
-    "route_mapping": "Bundled explicit mappings resolve AA configuration IDs to exact model IDs already observed in the ECPA catalog. The host session must independently expose the same provider/model pairs.",
-    "effort_policy": "Inspect supported effort settings, apply only a corresponding supported mapping, otherwise omit reasoning_effort. Record the actual setting and any fallback. Invalid efforts must not be sent with an assumption that DSH will automatically downgrade them.",
+    "model_selection_setup": "DSH owns child model selection and its allowed provider/model policy in Plugins > Subagent. Router no longer requires this projection to exist or contain a candidate before selecting it. Actual DSH invocation may still reject the request; this release does not change the policy or connect other plugin entry points.",
+    "route_mapping": "Bundled explicit mappings resolve AA configuration IDs to exact model IDs already observed in the ECPA catalog. Missing host model metadata does not exclude an enabled mapping and does not prove it callable.",
+    "effort_policy": "At first selection, optional model metadata supplies supported efforts: use the corresponding mapped effort when known supported, otherwise omit reasoning_effort and record a default fallback. Frozen retries and repairs preserve the exact selected effort without rechecking metadata. Actual DSH invocation remains subject to host rules.",
     "skill_location_in_app_workspace": "Bundled runtime/skills/generalrouter-task-profile registered with the DSH skill service for all workspaces; a same-name project skill takes precedence.",
     "gateway": "Use the user's configured compatible provider with the actual ECPA baseURL, API protocol, model IDs and secret source. The user completed one native-subagent smoke workflow in v0.1.4; provider and execution-backend configuration remain user-owned and are not changed by this release.",
-    "installation_after_package_exists": "In DSH App, open Plugins > Add plugin, enter the absolute path to dsh-generalrouter-0.1.8.tgz, install and enable the bundle. Existing users update the package through App plugin management and start a new main session. Keep existing shared settings and project records. Leave projectRoot and hostConfig empty. Shared configuration and the bundled skill work across workspaces; no per-workspace copying is required. Same-name project or user skills still override the bundle and may need updating to use its new instructions. DSH provider registration, the native model allowlist and effort metadata remain user-owned.",
+    "installation_after_package_exists": "In DSH App, open Plugins > Add plugin, enter the absolute path to dsh-generalrouter-0.1.9.tgz, install and enable the bundle. Existing users update the package through App plugin management and start a new main session. Keep existing shared settings and project records. Leave projectRoot and hostConfig empty. Shared configuration and the bundled skill work across workspaces; no per-workspace copying is required. Same-name project or user skills still override the bundle and may need updating to use its new instructions. DSH provider registration, the native model allowlist and effort metadata remain user-owned.",
     "project_path_defaults": "Prefer session.header.cwd from main-session creation; use workingDirectory.get(session) only if that header is absent. Never infer the root from the package or DSH process directory. A nonempty projectRoot overrides the default. Bind the workspace when establishing a run and retain it across children, retries and records. A missing root is a setup error. Switching workspaces requires a new main session.",
     "hook_boundary": "Do not mutate subagent arguments from tools/pre-execute or assume subagent/start/end can reroute a call.",
     "sources": [
@@ -170,8 +172,8 @@
       "scope": "One workflow does not establish all-candidate compatibility, quality, lower cost, quota savings or a guarantee against allowance exhaustion."
     },
     "current_release": {
-      "version": "0.1.8",
-      "work": "Same-model repair handoff, skill and documentation updates, source reading and artifact generation. The v0.1.7 case remains separate historical evidence in docs/experiments/translation-ab-v2.",
+      "version": "0.1.9",
+      "work": "Remove Router native catalog/allowlist prefiltering while retaining enabled mappings, quota admission, route identity and same-model repair. Update skill and documentation and generate artifacts. The v0.1.7 case remains separate historical evidence in docs/experiments/translation-ab-v2.",
       "validation": "No development tests, review, validators, compilation checks, simulated routing, API/model calls or developer plugin installation for this update.",
       "configuration": "Preserve shared connection settings and user DSH provider/backend configuration; do not read secret contents.",
       "future_work": "Public benchmark execution is deferred and contributes no results to this release."
@@ -180,9 +182,9 @@
   "distribution": {
     "kind": "standard_npm_tarball_supported_by_dsh",
     "package": "dsh-generalrouter",
-    "version": "0.1.8",
-    "artifact": "dsh-generalrouter-0.1.8.tgz",
-    "local_delivery_path": "dsh-generalrouter-0.1.8.tgz",
+    "version": "0.1.9",
+    "artifact": "dsh-generalrouter-0.1.9.tgz",
+    "local_delivery_path": "dsh-generalrouter-0.1.9.tgz",
     "contents": "Prebuilt JavaScript entry point, DSH bundle patch, Python runtime, task-profile skill with 12 human-defined semantic anchors, required model/rate data and blank configuration examples.",
     "external_configuration": "Optional shared host.local.json and quota.local.json under $DSH_HOME/generalrouter, with optional project overrides. Installed package contents do not store local paths or credentials. Workspace task and usage state remains under that workspace.",
     "source_repository_required_at_runtime": false

@@ -1,6 +1,6 @@
 # Core algorithm: capability vectors, task weights and matching
 
-This document describes the v0.1.8 implementation. The first-selection algorithm remains unchanged from v0.1.7: convert recorded benchmark components into comparable capability groups, obtain an explicit task-weight profile, and rank configurations while keeping missing evidence and execution constraints visible. Repair handoff now inherits the selected route without another ranking. The new handoff path has not been runtime-verified.
+This document describes the v0.1.9 implementation. The scoring formula remains unchanged from v0.1.7: convert recorded benchmark components into comparable capability groups, obtain an explicit task-weight profile, and rank configurations while keeping missing evidence visible. Repair handoff inherits the selected route without another ranking. v0.1.9 removes Router-side native-catalog and allowlist membership prefiltering; mapping, quota and dispatch-identity controls remain. These updates have not been runtime-verified.
 
 The benchmark measurements and category proportions come from retained Artificial Analysis (AA) material. The grouping, fixed transforms, missing-data policy, task-profile contract and routing calculation are implemented in this project. Weighted averages, dot products and ridge regression are established methods; they are not claimed as new mathematical algorithms.
 
@@ -119,22 +119,24 @@ Implementation: [`matching.py`](../generalrouter/matching.py), `_effective_weigh
 
 ## 4. From ranking to an executable route
 
-The host bridge chooses the highest-ranked candidate that passes the applicable call mapping, native model-policy and reported-quota constraints. Unknown quota remains unknown rather than being treated as measured capacity. Score and eligibility are saved separately.
+The host bridge chooses the highest-ranked enabled candidate with a valid call mapping that passes reported-quota constraints. It does not prefilter by membership in DSH's native model catalog or allowlist. Missing catalog metadata does not produce a setup requirement. Unknown quota remains unknown rather than being treated as measured capacity. Score and Router admission are saved separately; actual DSH invocation still owns its native permission checks.
+
+Known optional metadata can resolve the effort for a first selection; otherwise the model default is used. Once the route is frozen, retries and repairs retain that exact provider/model/effort rather than deriving it again from changed metadata. Authorization still checks tickets and route identity. Removing the membership filter neither integrates other execution plugins nor establishes that every recorded configuration can execute.
 
 ```text
 Load the recorded model/effort capability vectors.
 Read the task profile and its stated weight source.
 Form effective weights using the task vector or explicit fallback.
 Score candidates, retaining coverage and per-dimension contributions.
-Select the highest-ranked candidate admitted by the current execution path.
+Select the highest-ranked candidate with an enabled valid mapping and quota admission.
 Return its fixed route and dispatch arguments to the DSH main agent.
 Record the actual route, execution, acceptance and usage separately.
 ```
 
-Once selected, a task's provider, model and effort stay fixed. An independent added task receives its own first selection. A repair instead inherits the predecessor's fixed configuration: the main agent receives the failure, decides whether to repair, and dispatches a new native subagent with a short memento. `generalrouter_prepare_repair` retains the relationship, checks admission and issues a fresh dispatch ticket; it does not generate new weights or call the ranking algorithm. An unavailable inherited route blocks execution rather than triggering fallback. See [repair handoff](REPAIR-HANDOFF.md).
+Once selected, a task's provider, model and effort stay fixed. An independent added task receives its own first selection. A repair instead inherits the predecessor's fixed configuration: the main agent receives the failure, decides whether to repair, and dispatches a new native subagent with a short memento. `generalrouter_prepare_repair` retains the relationship, checks mapping and quota admission and issues a fresh dispatch ticket; it does not generate new weights, call the ranking algorithm or check native-allowlist membership. A mapping/quota block or an actual DSH rejection is reported rather than triggering fallback. See [repair handoff](REPAIR-HANDOFF.md).
 
 Cost, latency and difficulty are not current scoring terms, and the prototype does not automatically select a lower effort for a simple task.
 
-The saved case makes the distinction concrete: Argon high ranked first, Flash high ranked twelfth, but eleven configurations were excluded by the native allowlist. Flash was the sole admitted configuration; neither the Codex nor Antigravity plugin tool was called. This is a recorded execution-path limitation, not evidence that the score optimized price. See the [candidate ranking and actual dispatch](experiments/translation-ab-v2/results.json).
+The saved v0.1.7 case used the previous membership filter: Argon high ranked first, Flash high ranked twelfth, but eleven configurations were excluded by the native allowlist. Flash was the sole admitted configuration; neither the Codex nor Antigravity plugin tool was called. This historical result remains unchanged and is not evidence that the score optimized price or that v0.1.9 can invoke the excluded configurations. See the [candidate ranking and actual dispatch](experiments/translation-ab-v2/results.json).
 
 Implementation boundary: [`host_bridge.py`](../generalrouter/host_bridge.py) performs the host integration; the [DSH adapter](../dsh-generalrouter) provides native dispatch authorization and recording. This document describes retained source and data without executing the algorithm or adding a new experiment.

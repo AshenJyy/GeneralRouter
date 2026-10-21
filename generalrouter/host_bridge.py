@@ -225,7 +225,10 @@ class HostBridge:
         return copy.deepcopy(entries[0])
 
     def _model_catalog(self) -> list[dict]:
-        value = self.request.get("allowed_models", self.host.get("available_models"))
+        """Optional effort metadata, never a Router permission or membership gate."""
+        value = self.request.get("model_metadata")
+        if value is None:
+            value = self.request.get("allowed_models", self.host.get("model_metadata", self.host.get("available_models")))
         if not isinstance(value, list):
             return []
         return [entry for entry in value if isinstance(entry, dict)]
@@ -237,16 +240,14 @@ class HostBridge:
         if not all(isinstance(route.get(key), str) and route[key].strip() for key in ("provider", "model")):
             return None, "callable_provider_and_model_required"
         catalog = self._model_catalog()
-        if not catalog:
-            return None, "host_allowed_model_catalog_missing"
-        model = next((entry for entry in catalog if entry.get("provider") == route["provider"] and entry.get("model") == route["model"]), None)
-        if model is None:
-            return None, "route_not_in_this_session_model_allowlist"
+        model = next((entry for entry in catalog if entry.get("provider") == route["provider"] and entry.get("model") == route["model"]), {})
         result = {
             "configuration_id": configuration_id,
             "provider": route["provider"],
             "model": route["model"],
             "effort_policy": "mapped_if_supported_else_default",
+            "native_allowlist_checked": False,
+            "invocation_verified": False,
         }
         effort = route.get("reasoning_effort")
         supported = model.get("reasoning_efforts", model.get("reasoningEfforts", model.get("efforts")))
@@ -259,7 +260,7 @@ class HostBridge:
             result["effort_resolution"] = "explicit_supported_mapping"
         else:
             result["effort_resolution"] = "provider_default"
-            result["effort_fallback_reason"] = "mapping_absent_or_not_supported_by_this_host_catalog"
+            result["effort_fallback_reason"] = "mapping_absent_or_not_supported_by_known_metadata"
         result["reference_effort_matches_dispatch"] = result.get("reasoning_effort") == configuration_id.rsplit(":", 1)[-1]
         return result, "mapped"
 
@@ -376,22 +377,13 @@ class HostBridge:
         mapping = self.routes.get(frozen.get("configuration_id"))
         if not isinstance(mapping, dict) or mapping.get("enabled") is not True:
             return None, "frozen_route_not_enabled"
+        if not all(isinstance(frozen.get(key), str) and frozen[key].strip() for key in ("provider", "model")):
+            return None, "frozen_route_mapping_invalid"
         if any(mapping.get(key) != frozen.get(key) for key in ("provider", "model")):
             return None, "frozen_route_mapping_changed"
-        catalog = self._model_catalog()
-        model = next((entry for entry in catalog if all(entry.get(key) == frozen.get(key) for key in ("provider", "model"))), None)
-        if model is None:
-            return None, "frozen_route_not_in_this_session_model_allowlist"
-        effort = frozen.get("reasoning_effort")
-        if effort is not None:
-            supported = model.get("reasoning_efforts", model.get("reasoningEfforts", model.get("efforts")))
-            if isinstance(supported, dict):
-                supported = list(supported)
-            if isinstance(supported, list):
-                supported = [entry.get("id", entry.get("value")) if isinstance(entry, dict) else entry for entry in supported]
-            if not isinstance(supported, list) or effort not in supported:
-                return None, "frozen_effort_not_supported"
-        return copy.deepcopy(frozen), "frozen_selection"
+        # Preserve the frozen effort even if current metadata is absent or has
+        # changed. DSH owns actual invocation enforcement, not this Router.
+        return {**copy.deepcopy(frozen), "native_allowlist_checked": False, "invocation_verified": False}, "frozen_selection"
 
     def append_task(self) -> dict:
         if not isinstance(self.request.get("profile_id"), str) or not self.request["profile_id"]:
@@ -458,6 +450,7 @@ class HostBridge:
             "reservation_id": entry["reservation_id"], "configuration_id": entry["frozen_route"]["configuration_id"],
             "route": copy.deepcopy(entry["frozen_route"]), "dispatch": copy.deepcopy(entry["dispatch"]),
             "depends_on": copy.deepcopy(entry["depends_on"]), "selection": copy.deepcopy(entry["selection"]),
+            "native_allowlist_checked": False, "invocation_verified": False,
             "admission": _admission_summary(entry["admission"]), "detail_available": True,
             "main_agent_instructions": [
                 "Call a NEW DSH native subagent using dispatch, including its reservation marker. Do not resume the predecessor session.",
@@ -554,6 +547,7 @@ class HostBridge:
                          "original_selection": copy.deepcopy(origin.get("matching", {}).get("selection")),
                          "selection": {"selection_kind": "inherited_repair", "selection_origin_task_id": origin_id,
                                        "selection_fixed_for_task": True, "matching_performed": False,
+                                       "native_allowlist_checked": False, "invocation_verified": False,
                                        "reason": "Main-agent repair decision; inherit the original frozen configuration without ranking."}}
                 state["tasks"][identity] = entry
                 self.ledger.event(state, "repair_prepared", profile_id=profile_id, task_id=identity, repairs_task_id=repairs,
@@ -771,7 +765,7 @@ class HostBridge:
                     "profile_id": profile_id, "task_id": task["task_id"], "rejection_summary": reasons,
                     "quota": _quota_summary(snapshot, self.run_id), "detail_available": True,
                     "message": ("This task's selected model and effort are fixed and currently unavailable. Report this to the main agent or restore its availability; no substitute was selected."
-                                if isinstance(frozen, dict) else "No candidate currently passes the session allowlist and reported allowance checks. No model was dispatched."),
+                                if isinstance(frozen, dict) else "No enabled mapped candidate currently passes the reported allowance checks. Native allowlist membership was not checked; no model was dispatched."),
                 }
                 if detail:
                     response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": routing_policy}
@@ -800,10 +794,12 @@ class HostBridge:
                     "task_weights": task["task_profile"]["task_weights"],
                     "effective_weights": common_score["effective_weights"],
                     "weight_policy": common_score["weight_policy"],
-                    "reason": "Highest capability-ranked callable candidate not excluded by reported ECPA percentages; unknown allowance is retained.",
+                    "reason": "Highest capability-ranked enabled mapped candidate not excluded by reported ECPA percentages; unknown allowance is retained. Native allowlist membership and invocation were not verified.",
                     "score_is_success_probability": False,
                 }
             selection["selection_fixed_for_task"] = True
+            selection["native_allowlist_checked"] = False
+            selection["invocation_verified"] = False
             selection["selection_kind"] = "initial_match"
             selection["selection_origin_task_id"] = task["task_id"]
             self._remember_attempt(entry)
@@ -822,6 +818,7 @@ class HostBridge:
                 "ok": True, "status": "ready_for_main_agent", "run_id": self.run_id,
                 "profile_id": profile_id, "task_id": task["task_id"], "reservation_id": reservation_id,
                 "configuration_id": rank["configuration_id"], "route": route, "dispatch": dispatch,
+                "native_allowlist_checked": False, "invocation_verified": False,
                 "selection_kind": "initial_match", "selection_origin_task_id": task["task_id"],
                 "depends_on": task["depends_on"], "repairs_task_id": entry.get("repairs_task_id"), "selection": selection,
                 "admission": _admission_summary(decision), "detail_available": True,
@@ -917,7 +914,8 @@ class HostBridge:
                 task["authorized_at"] = utc_now()
                 self._remember_attempt(task)
                 self.ledger.event(state, "dispatch_authorized", task_id=identity, reservation_id=reservation_id, call_id=call_id, route=expected)
-        return {"ok": True, "accepted": True, "status": "dispatch_authorized", "reservation_id": reservation_id, "call_id": call_id}
+        return {"ok": True, "accepted": True, "status": "dispatch_authorized", "reservation_id": reservation_id, "call_id": call_id,
+                "native_allowlist_checked": False, "invocation_verified": False}
 
     def release(self) -> dict:
         reservation_id = self.request.get("reservation_id")

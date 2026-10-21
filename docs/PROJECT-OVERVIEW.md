@@ -1,6 +1,6 @@
 # GeneralRouter
 
-**Task-level model routing for DeepSeek Harness · v0.1.8 experimental**
+**Task-level model routing for DeepSeek Harness · v0.1.9 experimental**
 
 GeneralRouter is a plugin that matches independent development subtasks to model configurations once and records what happened after selection. Failures return to the main agent; repairs use fresh native subagents with the same fixed configuration. It separates capability scoring, execution constraints, acceptance outcomes and resource use, so a completed model call does not automatically count as a successful task.
 
@@ -19,7 +19,7 @@ flowchart LR
     P[DSH planner + task-profile skill] --> T[Subtask requirements and weights]
     T --> R[Capability scoring and admission]
     C[Model capability snapshot] --> R
-    Q[Callable routes and reported quotas] --> R
+    Q[Enabled mappings and reported quotas] --> R
     R --> D[Fixed model and effort for this task]
     D --> W[DSH native subagent]
     W --> E[Execution and acceptance recorded separately]
@@ -33,12 +33,13 @@ flowchart LR
 
 - **Four capability dimensions:** agentic work, coding, knowledge/document work and scientific reasoning. The planner estimates their relative importance using documented semantic examples. The weights are not measured task difficulty or success probabilities.
 - **Twelve model/effort configurations across four model families:** capability records come from retained Artificial Analysis data. A score is distinct from permission to execute that configuration.
-- **A stable task history:** a task's selected provider, model and effort stay fixed. If the main agent arranges a repair, a new linked task inherits that configuration without reranking or generating new weights. The original outcome and each repair's resource use remain separate. An unavailable route blocks dispatch rather than switching models.
+- **A stable task history:** a task's selected provider, model and effort stay fixed. If the main agent arranges a repair, a new linked task inherits that configuration without reranking or generating new weights. The original outcome and each repair's resource use remain separate. Mapping/quota blocks and actual host rejections are reported without switching models.
+- **Host-owned native permissions:** v0.1.9 does not prefilter candidates by DSH native-catalog or allowlist membership. Enabled valid mappings, quota admission, ticket checks and route identity remain. DSH can still reject the actual invocation; no cross-plugin dispatch is added.
 - **Observable execution:** selected and actual routes, reported token usage, acceptance records and API-equivalent cost are kept separately. Missing measurements stay unknown.
 
 Cost and time are currently recorded for comparison; they are not optimization terms in the selection policy. Reported quota snapshots cannot guarantee that an account will never run out.
 
-The project author proposed both the nine-to-four-dimensional redesign and the v0.1.8 first-selection-only repair architecture. A short memento carries prior attempts, failures, evidence and next steps into the new worker alongside existing files and constraints. The new [repair handoff](REPAIR-HANDOFF.md) is implemented but has not been runtime-verified; the case below remains a v0.1.7 observation.
+The project author proposed the nine-to-four-dimensional redesign, the v0.1.8 first-selection-only repair architecture and removal of Router's native membership prefilter in v0.1.9. A short memento carries prior attempts, failures, evidence and next steps into the new worker alongside existing files and constraints. The [repair handoff](REPAIR-HANDOFF.md) and latest admission change are implemented but have not been runtime-verified; the case below remains a v0.1.7 observation.
 
 ## Core implementation
 
@@ -46,7 +47,7 @@ The project's core implementation consists of three connected modules:
 
 1. **Model-vector construction:** normalize recorded benchmark components, aggregate them into four capability groups, bind each vector to an exact model/effort configuration, and retain missing-data coverage and source provenance.
 2. **Task-weight processing:** define the planner's semantic reference rules and profile contract, keep estimated and fitted sources distinct, and normalize the task weights used for matching.
-3. **Matching and admission:** combine task emphasis with a general prior, calculate scores and missing-evidence discounts, explain each dimension's contribution, and select a configuration that the current execution path can call.
+3. **Matching and admission:** combine task emphasis with a general prior, calculate scores and missing-evidence discounts, explain each dimension's contribution, and select an enabled valid mapping that passes reported-quota constraints. The host retains actual invocation permissions.
 
 The [algorithm walkthrough](CORE-ALGORITHM.md) gives the formulas and source locations. These modules apply established numerical methods to the project's routing problem; they do not train a new foundation model or claim a new mathematical method.
 
@@ -65,13 +66,13 @@ Two independent sessions repaired an existing browser translation extension on t
 
 **B used 55.8% fewer GPT-routed tokens, but missed a quality requirement, used 18.9% more total reported tokens and took 34.842 seconds longer.** The measured development time excludes subsequent manual acceptance. This is not evidence of quality-preserving savings, and the GPT token change is not a measured subscription-quota change.
 
-The route records revealed an important scope limit. All 12 configurations received scores, but only Flash passed the current native-subagent allowlist. DSH also exposed Codex and Antigravity plugin tools; B did not call either. The case therefore does not demonstrate selection across all three execution paths. Flash was not selected because a cost optimizer found it economical.
+The route records revealed an important scope limit in v0.1.7. All 12 configurations received scores, but only Flash passed that version's native-subagent allowlist prefilter. DSH also exposed Codex and Antigravity plugin tools; B did not call either. The case therefore does not demonstrate selection across all three execution paths. Flash was not selected because a cost optimizer found it economical. v0.1.9 removes the Router-side filter without rewriting this result or proving the other configurations executable.
 
 The [case data](experiments/translation-ab-v2/results.json) include the candidate ranking and exclusions. Known-token API-equivalent subtotals use a dated price snapshot, omit unknown fee components and are not subscription bills. A was also not certified defect-free: screenshot coverage was limited, and narrow-window and cross-browser behavior remain unverified. This is one paired observation, not a general model comparison.
 
 ## What comes next
 
-The current v0.1.8 update changes repair handoff while retaining the original matching formula. It adds no new experiment and does not replace the v0.1.7 case. Further work may connect execution paths and establish which model/effort settings each exposes. More independent real tasks would be needed before changing weights or adding cost-aware selection.
+v0.1.9 retains the original scoring formula and same-model repair while removing Router-side native membership filtering. It adds no new experiment and does not replace the v0.1.7 case. Further work may connect execution paths and establish which model/effort settings each exposes. More independent real tasks would be needed before changing weights or adding cost-aware selection.
 
 ## Inspect the work
 

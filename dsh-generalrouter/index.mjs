@@ -552,15 +552,16 @@ export function apply(ctx, config = {}) {
     observation_scope: 'new-events-since-plugin-load',
   })
   const currentRun = agent => rootFor(stateFor(agent.session)) || agent.session.id
-  const allowedRoutesFor = async (agent, signal) => {
-    let allowedModels
+  const modelMetadataFor = async (agent, signal) => {
+    let projectedModels
     try {
-      allowedModels = ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy')
-    } catch { /* An absent native projection is a setup error, not an unrestricted route pool. */ }
-    if (!Array.isArray(allowedModels) || allowedModels.length === 0) return undefined
+      projectedModels = ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy')
+    } catch { /* This optional projection supplies metadata only, never Router admission. */ }
+    if (!Array.isArray(projectedModels) || projectedModels.length === 0) return []
     const llm = ctx.get('llm')
-    const routes = []
-    for (const route of allowedModels) {
+    const metadata = []
+    for (const route of projectedModels) {
+      if (typeof route?.provider !== 'string' || typeof route?.model !== 'string') continue
       const detached = { provider: route.provider, model: route.model }
       if (llm) {
         try {
@@ -569,9 +570,9 @@ export function apply(ctx, config = {}) {
           if (info.reasoning?.defaultEffort) detached.default_reasoning_effort = info.reasoning.defaultEffort
         } catch { detached.metadata_status = 'unavailable_use_default_effort' }
       }
-      routes.push(detached)
+      metadata.push(detached)
     }
-    return routes
+    return metadata
   }
   const rememberPreparedDispatches = (result, runId, preparationTool) => {
     const tasks = Array.isArray(result.tasks) ? result.tasks : result.reservation_id ? [result] : []
@@ -594,7 +595,7 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(defineTool({
     name: 'generalrouter_match',
-    description: 'Select the model for one ready independent task and return exact native subagent dispatch arguments. Its provider/model/effort are fixed after first selection. Submit task-profile.v3 once; reuse profile_id. Repairs use generalrouter_prepare_repair and inherit that fixed route without matching. Ended tasks never reopen. Tickets prevent duplicate dispatch without deducting quota. This tool does not call a model.',
+    description: 'Select the model for one ready independent task and return exact native subagent dispatch arguments. Router checks mapping, quota and tickets, without filtering by the DSH native model allowlist; DSH may still reject the actual invocation. Its provider/model/effort are fixed after first selection. Submit task-profile.v3 once; reuse profile_id. Repairs use generalrouter_prepare_repair and inherit that fixed route without matching. Ended tasks never reopen. Tickets prevent duplicate dispatch without deducting quota. This tool does not call a model or fall back automatically after a host rejection.',
     parameters: {
       profile_json: { type: 'string', description: 'First call: complete task-profile.v3 JSON from the skill. Later calls may omit it and use profile_id. Repeated full profiles remain supported.' },
       profile_id: { type: 'string', description: 'Exact identifier returned by the first match in this run. Reuses the saved plan and original request.' },
@@ -619,11 +620,7 @@ export function apply(ctx, config = {}) {
       if (!profile && !args.profile_id) return {
         ok: false, status: 'profile_required', message: 'Submit profile_json once, or pass the profile_id previously returned in this run.',
       }
-      const routes = await allowedRoutesFor(exec.agent, exec.signal)
-      if (!routes) return {
-        ok: false, status: 'setup_required',
-        message: 'Enable DSH child model selection, configure allowed provider/model routes, and start a new session.',
-      }
+      const modelMetadata = await modelMetadataFor(exec.agent, exec.signal)
       const runId = exec.agent.session.id
       roots.set(runId, true)
       const state = stateFor(exec.agent.session)
@@ -641,8 +638,8 @@ export function apply(ctx, config = {}) {
           detail: args.detail === true,
           ...(args.task_id ? { task_id: args.task_id } : {}),
           ...(args.retry_failed === true ? { retry_failed: true } : {}),
-          host: { ...hostInfo(exec.agent), call_id: exec.callId, available_models: routes },
-          allowed_models: routes,
+          host: { ...hostInfo(exec.agent), call_id: exec.callId, model_metadata: modelMetadata },
+          model_metadata: modelMetadata,
         }, exec.signal)
         rememberPreparedDispatches(result, runId, 'generalrouter_match')
       } finally {
@@ -654,7 +651,7 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(defineTool({
     name: 'generalrouter_prepare_repair',
-    description: 'Prepare a fresh native subagent for a repair chosen by the parent after an earlier task ended. Inherit the exact frozen provider/model/effort; do not compute a new task vector, score candidates, or select another model. Supply a concise memento of attempted strategies, failures, evidence and next steps. Returns dispatch arguments and a ticket after admission checks; does not start a worker or loop repairs. A blocked original route is reported without model substitution.',
+    description: 'Prepare a fresh native subagent for a repair chosen by the parent after an earlier task ended. Inherit the exact frozen provider/model/effort regardless of optional metadata; do not compute a new task vector, score candidates, or select another model. Supply a concise memento of attempted strategies, failures, evidence and next steps. Returns dispatch arguments and a ticket after mapping/quota admission checks, without a native allowlist prefilter. DSH may reject the actual invocation; report that failure without automatic fallback. This tool does not start a worker or loop repairs.',
     parameters: {
       profile_id: { type: 'string', required: true, description: 'Saved profile_id from this run; the original profile stays unchanged.' },
       repairs_task_id: { type: 'string', required: true, description: 'Ended task being repaired. Its frozen provider/model/effort are inherited by the new repair task.' },
@@ -672,11 +669,7 @@ export function apply(ctx, config = {}) {
       }
       const setupError = prepareProject(exec.agent)
       if (setupError) return setupError
-      const routes = await allowedRoutesFor(exec.agent, exec.signal)
-      if (!routes) return {
-        ok: false, status: 'setup_required',
-        message: 'The original fixed route cannot be admitted without a DSH native child model policy. Report this to the parent; do not substitute a model or re-rank the repair.',
-      }
+      const modelMetadata = await modelMetadataFor(exec.agent, exec.signal)
       const runId = exec.agent.session.id
       roots.set(runId, true)
       const state = stateFor(exec.agent.session)
@@ -692,8 +685,8 @@ export function apply(ctx, config = {}) {
           task_id: args.task_id, objective: args.objective, memento: args.memento,
           ...(args.input_artifacts !== undefined ? { input_artifacts: args.input_artifacts } : {}),
           detail: args.detail === true,
-          host: { ...hostInfo(exec.agent), call_id: exec.callId, available_models: routes },
-          allowed_models: routes,
+          host: { ...hostInfo(exec.agent), call_id: exec.callId, model_metadata: modelMetadata },
+          model_metadata: modelMetadata,
         }, exec.signal)
         rememberPreparedDispatches(result, runId, 'generalrouter_prepare_repair')
       } finally {
@@ -823,6 +816,10 @@ export function apply(ctx, config = {}) {
     },
   }))
 
+  ctx.systemPrompt.section({
+    name: 'generalrouter:host-admission', order: 89,
+    text: 'GeneralRouter no longer prefilters candidates by membership in DSH native subagent model selection policy. That projection, when present, supplies optional effort metadata only; absent or empty metadata does not block matching or same-model repair preparation. Router still checks configured mappings, observed quota admission and dispatch tickets. Returned dispatch arguments do not guarantee DSH will accept the call: the host retains its runtime restrictions. If the native call is rejected, report and retain the actual failure, do not claim a worker ran, and do not automatically substitute a model or switch to a different plugin entry point. This does not enable providers, change the user\'s allowlist, or add cross-plugin dispatch.',
+  })
   ctx.systemPrompt.section({
     name: 'generalrouter:dispatch', order: 90,
     text: `GeneralRouter selects a model only for the first execution of each independent development task and then freezes its provider/model/effort. The parent uses generalrouter-task-profile to prepare one plan, submits profile_json and original_request to generalrouter_match once, then reuses its profile_id for other independent tasks. When ready_for_main_agent, copy dispatch into native ${settings.delegationToolName}, preserving its reservation marker and exact route; absent effort means provider default. Add only necessary upstream results. Execution completion and usage are recorded automatically. Workers report failures and evidence to the parent. After reading the worker's evidence, record acceptance separately with generalrouter_record_acceptance: passed, failed or unknown, with scope and evidence. Check contradictions or missing evidence as needed; do not routinely rerun the entire acceptance suite. An ended task/worker is never reopened. The parent decides whether to repair. For a repair, call generalrouter_prepare_repair with the saved profile_id, the ended repairs_task_id, a new task_id, a specific objective and a concise memento of attempted strategies, failures, evidence and next steps, plus necessary input_artifacts. Dispatch its returned arguments into a fresh native subagent using the exact original frozen provider/model/effort. This preparation only admits and records the inherited route; it never generates new weights, re-ranks candidates, or substitutes a model. If that route is blocked, report the block to the parent. generalrouter_append_task and new matching are only for additional independent tasks, never a way to rename or re-route repair work. A repair link is not depends_on; a known failed dependency cannot be treated as successful. A passing repair never changes its original task's failure. Keep the original profile unchanged. Never bypass tickets, automatically loop repairs, or add a reviewer without task need. Tickets do not deduct quota. Do not routinely reread ledgers/source, poll status, or repeat matching just to test completion. After delivery read one summary report; use detail:true only for specific diagnostics. Task and repair-group totals are alternate views, not additive costs. Recording diagnostics cover observed failures, not guaranteed usage completeness.`,
