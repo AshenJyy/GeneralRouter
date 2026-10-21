@@ -1,5 +1,7 @@
 # GeneralRouter
 
+[English project overview](docs/PROJECT-OVERVIEW.md) · [Design decisions](docs/DESIGN-DECISIONS.md)
+
 GeneralRouter 是基于 DeepSeek Harness（DSH）的任务级模型路由插件，当前版本为 **v0.1.7 experimental**。它根据任务参考向量、候选模型能力和可用额度选择模型，并记录选择理由、实际调用和用量。
 
 DSH 主 agent 配合 planner skill 拆分任务，将任务资料提交给 GeneralRouter；主 agent 收到匹配结果后，通过 DSH 原生 `subagent` 派遣工作。
