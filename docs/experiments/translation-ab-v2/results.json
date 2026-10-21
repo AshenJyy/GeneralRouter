@@ -1,0 +1,526 @@
+{
+  "schema": "generalrouter-paired-case-study.v2",
+  "experiment": "translation-ab-v2",
+  "closed_on": "2026-10-20",
+  "timezone": "America/Vancouver",
+  "generalrouter_version": "0.1.7",
+  "host_version_reported": "0.2.1-rc.2",
+  "status": "closed_with_unmet_quality_requirement_in_B",
+  "conclusion": "B reduced GPT-routed reported tokens but failed the navigation requirement; total reported tokens and complete development-turn duration increased. Quality-preserving optimization is not demonstrated.",
+  "time_scope": "DSH main turn/start through turn/end, including planning and final reply; excludes later manual acceptance. Replaces incomparable self-reported delivery checkpoints for this table.",
+  "usage_scope": "Complete saved main and linked child turns, deduplicated; not proof of upstream billing completeness.",
+  "prices": {
+    "recordedOn": "2026-10-19",
+    "sha256": "327aacdfddf7a4f0a42002ba73597e866392353c68cee73297ec1befa4b5fce7",
+    "rates": {
+      "gpt-6-1-sol:max": {
+        "configuration_id": "gpt-6-1-sol:max",
+        "currency": "USD",
+        "recorded_on": "2026-10-19",
+        "usd_per_million_tokens": {
+          "uncached_input": 2,
+          "cached_input": 0.1,
+          "cache_write_input": 2.5,
+          "output": 10
+        },
+        "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+        "source_fields": {
+          "uncached_input": "price1mInputTokens",
+          "cached_input": "cacheHitPrice",
+          "cache_write_input": "cacheWritePrice",
+          "output": "price1mOutputTokens"
+        },
+        "reasoning_accounting": "included_in_output"
+      },
+      "gemini-3-8-flash:high": {
+        "configuration_id": "gemini-3-8-flash:high",
+        "currency": "USD",
+        "recorded_on": "2026-10-19",
+        "usd_per_million_tokens": {
+          "uncached_input": 0.75,
+          "cached_input": 0.075,
+          "cache_write_input": 0.75,
+          "output": 3.75
+        },
+        "source": "AA raw pricing fields already preserved in data/model-vectors.v0.1.json; no new tariff verification.",
+        "source_fields": {
+          "uncached_input": "price1mInputTokens",
+          "cached_input": "cacheHitPrice",
+          "cache_write_input": "cacheWritePrice",
+          "output": "price1mOutputTokens"
+        },
+        "reasoning_accounting": "included_in_output"
+      }
+    },
+    "includedFields": [
+      "uncached_input",
+      "cached_input",
+      "output"
+    ],
+    "excludedUnknownFields": [
+      "cache_write_input"
+    ],
+    "interpretation": "Known reported-token API-equivalent subtotal, not a complete invoice or subscription charge. No new tariff verification; no context tiers recorded in snapshot."
+  },
+  "price_file": "../../../data/api-equivalent-rates.v0.1.json",
+  "arms": [
+    {
+      "arm": "A-default",
+      "mainStartUtc": "2026-10-21T01:15:32.405Z",
+      "mainEndUtc": "2026-10-21T01:25:50.694Z",
+      "fullTurnElapsedSeconds": 618.289,
+      "tokens": {
+        "inputTokens": 162072,
+        "cacheReadTokens": 3672832,
+        "cacheWriteTokens": null,
+        "outputTokens": 38227,
+        "reasoningTokens": null,
+        "totalTokens": 3873131
+      },
+      "observedSettlements": 73,
+      "gptRoutedReportedTokens": 3873131,
+      "knownApiEquivalentUsd": 1.0736972,
+      "sessions": [
+        {
+          "id": "A-main",
+          "role": "main",
+          "models": [
+            {
+              "seq": 13,
+              "time": 1792545332425,
+              "provider": "easy-cliproxyapi",
+              "model": "gpt-6.1-sol",
+              "reasoningEffort": "max"
+            }
+          ],
+          "tokens": {
+            "inputTokens": 108707,
+            "cacheReadTokens": 2351104,
+            "cacheWriteTokens": null,
+            "outputTokens": 21806,
+            "reasoningTokens": null,
+            "totalTokens": 2481617
+          },
+          "observedSettlements": 34,
+          "elapsedSeconds": 618.289,
+          "knownApiEquivalentUsd": 0.6705844,
+          "sourceSha256": "1723403b0b1d157ecf9b662368dc3fc6652d45ddc6a22c75e1ba8c440afdeee3",
+          "fieldsMissingInRecords": {
+            "inputTokens": 0,
+            "cacheReadTokens": 1,
+            "cacheWriteTokens": 34,
+            "outputTokens": 0,
+            "reasoningTokens": 34,
+            "totalTokens": 0
+          }
+        },
+        {
+          "id": "A-worker",
+          "role": "worker",
+          "models": [
+            {
+              "seq": 18,
+              "time": 1792545424451,
+              "provider": "easy-cliproxyapi",
+              "model": "gpt-6.1-sol",
+              "reasoningEffort": "max"
+            }
+          ],
+          "tokens": {
+            "inputTokens": 53365,
+            "cacheReadTokens": 1321728,
+            "cacheWriteTokens": null,
+            "outputTokens": 16421,
+            "reasoningTokens": null,
+            "totalTokens": 1391514
+          },
+          "observedSettlements": 39,
+          "elapsedSeconds": 475.161,
+          "knownApiEquivalentUsd": 0.4031128,
+          "sourceSha256": "f24e37cee39d72e1e58f06348a77ae00996058c953c603a67c4d1404aebdb979",
+          "fieldsMissingInRecords": {
+            "inputTokens": 0,
+            "cacheReadTokens": 1,
+            "cacheWriteTokens": 39,
+            "outputTokens": 0,
+            "reasoningTokens": 39,
+            "totalTokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "arm": "B-router",
+      "mainStartUtc": "2026-10-21T01:30:50.860Z",
+      "mainEndUtc": "2026-10-21T01:41:43.991Z",
+      "fullTurnElapsedSeconds": 653.131,
+      "tokens": {
+        "inputTokens": 287449,
+        "cacheReadTokens": 4256522,
+        "cacheWriteTokens": null,
+        "outputTokens": 59333,
+        "reasoningTokens": null,
+        "totalTokens": 4603304
+      },
+      "observedSettlements": 72,
+      "gptRoutedReportedTokens": 1710628,
+      "knownApiEquivalentUsd": 1.04915245,
+      "sessions": [
+        {
+          "id": "B-main",
+          "role": "main",
+          "models": [
+            {
+              "seq": 13,
+              "time": 1792546250882,
+              "provider": "easy-cliproxyapi",
+              "model": "gpt-6.1-sol",
+              "reasoningEffort": "max"
+            }
+          ],
+          "tokens": {
+            "inputTokens": 79314,
+            "cacheReadTokens": 1606912,
+            "cacheWriteTokens": null,
+            "outputTokens": 24402,
+            "reasoningTokens": null,
+            "totalTokens": 1710628
+          },
+          "observedSettlements": 29,
+          "elapsedSeconds": 653.131,
+          "knownApiEquivalentUsd": 0.5633392,
+          "sourceSha256": "ebd7fbe365471928650a081837bb03aca59fd6dbea5bdc512f3ef3eebe8f33ae",
+          "fieldsMissingInRecords": {
+            "inputTokens": 0,
+            "cacheReadTokens": 1,
+            "cacheWriteTokens": 29,
+            "outputTokens": 0,
+            "reasoningTokens": 29,
+            "totalTokens": 0
+          }
+        },
+        {
+          "id": "B-worker",
+          "role": "worker",
+          "models": [
+            {
+              "seq": 14,
+              "time": 1792546430882,
+              "provider": "easy-cliproxyapi",
+              "model": "gemini-3.8-flash-high",
+              "reasoningEffort": "high"
+            }
+          ],
+          "tokens": {
+            "inputTokens": 208135,
+            "cacheReadTokens": 2649610,
+            "cacheWriteTokens": null,
+            "outputTokens": 34931,
+            "reasoningTokens": null,
+            "totalTokens": 2892676
+          },
+          "observedSettlements": 43,
+          "elapsedSeconds": 362.873,
+          "knownApiEquivalentUsd": 0.48581325,
+          "sourceSha256": "959620c4fff5a6255e4f6c8118d4d92d96c15fe5ebd38cae13312567c104f551",
+          "fieldsMissingInRecords": {
+            "inputTokens": 0,
+            "cacheReadTokens": 4,
+            "cacheWriteTokens": 43,
+            "outputTokens": 0,
+            "reasoningTokens": 43,
+            "totalTokens": 0
+          }
+        }
+      ]
+    }
+  ],
+  "b_versus_a": {
+    "elapsedSecondsDifference": 34.842,
+    "elapsedPercentChange": 5.6352288331,
+    "reportedTokensPercentChange": 18.8522670677,
+    "gptRoutedReportedTokensPercentChange": -55.8334587702,
+    "knownApiEquivalentPercentChange": -2.2860029811
+  },
+  "manual_acceptance": {
+    "source": "User-provided screenshots and explicit operation confirmations in the project conversation.",
+    "recorded_on": "2026-10-20",
+    "status": "Manual observation completed for the stated scope; no claim of full-page or full-suite acceptance.",
+    "items": [
+      {
+        "id": "navigation_translation_numbering",
+        "A": "observed_pass_in_visible_scope",
+        "B": "observed_fail",
+        "evidence": [
+          "A-intro-translated",
+          "B-intro-translated"
+        ],
+        "note": "User confirmed B translation finished and mixed-language navigation persisted. B also merges numbers into text."
+      },
+      {
+        "id": "body_typography",
+        "A": "observed_more_open_line_spacing",
+        "B": "observed_more_compact_line_spacing",
+        "evidence": [
+          "A-intro-translated",
+          "B-intro-translated"
+        ],
+        "note": "No obvious overlap in supplied views. Exact rendered font and subjective comfort not established."
+      },
+      {
+        "id": "desktop_table",
+        "A": "observed_width_and_columns_preserved",
+        "B": "observed_width_and_columns_preserved",
+        "evidence": [
+          "A-table-original",
+          "A-table-translated",
+          "B-table-original",
+          "B-table-translated"
+        ],
+        "note": "Four columns and four data rows visible. Narrow window remains unknown."
+      },
+      {
+        "id": "formula_and_content_position",
+        "A": "partial_visual_evidence",
+        "B": "visible_position_issue",
+        "evidence": [
+          "A-formula-translated",
+          "B-formula-translated",
+          "A-table-translated",
+          "B-table-translated"
+        ],
+        "note": "Equation (1) and its number visible in both. B moves k=n to paragraph end; no root cause diagnosed."
+      },
+      {
+        "id": "navigation_link",
+        "A": "user_reported_pass",
+        "B": "user_reported_pass"
+      },
+      {
+        "id": "citation_link",
+        "A": "user_reported_pass",
+        "B": "user_reported_pass"
+      },
+      {
+        "id": "restore_then_retranslate",
+        "A": "user_reported_pass",
+        "B": "user_reported_pass"
+      }
+    ],
+    "unknowns": [
+      "narrow_window",
+      "other_browsers",
+      "full_page_content_integrity",
+      "all_async_interleavings",
+      "subjective_typography_preference"
+    ],
+    "A_residuals": [
+      "Citation closing bracket wraps onto its own line.",
+      "Footnote and some text remain in English."
+    ],
+    "B_completion_confirmed_by_user": true,
+    "global_pass_count": null,
+    "original_development_acceptance_and_router_ledger_modified": false
+  },
+  "routing_evidence": {
+    "source_session_sha256": "ebd7fbe365471928650a081837bb03aca59fd6dbea5bdc512f3ef3eebe8f33ae",
+    "source_run_sha256": "cdf931bda80729fc1fe8995eb2deb068e902815ba5c2c103c9b432097892a77d",
+    "source_locations": {
+      "toolVisibility": "session request/header seq 13, data.header.tools",
+      "nativeModelPolicy": "session subagent/model-selection-policy seq 3",
+      "matchCall": "session tool/call seq 52",
+      "matchReturn": "session tool/result seq 53",
+      "nativeDispatch": "session tool/call seq 57",
+      "ranking": "run.tasks.only-translation-layout-v2.matching.ranking; duplicated in run.events[kind=route_reserved].ranking"
+    },
+    "static_candidate_count": 12,
+    "scored_candidate_count": 12,
+    "host_tools_visible": [
+      "subagent",
+      "subagent_codex",
+      "subagent_antigravity"
+    ],
+    "native_policy": [
+      {
+        "seq": 3,
+        "allowedModels": [
+          {
+            "provider": "easy-cliproxyapi",
+            "model": "gemini-3.8-flash-high"
+          }
+        ]
+      }
+    ],
+    "plugin_tools": [
+      {
+        "name": "subagent_codex",
+        "visibleInRequestHeaders": 1,
+        "totalRequestHeaders": 1,
+        "parameterNames": [
+          "cwd",
+          "description",
+          "prompt"
+        ],
+        "modelAndEffortNotDeclaredAsParameters": true,
+        "observedCalls": 0
+      },
+      {
+        "name": "subagent_antigravity",
+        "visibleInRequestHeaders": 1,
+        "totalRequestHeaders": 1,
+        "parameterNames": [
+          "cwd",
+          "description",
+          "prompt"
+        ],
+        "modelAndEffortNotDeclaredAsParameters": true,
+        "observedCalls": 0
+      }
+    ],
+    "ranking": [
+      {
+        "rank": 1,
+        "configuration_id": "gemini-4-argon:high",
+        "score": 0.5627408192606232,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 2,
+        "configuration_id": "gpt-6-astra:max",
+        "score": 0.555466086761884,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 3,
+        "configuration_id": "gpt-6-astra:xhigh",
+        "score": 0.553322489248308,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 4,
+        "configuration_id": "gpt-6-1-sol:max",
+        "score": 0.5375985485786755,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 5,
+        "configuration_id": "gpt-6-1-sol:xhigh",
+        "score": 0.5321637544141452,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 6,
+        "configuration_id": "gpt-6-astra:high",
+        "score": 0.5315446298629489,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 7,
+        "configuration_id": "gpt-6-1-sol:high",
+        "score": 0.5218656199699415,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 8,
+        "configuration_id": "gpt-6-astra:medium",
+        "score": 0.5095308535266416,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 9,
+        "configuration_id": "gpt-6-1-sol:medium",
+        "score": 0.49378092917703154,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 10,
+        "configuration_id": "gpt-6-astra:low",
+        "score": 0.47002190180240216,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 11,
+        "configuration_id": "gpt-6-1-sol:low",
+        "score": 0.420823160726101,
+        "coverage": 1,
+        "eligible": false,
+        "eligibility_reason": "route_not_in_this_session_model_allowlist"
+      },
+      {
+        "rank": 12,
+        "configuration_id": "gemini-3-8-flash:high",
+        "score": 0.39853483362639847,
+        "coverage": 1,
+        "eligible": true,
+        "eligibility_reason": "allowance_not_reported"
+      }
+    ],
+    "task_weights": {
+      "agentic": 0.1,
+      "coding": 0.85,
+      "knowledge_document": 0.05,
+      "scientific_reasoning": 0
+    },
+    "effective_weights": {
+      "agentic": 0.18,
+      "coding": 0.5900000000000001,
+      "knowledge_document": 0.15,
+      "scientific_reasoning": 0.08000000000000002
+    },
+    "weight_source": "planner_estimated",
+    "score_is_success_probability": false,
+    "actual_dispatch": {
+      "tool": "subagent",
+      "seq": 57,
+      "provider": "easy-cliproxyapi",
+      "model": "gemini-3.8-flash-high",
+      "reasoning_effort": "high",
+      "count": 1,
+      "route_mismatch": false
+    },
+    "conclusions": [
+      "The host exposed both plugin subagent tools. The native subagent allowlist is not a complete host-wide model inventory.",
+      "All twelve static candidate configurations received capability scores in this saved run.",
+      "The eleven non-Flash candidates were marked ineligible with route_not_in_this_session_model_allowlist. Flash ranked twelfth by capability and was the only eligible candidate in this match.",
+      "The returned dispatch targeted native subagent; the parent made one such call with Flash high. Neither plugin subagent tool was called during this B main turn.",
+      "This run does not demonstrate a choice among twelve callable backends or an automatic model/effort selection through the Codex or Antigravity plugin tools.",
+      "A quota record provider label such as antigravity does not establish a subagent_antigravity tool invocation."
+    ],
+    "unknowns": [
+      "The concrete model/effort settings, complete candidate inventory, authorization and current operability of each plugin backend were not inspected or exercised.",
+      "Why the route eligibility path did not use those plugin tools is not diagnosed by this extraction; no attribution to user configuration or an implementation defect is made.",
+      "Host route identity does not independently attest the upstream proxy model backend."
+    ]
+  },
+  "limits": [
+    "One sequential pair without randomization or repeated runs; no causal or general superiority claim.",
+    "Both exposed plugin subagent tools; only native subagent was used in B. A native allowlist does not describe all host models.",
+    "Twelve configurations were scored but only Flash was eligible on this native dispatch path; no cross-plugin selection demonstrated.",
+    "A inherited Sol max when no override was provided. This does not represent every DSH native routing policy.",
+    "Missing cache-write and independent reasoning fields remain null. Known API-equivalent subtotal is not a complete bill or subscription charge.",
+    "GPT token reduction is not a measured quota percentage reduction. Task-attributable quota consumption remains unknown.",
+    "Manual acceptance follows development and is excluded from the development timing and token comparison.",
+    "Original RESULT.md documents are retained; their earlier snapshots and pending acceptance are not overwritten.",
+    "Runtime translation stochasticity, service load and cache conditions were not controlled."
+  ]
+}

@@ -6,6 +6,8 @@ GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件�
 
 主 agent 使用 skill 生成四维任务资料，调用 `generalrouter_match`，再将返回的 `dispatch` 交给 DSH 原生 `subagent`。插件保留原生派遣接口，通过派遣前授权检查选择结果。包内 `runtime/data/model-call-mappings.v0.1.json` 内置 12 组候选的 provider、模型 ID 和 effort 调用映射，默认全部启用；DSH 原生允许列表仍限制实际可派遣范围。用户负责在 DSH App 注册相应 provider 并设置子模型允许列表与 effort 元数据。插件不代改 DSH App 的这些设置。
 
+原生 `subagent` 的允许列表不代表整个 DSH 的模型范围。Codex、Antigravity 等执行插件可以提供另外的工具入口；入口存在不等于它已进入这次 GeneralRouter 的可执行候选集。2026-10-20 的[配对开发案例](../docs/experiments/translation-ab-v2/README.md)中，宿主同时暴露两个插件入口，但 Router 的实际派遣仍走原生路径，12 组评分中仅 Flash 通过该路径的准入。使用时应区分资料库配置数、每次匹配的准入结果和实际调用工具；不因额度来源带有某个插件名称就推断调用了该插件。
+
 ## 安装
 
 在 DSH App 内安装，无需运行 PowerShell 脚本，也无需退出 App：

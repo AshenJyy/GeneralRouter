@@ -1,0 +1,5 @@
+arm,role,provider,model,effort,settlements,uncached_input,cache_read_reported,output,total_reported,cache_write,independent_reasoning,known_api_equivalent_usd
+A-default,main,easy-cliproxyapi,gpt-6.1-sol,max,34,108707,2351104,21806,2481617,unknown,unknown,0.6705844
+A-default,worker,easy-cliproxyapi,gpt-6.1-sol,max,39,53365,1321728,16421,1391514,unknown,unknown,0.4031128
+B-router,main,easy-cliproxyapi,gpt-6.1-sol,max,29,79314,1606912,24402,1710628,unknown,unknown,0.5633392
+B-router,worker,easy-cliproxyapi,gemini-3.8-flash-high,high,43,208135,2649610,34931,2892676,unknown,unknown,0.48581325

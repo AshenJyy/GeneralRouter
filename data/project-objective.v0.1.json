@@ -5,25 +5,26 @@
     "product": "A DeepSeek Harness plugin for explainable model selection at the development-subtask level.",
     "host_boundary": "DSH provides the main agent, sessions, tools and native subagent orchestration. GeneralRouter does not build a separate orchestrator.",
     "routing_boundary": "GeneralRouter maintains capability and task references, matches candidates, applies reported-quota admission, explains selections and records usage. The main agent receives each selection and dispatches through DSH's native subagent tool.",
-    "objective_evidence": "Completion-time and subscription-usage goals remain unverified. Current capability matching and cost/timing records do not constitute demonstrated optimization."
+    "objective_evidence": "One paired translation-extension repair case completed. B failed a fixed quality requirement and took longer despite fewer GPT-routed tokens. Quality-preserving optimization and quota-budget adherence remain unproven."
   },
   "problem_statement": "Strong models available through a subscription have a finite usage allowance. High-allowance alternatives may not satisfy every task's quality requirements, while relying entirely on token-billed models creates additional API costs.",
   "primary_objective": "Reduce end-to-end completion time while meeting predefined output-quality requirements and keeping subscription usage within a declared allowance.",
   "constraint_status": {
-    "capability_matching": "implemented_not_runtime_tested",
-    "deepseek_harness_adapter": "implemented_not_installed_or_runtime_tested",
-    "subscription_usage_measurement": "collectors_implemented_not_runtime_tested",
-    "quality_gate": "to_be_defined_for_each_case_study",
-    "reported_percentage_gate_and_dispatch_tickets": "implemented_not_runtime_tested"
+    "capability_matching": "user_run_observed_with_saved_candidate_ranking",
+    "deepseek_harness_adapter": "installed_and_user_run_observed_for_native_subagent_path",
+    "subscription_usage_measurement": "reported_percentage_snapshots_observed_task_attribution_unknown",
+    "quality_gate": "case_criteria_defined_and_manual_evidence_recorded_B_failed_navigation",
+    "reported_percentage_gate_and_dispatch_tickets": "user_run_observed_not_exhaustively_verified"
   },
   "evaluation_plan": {
-    "status": "planned_not_executed",
-    "first_case": "Build the same simple local translation app using DeepSeek Harness default orchestration and DeepSeek Harness with GeneralRouter.",
+    "status": "single_pair_completed_with_manual_observation",
+    "first_case": "Repair translation-only layout in an existing browser translation extension on arXiv HTML.",
     "application": {
-      "kind": "Local translation app",
-      "translation_model": "Tencent Hy-MT2-1.8B",
-      "routing_scope": "Cloud models carrying out app-development subtasks; the translation model used by the finished app remains identical in both arms.",
-      "local_runtime_and_quantization": "To be selected and fixed identically for both arms."
+      "kind": "Existing browser translation extension",
+      "target_page": "https://arxiv.org/html/1706.03762v7",
+      "translation_model_ui_label": "gemini-3.5-flash-lite",
+      "upstream_model_attestation": "unknown",
+      "routing_scope": "Development subtasks; translation endpoint/model/parameters/prompts were required to remain unchanged."
     },
     "arms": [
       {
@@ -36,15 +37,14 @@
       }
     ],
     "comparison_scope": "Single-app engineering case study; repeated runs can assess variability, but do not establish general superiority.",
-    "baseline_disclosure": "Record the parent model, native subagent model-selection switch and allowed candidate list. DSH can itself select child models when enabled. A comparison against default model inheritance does not establish superiority over its native dynamic selection.",
+    "baseline_disclosure": "A omitted native model overrides and inherited Sol max. B explicitly dispatched Flash high through native subagent. Both host plugin tools were visible but unused in B; the native allowlist is not the host-wide candidate inventory.",
     "fixed_conditions": [
-      "App specification and initial files",
-      "Harness version and tools, with any configuration difference disclosed",
-      "Execution environment, hardware and concurrency limits",
-      "Local translation model revision, quantization and inference runtime",
-      "Acceptance criteria",
-      "Stopping and failure criteria",
-      "Model-download and cold-start accounting protocol"
+      "Same original source and six input screenshots by protocol",
+      "Same task requirements, planner model, one actual development worker per arm and no separate reviewer",
+      "Same ten-minute intended development budget, with actual complete-turn overrun disclosed",
+      "No developer-run tests; user manually operated the delivered extensions",
+      "Translation endpoint/model/parameters/prompts required to remain unchanged",
+      "Sequential independent sessions; uncontrolled service load, cache state and runtime translation variation disclosed"
     ],
     "record": [
       "Acceptance-criteria results",
@@ -57,14 +57,16 @@
       "Routing decisions and any dispatched-model or effort fallback",
       "Human interventions and failed attempts"
     ],
-    "subscription_allowance": "Use observed allowance data, or identify an imposed experimental budget explicitly as a simulation. Do not infer an included token cap from a monthly fee."
+    "subscription_allowance": "Use observed allowance data, or identify an imposed experimental budget explicitly as a simulation. Do not infer an included token cap from a monthly fee.",
+    "report": "docs/experiments/translation-ab-v2/README.md",
+    "data": "docs/experiments/translation-ab-v2/results.json"
   },
   "cost_reporting": {
     "primary_comparison_metric": "API-equivalent cost calculated from measured token usage, including subscription-backed calls.",
     "subscription": "Measure allowance consumption separately; no task-level allocation of the monthly subscription fee is planned.",
     "api": "Compute metered usage costs from recorded usage and a dated rate schedule; distinguish tariff-valued usage from cash paid.",
     "api_equivalent_cost": "Sum uncached-input, cached-input and output tokens multiplied by their dated model-specific per-token API rates. Include planner, worker and retry calls. Preserve provider-specific usage semantics, count reasoning tokens once, and report unavailable usage or prices as unknown rather than zero.",
-    "local_translation": "Report local translation runtime separately; it incurs no cloud API token charge in this comparison.",
+    "local_translation": "Superseded by extension case; later manual translation requests excluded from development token accounting.",
     "public_account_tier": "Not specified",
     "personal_purchasing_and_funding_details": "Not specified"
   },
@@ -76,7 +78,7 @@
   ],
   "quota_integration_plan": {
     "source_name": "EasyCLIProxyAPI",
-    "status": "Percentage collectors, cache and one-use dispatch tracking implemented; no runtime trials or installation.",
+    "status": "Implemented; percentage snapshots observed in user runs. Per-task quota consumption and no-exhaustion guarantee remain unverified.",
     "strategy": "Read credential/model metadata and reported applicable percentages directly from ECPA. No quota_group mapping, estimated per-task debit or settlement hold.",
     "refresh": "Initial active read and then at most every ten minutes during activity; no idle refresh.",
     "unknown_data": "Unreported or unscoped percentage stays unknown and does not itself block paid/API routes. Reported exhausted applicable allowance can exclude a route. No guarantee of never exhausting an account is established."
@@ -88,6 +90,17 @@
     "record_scope": "Tasks, usage, timing and quota-cache state belong to the current workspace. Shared configuration does not combine records from different workspaces.",
     "switching_workspace": "Start a new main session in the new workspace. No configuration or skill copying is required for the shared defaults.",
     "unknown_connection": "Matching may use bundled defaults without ECPA connection settings. Allowance remains unknown; this does not establish that enough allowance is available.",
-    "status": "implemented_not_runtime_tested"
+    "status": "Installed and user-run observed in the default workspace; no exhaustive cross-workspace verification."
+  },
+  "updated_on": "2026-10-20",
+  "superseded_evaluation_proposal": {
+    "status": "not_executed",
+    "application": {
+      "kind": "Local translation app",
+      "translation_model": "Tencent Hy-MT2-1.8B",
+      "routing_scope": "Cloud models carrying out app-development subtasks; the translation model used by the finished app remains identical in both arms.",
+      "local_runtime_and_quantization": "To be selected and fixed identically for both arms."
+    },
+    "note": "The proposed Hy-MT2 local app was replaced by the existing browser translation-extension repair case."
   }
 }
