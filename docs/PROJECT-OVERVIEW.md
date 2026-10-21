@@ -4,7 +4,7 @@
 
 GeneralRouter is a plugin that matches development subtasks to model configurations and records what happened after selection. It separates capability scoring, execution constraints, acceptance outcomes and resource use, so a completed model call does not automatically count as a successful task.
 
-[中文项目说明](../README.md) · [Design decisions](DESIGN-DECISIONS.md) · [Case study](experiments/translation-ab-v2/README.md) · [Recorded results](experiments/translation-ab-v2/results.json)
+[中文项目说明](../README.md) · [Core algorithm](CORE-ALGORITHM.md) · [Design decisions](DESIGN-DECISIONS.md) · [Case study](experiments/translation-ab-v2/README.md)
 
 ## The problem
 
@@ -32,6 +32,16 @@ flowchart LR
 - **Observable execution:** selected and actual routes, reported token usage, acceptance records and API-equivalent cost are kept separately. Missing measurements stay unknown.
 
 Cost and time are currently recorded for comparison; they are not optimization terms in the selection policy. Reported quota snapshots cannot guarantee that an account will never run out.
+
+## Core implementation
+
+The project's core implementation consists of three connected modules:
+
+1. **Model-vector construction:** normalize recorded benchmark components, aggregate them into four capability groups, bind each vector to an exact model/effort configuration, and retain missing-data coverage and source provenance.
+2. **Task-weight processing:** define the planner's semantic reference rules and profile contract, keep estimated and fitted sources distinct, and normalize the task weights used for matching.
+3. **Matching and admission:** combine task emphasis with a general prior, calculate scores and missing-evidence discounts, explain each dimension's contribution, and select a configuration that the current execution path can call.
+
+The [algorithm walkthrough](CORE-ALGORITHM.md) gives the formulas and source locations. These modules apply established numerical methods to the project's routing problem; they do not train a new foundation model or claim a new mathematical method.
 
 ## One real development case
 
@@ -64,4 +74,4 @@ The next useful extension would connect the execution paths and establish which 
 - [Case evidence manifest](experiments/translation-ab-v2/evidence-manifest.json), [usage table](experiments/translation-ab-v2/usage.csv) and [reported settlements](experiments/translation-ab-v2/usage-records.json)
 - [Desktop installation](../dsh-generalrouter/README.zh-CN.md): the target host is DSH Desktop 0.2.1-rc.2; installation uses its Add plugin flow and the packaged tarball. Python 3 is required locally.
 
-Artificial Analysis supplies the benchmark measurements; DSH supplies orchestration; EasyCLIProxyAPI supplies gateway access and reported quota information. GeneralRouter's contribution is the task-routing and recording layer connecting those components. Historical task-reference fits cover only four related business examples and do not calibrate general coding tasks; ordinary task weights remain explicit planner estimates.
+Artificial Analysis supplies the benchmark measurements; DSH supplies orchestration; EasyCLIProxyAPI supplies gateway access and reported quota information. GeneralRouter implements the capability-vector construction, task-profile processing, matching and execution-recording layer that connects them. Historical task-reference fits cover only four related business examples and do not calibrate general coding tasks; ordinary task weights remain explicit planner estimates.
