@@ -2,13 +2,13 @@
 
 [English project overview](docs/PROJECT-OVERVIEW.md) · [Core algorithm](docs/CORE-ALGORITHM.md) · [Design decisions](docs/DESIGN-DECISIONS.md)
 
-GeneralRouter 是基于 DeepSeek Harness（DSH）的任务级模型路由插件，当前版本为 **v0.1.9 experimental**。它为独立子任务首次选择模型并固定配置，记录选择理由、实际调用和用量；修复由主 agent 安排，以相同配置启动新的 subagent。
+GeneralRouter 是基于 DeepSeek Harness（DSH）的任务级模型路由插件，当前版本为 **v0.1.10 experimental**。它为独立子任务首次选择模型并固定配置，记录选择理由、实际调用和用量；修复由主 agent 安排，以相同配置启动新的 subagent。
 
 DSH 主 agent 配合 planner skill 拆分任务，将任务资料提交给 GeneralRouter；主 agent 收到匹配结果后，通过 DSH 原生 `subagent` 派遣工作。
 
 这个项目来自一个实际使用问题：强模型的订阅额度有限，其他模型的可用量更大，但不能假定它们能以相同质量完成每个开发任务。目标是让每个子任务的选模有依据，并用实际交付、时间和用量判断取舍。
 
-**当前结果：** v0.1.7 已完成一次浏览器翻译扩展的配对开发案例。接入 Router 的一组减少了约 55.8% 的 GPT 路由 token，但总 token 增加、开发回合更长，而且目录翻译未达标；这次没有达成保质目标。后续同模型修复交接及 v0.1.9 取消 Router 原生允许列表预筛选的改动已实现，尚未运行验证。[查看实验报告](docs/experiments/translation-ab-v2/README.md) · [汇总数据](docs/experiments/translation-ab-v2/results.json) · [安装说明](dsh-generalrouter/README.zh-CN.md)
+**当前结果：** v0.1.7 已完成一次浏览器翻译扩展的配对开发案例。接入 Router 的一组减少了约 55.8% 的 GPT 路由 token，但总 token 增加、开发回合更长，而且目录翻译未达标；这次没有达成保质目标。后续同模型修复交接、取消 Router 原生允许列表预筛选，以及 v0.1.10 的 rc.3 适配和生命周期修正已实现，尚未运行验证。[查看实验报告](docs/experiments/translation-ab-v2/README.md) · [汇总数据](docs/experiments/translation-ab-v2/results.json) · [安装说明](dsh-generalrouter/README.zh-CN.md)
 
 ```mermaid
 flowchart LR
@@ -88,18 +88,22 @@ v0.1.7 据此增加追加关联任务、独立验收记录与逐任务记账，�
 
 开发与本次更新没有新增自动测试、代码 review、编译校验、模拟路由或模型试调用。公开榜单题评测仍未执行。静态的 12 组能力资料、原生 subagent 允许列表和其他执行插件的模型范围是不同层次，不能混为同一个候选列表。
 
+## rc.3 兼容更新
+
+v0.1.10 将宿主版本声明扩展为明确的 rc.2 / rc.3 两版；原来精确锁定 rc.2 会被 rc.3 的插件兼容门拒绝。相关官方工具接口保持一致。首次 effort 元数据按有效调用映射查询，不再受原生允许列表范围限制；未知支持情况仍用 default。后台刷新只跟随执行活动，已签票但未执行不形成常驻刷新。派遣失败清理核对调用身份，避免重复调用失败关闭另一 worker 的票据。[兼容依据与实现边界](docs/DSH-COMPATIBILITY.md)
+
 ## 构建与使用
 
-目标宿主为 DSH Desktop `0.2.1-rc.2`，本机需要 Python 3。在仓库根目录生成安装包：
+目标宿主为 DSH Desktop `0.2.1-rc.3`，并保留 `0.2.1-rc.2` 的版本声明，本机需要 Python 3。在仓库根目录生成安装包：
 
 ```text
 py -3 scripts/package_dsh_plugin.py
 ```
 
-生成的 `dsh-generalrouter-0.1.9.tgz` 位于仓库根目录。通过 DSH App 的 **Add plugin** 输入该文件在本机的绝对路径，安装并启用；已有安装通过 App 插件管理更新包并新建会话，本机配置继续保留。打包命令只生成发布文件，不运行模型。
+生成的 `dsh-generalrouter-0.1.10.tgz` 位于仓库根目录。通过 DSH App 的 **Add plugin** 输入该文件在本机的绝对路径，安装并启用；已有安装通过 App 插件管理更新包并新建会话，本机配置继续保留。打包命令只生成发布文件，不运行模型。
 
 插件在各会话中提供包内 planner skill；本机连接配置共用 `$DSH_HOME/generalrouter/host.local.json`（未设置 `DSH_HOME` 时为 `~/.dsh/generalrouter/host.local.json`）。换工作区后新建会话即可，无需复制配置或 skill。项目根目录下的同名配置和 skill 可覆盖共享默认，用量与任务记录始终保存在实际工作区。首次接入仍需配置 DSH provider、子模型允许列表和 ECPA 管理连接；缺失额度连接时保留 unknown，不阻止内置默认模型匹配。详见[插件安装说明](dsh-generalrouter/README.zh-CN.md)。
 
 ## 接下来的范围
 
-v0.1.9 保留能力向量、首次匹配公式和同模型修复，取消 Router 的原生目录预筛选。此次没有新增实验，也不根据单次结果调整权重。后续真实使用优先记录不同调用入口的候选覆盖、失败类型及逐任务结果，再决定是否加入成本、耗时或 effort 选择策略。尚未实现跨执行插件派遣、自动学习、自动升级模型或额度消耗预测。
+v0.1.10 延续能力向量、首次匹配公式、同模型修复与取消原生目录预筛选的规则，更新 rc.3 兼容声明及派遣生命周期处理。此次没有新增实验，也不根据单次结果调整权重。后续真实使用优先记录不同调用入口的候选覆盖、失败类型及逐任务结果，再决定是否加入成本、耗时或 effort 选择策略。尚未实现跨执行插件派遣、自动学习、自动升级模型或额度消耗预测。

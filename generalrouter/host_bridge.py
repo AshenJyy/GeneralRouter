@@ -179,6 +179,10 @@ class HostBridge:
             if not isinstance(override, dict):
                 raise SetupRequired("Each optional route override must be an object")
             self.routes[identity] = {**self.routes.get(identity, {}), **override}
+        if request.get("action") == "model_metadata_routes":
+            # The adapter needs only effective route identities for optional
+            # effort metadata. Do not load quota connections, rates or run state.
+            return
         if self.config.get("quota_file"):
             quota_path = Path(self.config["quota_file"])
             self.quota_config = _quota_settings(_object_file(quota_path), quota_path.parent)
@@ -193,6 +197,18 @@ class HostBridge:
             _object_file(Path(self.config["rates_file"]))
             if self.config.get("rates_file") else _object_file(self.runtime_root / "data/api-equivalent-rates.v0.1.json")
         )
+
+    def model_metadata_routes(self) -> dict:
+        """Expose enabled route identities, never host policy or private settings."""
+        identities = {
+            (route["provider"], route["model"])
+            for route in self.routes.values()
+            if isinstance(route, dict) and route.get("enabled") is True
+            and all(isinstance(route.get(field), str) and route[field].strip() for field in ("provider", "model"))
+        }
+        return {"ok": True, "status": "model_metadata_routes",
+                "routes": [{"provider": provider, "model": model} for provider, model in sorted(identities)],
+                "native_allowlist_checked": False}
 
     def _rate(self, record: dict) -> dict | None:
         candidates = []
@@ -848,9 +864,9 @@ class HostBridge:
             if task["status"] not in ("reserved", "running"):
                 return {"ok": False, "status": "reservation_already_finished"}
             child_session_id = self.request.get("child_session_id")
+            if not isinstance(child_session_id, str) or not child_session_id:
+                raise BridgeError("worker_child_session_required", "A worker start must identify the native subagent's child_session_id.")
             if task.get("selection_kind") == "inherited_repair":
-                if not isinstance(child_session_id, str) or not child_session_id:
-                    raise BridgeError("repair_child_session_required", "A repair must report the fresh subagent's child_session_id.")
                 previous_sessions = {value for other_id, other in state["tasks"].items() if other_id != identity
                                      for value in [other.get("child_session_id"), *[attempt.get("child_session_id") for attempt in other.get("attempts", [])]]
                                      if isinstance(value, str) and value}
@@ -863,11 +879,24 @@ class HostBridge:
             if not isinstance(actual, dict):
                 raise BridgeError("actual_route_required", "actual_route must be an object.")
             expected = task["route"]
-            mismatch = any(actual.get(key) is not None and actual[key] != expected.get(key) for key in ("provider", "model", "reasoning_effort"))
-            task.update(status="running", started_at=task.get("started_at", utc_now()), child_session_id=child_session_id, actual_route=actual, route_mismatch=mismatch)
+            # The child identity and request header may arrive separately.
+            # Missing fields in a repeated notification must not erase an
+            # observed route or reset an already recorded mismatch.
+            observed = {key: actual[key] for key in ("provider", "model", "reasoning_effort") if actual.get(key) is not None}
+            merged = {**(task.get("actual_route") or {}), **observed}
+            mismatch = task.get("route_mismatch") is True or any(
+                value != expected.get(key) for key, value in observed.items()
+            )
+            complete = all(merged.get(key) is not None for key in ("provider", "model")) and (
+                expected.get("reasoning_effort") is None or merged.get("reasoning_effort") is not None
+            )
+            mismatch = True if mismatch else False if complete else None
+            if task["status"] == "running" and task.get("actual_route") == merged and task.get("route_mismatch") == mismatch:
+                return {"ok": True, "status": "worker_already_recorded", "route_mismatch": mismatch}
+            task.update(status="running", started_at=task.get("started_at", utc_now()), child_session_id=child_session_id, actual_route=merged, route_mismatch=mismatch)
             self._remember_attempt(task)
             self.ledger.event(state, "worker_started", task_id=identity, reservation_id=reservation_id,
-                              child_session_id=task.get("child_session_id"), actual_route=actual, route_mismatch=mismatch)
+                              child_session_id=task.get("child_session_id"), actual_route=merged, route_mismatch=mismatch)
         return {"ok": True, "status": "worker_recorded", "route_mismatch": mismatch}
 
     def authorize_dispatch(self) -> dict:
@@ -919,6 +948,9 @@ class HostBridge:
 
     def release(self) -> dict:
         reservation_id = self.request.get("reservation_id")
+        dispatch_call_id = self.request.get("dispatch_call_id")
+        if dispatch_call_id is not None and (not isinstance(dispatch_call_id, str) or not dispatch_call_id):
+            raise BridgeError("dispatch_call_id_required", "Dispatch settlement needs a nonempty native tool call_id.")
         outcome = self.request.get("outcome", "completed")
         if outcome not in ("completed", "failed", "cancelled", "not_dispatched", "cancelled_before_dispatch"):
             raise BridgeError("unsupported_worker_outcome", "The worker outcome is not supported.")
@@ -931,6 +963,12 @@ class HostBridge:
                 if previous is not None:
                     return {"ok": previous.get("outcome") == outcome, "status": "reservation_already_finished", "reservation_id": reservation_id}
                 raise BridgeError("reservation_not_in_run", "The reservation does not belong to this run.")
+            if dispatch_call_id is not None and task.get("dispatch_call_id") != dispatch_call_id:
+                # A rejected duplicate tool call does not own the successful
+                # call's ticket. Its later error/cancel event must not end it.
+                return {"ok": False, "status": "dispatch_call_mismatch", "reservation_id": reservation_id,
+                        "task_id": identity, "execution_status": task.get("status"),
+                        "message": "This dispatch call does not own the ticket; its current worker or reservation was preserved."}
             if task.get("status") in ("completed", "failed", "pending") and task.get("outcome") == outcome:
                 return {"ok": True, "status": "already_released", "reservation_id": reservation_id,
                         "task_id": identity, "execution_status": task["status"],
@@ -944,7 +982,8 @@ class HostBridge:
                 task.update(status="completed" if outcome == "completed" else "pending" if outcome in ("not_dispatched", "cancelled_before_dispatch") else "failed", outcome=outcome, finished_at=utc_now())
                 self._remember_attempt(task)
                 self.ledger.event(state, "worker_finished", task_id=identity, reservation_id=reservation_id,
-                                  child_session_id=task.get("child_session_id"), outcome=outcome)
+                                  child_session_id=task.get("child_session_id"), outcome=outcome,
+                                  dispatch_call_id=task.get("dispatch_call_id"))
         response = {"ok": result.get("released", False), "status": "released", **result,
                     "task_id": identity, "execution_status": task.get("status"),
                     "acceptance_status": task.get("acceptance_status", "unknown")}
@@ -1120,7 +1159,7 @@ def main() -> int:
         if not isinstance(request, dict):
             raise BridgeError("request_object_required", "The host request must be a JSON object.")
         requested_action = request.get("action", "match")
-        if requested_action not in ("match", "append_task", "prepare_repair", "record_acceptance", "status", "refresh_quota", "authorize_dispatch", "started", "release", "record_usage", "report"):
+        if requested_action not in ("match", "append_task", "prepare_repair", "record_acceptance", "status", "refresh_quota", "authorize_dispatch", "started", "release", "record_usage", "report", "model_metadata_routes"):
             raise BridgeError("unsupported_action", "The requested host action is not supported.")
         action = requested_action
         stage = "load_host_configuration"

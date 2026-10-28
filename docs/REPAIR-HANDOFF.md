@@ -1,6 +1,6 @@
 # Same-model repair handoff
 
-**v0.1.9 experimental — implemented, not runtime-verified.**
+**v0.1.10 experimental — implemented, not runtime-verified.**
 
 The project author proposed this change: GeneralRouter selects a configuration once for an independent task. If execution or acceptance fails, the main agent receives the failure and decides whether to arrange a repair. A repair starts a **new native subagent with the same frozen provider, model and effort**. It does not re-enter candidate matching.
 

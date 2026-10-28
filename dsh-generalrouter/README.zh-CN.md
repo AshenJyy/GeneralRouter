@@ -1,8 +1,8 @@
 # GeneralRouter 的 DSH Desktop 插件
 
-GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件，当前版本为 **v0.1.9 experimental**。DSH 提供主 agent、会话、工具和原生子 agent 的执行编排；GeneralRouter 为独立任务首次选模并固定配置，提供额度准入、选择解释和用量记录。主 agent 接收路由结果后，通过 DSH 原生 `subagent` 发起执行。失败由主 agent 决定如何处理；需要修复时，以原配置新开 subagent，不重新选模。
+GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件，当前版本为 **v0.1.10 experimental**。DSH 提供主 agent、会话、工具和原生子 agent 的执行编排；GeneralRouter 为独立任务首次选模并固定配置，提供额度准入、选择解释和用量记录。主 agent 接收路由结果后，通过 DSH 原生 `subagent` 发起执行。失败由主 agent 决定如何处理；需要修复时，以原配置新开 subagent，不重新选模。
 
-面向 **DeepSeek Harness Desktop 0.2.1-rc.2**，按官方 bundle 方式分发标准 npm tarball：`dsh-generalrouter-0.1.9.tgz`。包内包含预先写好的 JavaScript ESM 入口、`dsh.bundle.patch`、完整 Python 匹配模块、能力快照和 planner skill；没有编译、安装生命周期脚本，也不依赖原始源码仓库。Python 解释器需要在本机可用，Windows 默认 `py -3`。新修复交接及本版准入调整已实现，尚未运行验证。
+面向 **DeepSeek Harness Desktop 0.2.1-rc.3**，同时声明兼容 rc.2，按官方 bundle 方式分发标准 npm tarball：`dsh-generalrouter-0.1.10.tgz`。包内包含预先写好的 JavaScript ESM 入口、`dsh.bundle.patch`、完整 Python 匹配模块、能力快照和 planner skill；没有编译、安装生命周期脚本，也不依赖原始源码仓库。Python 解释器需要在本机可用，Windows 默认 `py -3`。同模型修复交接及本版 rc.3 适配已实现，尚未运行验证。
 
 主 agent 使用 skill 生成四维任务资料，调用 `generalrouter_match`，再将返回的 `dispatch` 交给 DSH 原生 `subagent`。插件保留原生派遣接口，通过派遣前授权核对票据和固定路由。包内 `runtime/data/model-call-mappings.v0.1.json` 内置 12 组候选的 provider、模型 ID 和 effort 调用映射，默认全部启用。v0.1.9 不按原生模型目录或允许列表成员关系预筛选，缺失目录元数据也不要求先补配置；已启用的有效映射、额度、票据和路由身份检查保留。DSH 在实际调用时仍执行自身权限检查，用户负责 App 的 provider、允许列表和 effort 设置，插件不代改。
 
@@ -13,13 +13,13 @@ GeneralRouter 是依托 DeepSeek Harness（DSH）的子任务模型路由插件�
 在 DSH App 内安装，无需运行 PowerShell 脚本，也无需退出 App：
 
 1. 打开 **Plugins（插件）→ Add plugin（添加插件）**。
-2. 在 **Package name or address（包名或地址）** 中输入已下载或构建的 `dsh-generalrouter-0.1.9.tgz` 在本机的完整绝对路径，点击 **Install（安装）**。
+2. 在 **Package name or address（包名或地址）** 中输入已下载或构建的 `dsh-generalrouter-0.1.10.tgz` 在本机的完整绝对路径，点击 **Install（安装）**。
 3. 安装完成后选择 **Enable now（立即启用）**。
 4. 在任意实际工作区新建主会话。`projectRoot` 和 `hostConfig` 均可留空，工作区内不必预先放置 GeneralRouter 配置或 skill。
 
 包内 planner skill 由插件向 DSH 的 skill 服务提供，供各工作区会话使用；不再要求逐项目复制。项目中已有同名 skill 时，使用项目版本作为覆盖。安装插件不改变 DSH 的主模型、provider、原生子模型允许列表或 effort 元数据，这些仍由用户在 DSH App 配置。
 
-已有安装通过 App 的插件管理更新到 0.1.9 包，然后新建主会话使用新版 skill。现有共享连接配置、项目覆盖和历史运行记录继续保留，无需重新填写。项目或用户目录中的同名旧 skill 仍会优先于包内版本；使用这类覆盖时，应同步其内容或备份后移走覆盖，才能使用本次更新。
+已有安装通过 App 的插件管理更新到 0.1.10 包，然后新建主会话使用新版 skill。现有共享连接配置、项目覆盖和历史运行记录继续保留，无需重新填写。项目或用户目录中的同名旧 skill 仍会优先于包内版本；使用这类覆盖时，应同步其内容或备份后移走覆盖，才能使用本次更新。
 
 ## 任务向量
 
@@ -111,7 +111,7 @@ package/
   README.zh-CN.md
 ```
 
-在仓库根目录运行以下命令，生成根目录下的 `dsh-generalrouter-0.1.9.tgz`、安装说明和配置模板：
+在仓库根目录运行以下命令，生成根目录下的 `dsh-generalrouter-0.1.10.tgz`、安装说明和配置模板：
 
 ```text
 py -3 scripts/package_dsh_plugin.py
@@ -131,10 +131,12 @@ v0.1.8 按项目作者提出的架构调整，新增同模型修复交接：首�
 
 v0.1.9 按项目作者要求，移除首次匹配、固定配置重签票、修复准备和授权中的原生目录/允许列表成员检查；缺少目录元数据不再阻止匹配。有效映射、额度条件、票据和固定路由身份检查保留，修复保持精确 effort。实际调用的宿主权限仍由 DSH 负责，本次不改 App 设置、不接通其他执行插件，也不新增运行验证。v0.1.7 的 11 组候选排除记录保持不变。
 
-接口依据官方 tag `dsh-v0.2.1-rc.2`：
+v0.1.10 更新 rc.3 版本兼容声明，保留 rc.2。首次 effort 元数据依据已启用有效映射查找，不再局限于原生允许列表；仍不修改 DSH 权限。派遣失败清理核对工具调用身份，防止重复调用失败误关另一 worker；后台额度刷新跟随实际执行活动，闲置票据不触发轮询。重复子会话绑定保留已观测实际身份与错路证据；宿主缺失的可选缓存 token 字段保留 unknown，不写成 0。没有新增运行验证或修改历史实验。
 
-- [官方 bundle、tarball 与配置层顺序](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.2/docs/user/develop/basic/publish.md)
-- [App 添加、启用与配置插件的界面用词](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.2/packages/client/ui-plugin-manager/src/client/locales.ts)
-- [Desktop 安装所有权与随附命令](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.2/apps/desktop/README.md#bundled-command-runtime)
-- [原生 subagent 工具](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.2/packages/subagent/tool-subagent/src/index.ts)
+接口依据官方 tag `dsh-v0.2.1-rc.3`、commit `1f81c047fc48fa190a683e469daa699857e9afe8`，对照 rc.2 的相关接口：
+
+- [官方 bundle、tarball 与配置层顺序](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/docs/user/develop/basic/publish.md)
+- [App 添加、启用与配置插件的界面用词](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/packages/client/ui-plugin-manager/src/client/locales.ts)
+- [Desktop 安装所有权与随附命令](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/apps/desktop/README.md#bundled-command-runtime)
+- [原生 subagent 工具](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/packages/subagent/tool-subagent/src/index.ts)
 - [四维任务资料说明](runtime/skills/generalrouter-task-profile/SKILL.md)

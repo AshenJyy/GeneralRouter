@@ -1,4 +1,4 @@
-# Design decisions in v0.1.9
+# Design decisions in v0.1.10
 
 These are implementation choices and their boundaries, rather than claims of measured optimality. The [project overview](PROJECT-OVERVIEW.md) describes the prototype and the [case study](experiments/translation-ab-v2/README.md) reports v0.1.7 behavior. The same-model repair handoff and v0.1.9 removal of Router-side native membership filtering are implemented but have not been runtime-verified.
 

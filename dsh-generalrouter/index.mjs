@@ -9,7 +9,7 @@ import { lastAssistantStreamChunk } from '@deepseek-ai/dsh-llm'
 import { isRecordingAction, RecordingDiagnostics } from './recording-diagnostics.mjs'
 
 export const name = 'generalrouter'
-export const inject = ['tools', 'systemPrompt', 'sessionProjections', 'skills']
+export const inject = ['tools', 'systemPrompt', 'skills']
 export const Config = z.object({
   // Empty paths follow the Agent Session's original project, not the Host cwd.
   projectRoot: z.string().default(''),
@@ -171,7 +171,9 @@ export function apply(ctx, config = {}) {
   const reservations = new Map()
   const roots = new Map()
   const runSettings = new Map()
-  const authorizedCalls = new Set()
+  const authorizedCalls = new Map()
+  const childReservations = new Map()
+  const childOutcomes = new Map()
   let queue = Promise.resolve()
   const recordingDiagnostics = new Map()
   let quotaRefreshTimer
@@ -191,6 +193,12 @@ export function apply(ctx, config = {}) {
         reservationId: undefined,
       }
       sessionStates.set(session.id, state)
+    }
+    const reservationId = childReservations.get(session.id)
+    const reservation = reservationId ? reservations.get(reservationId) : undefined
+    if (reservation) {
+      state.rootId = reservation.rootId
+      state.reservationId = reservationId
     }
     return state
   }
@@ -229,6 +237,7 @@ export function apply(ctx, config = {}) {
     try { bindProject(agent.session) } catch (error) {
       return { ok: false, status: 'setup_required', message: safeError(error) }
     }
+    stateFor(agent.session).running = agent.status === 'running'
   }
   const diagnosticsFor = runId => {
     let diagnostics = recordingDiagnostics.get(runId)
@@ -308,6 +317,9 @@ export function apply(ctx, config = {}) {
   const bindChild = (reservationId, childSessionId, actualRoute) => {
     const reservation = reservations.get(reservationId)
     if (!reservation) return
+    if (reservation.childId && reservation.childId !== childSessionId) return
+    if (childReservations.has(childSessionId) && childReservations.get(childSessionId) !== reservationId) return
+    childReservations.set(childSessionId, reservationId)
     reservation.childId = childSessionId
     const state = sessionStates.get(childSessionId)
     if (state) {
@@ -315,21 +327,48 @@ export function apply(ctx, config = {}) {
       state.reservationId = reservationId
       flushState(state)
     }
-    void enqueue({
-      action: 'started', run_id: reservation.rootId,
-      reservation_id: reservationId, child_session_id: childSessionId,
-      ...(actualRoute ? { actual_route: canonicalRoute(actualRoute) } : {}),
-    }).catch(() => {})
-    if (reservation.end) {
-      void enqueue({ action: 'release', run_id: reservation.rootId,
-        reservation_id: reservationId, outcome: reservation.end }).catch(() => {})
+    const observedRoute = canonicalRoute(actualRoute || state?.route)
+    const startKey = JSON.stringify(observedRoute || {})
+    if (!reservation.end && reservation.startKey !== startKey) {
+      void enqueue({
+        action: 'started', run_id: reservation.rootId,
+        reservation_id: reservationId, child_session_id: childSessionId,
+        ...(observedRoute ? { actual_route: observedRoute } : {}),
+      }).then(result => {
+        if (result.ok === true) reservation.startKey = startKey
+      }).catch(() => {})
     }
+    const outcome = childOutcomes.get(childSessionId)
+    if (outcome) finishChild(childSessionId, outcome)
+  }
+  const finishChild = (childSessionId, outcome) => {
+    childOutcomes.set(childSessionId, outcome)
+    const state = sessionStates.get(childSessionId)
+    if (state) {
+      state.ended = true
+      state.running = false
+      flushState(state)
+    }
+    const reservationId = childReservations.get(childSessionId)
+    const reservation = reservationId ? reservations.get(reservationId) : undefined
+    if (reservation && !reservation.end) {
+      reservation.end = outcome
+      void enqueue({ action: 'release', run_id: reservation.rootId,
+        reservation_id: reservationId, outcome }).catch(() => {})
+    }
+    reconcileQuotaTimer()
   }
 
-  const activeQuotaRuns = () => new Set([
-    ...pendingPreparations.keys(),
-    ...[...reservations.values()].filter(entry => !entry.end).map(entry => entry.rootId),
-  ])
+  const activeQuotaRuns = () => {
+    const active = new Set(pendingPreparations.keys())
+    for (const dispatch of authorizedCalls.values()) active.add(dispatch.rootId)
+    for (const state of sessionStates.values()) {
+      if (!state.running || state.ended) continue
+      const rootId = rootFor(state)
+      if (rootId) active.add(rootId)
+    }
+    return active
+  }
   const hasActiveQuotaWork = () => activeQuotaRuns().size > 0
   const reconcileQuotaTimer = ({ restart = false } = {}) => {
     const active = !lifecycle.signal.aborted && !quotaLifecycle.signal.aborted && hasActiveQuotaWork()
@@ -347,7 +386,8 @@ export function apply(ctx, config = {}) {
   const refreshActiveQuota = () => {
     if (lifecycle.signal.aborted || quotaLifecycle.signal.aborted || quotaRefreshInFlight || !hasActiveQuotaWork()) return
     // Initial matches and fixed-route repairs obtain a cold/stale snapshot through the bridge. This
-    // timer exists only while work is pending or running; idle has no polling.
+    // timer follows live agent activity, preparations and dispatches. An unused
+    // ticket alone never keeps polling while the user or agent is idle.
     const projects = new Map()
     for (const runId of activeQuotaRuns()) {
       const bound = runSettings.get(runId)
@@ -433,7 +473,8 @@ export function apply(ctx, config = {}) {
     if (result.ok !== true) return {
       kind: 'deny', reason: `GeneralRouter refused dispatch (${result.status || 'not_authorized'}). Report the blocked route to the parent. A never-started dispatch may be prepared again using ${dispatch.reservation.preparationTool || 'the original preparation tool'} with its fixed route; do not bypass the reservation, re-rank a repair, or substitute a model.`,
     }
-    authorizedCalls.add(exec.token)
+    authorizedCalls.set(exec.token, { ...dispatch, callId: exec.callId })
+    reconcileQuotaTimer()
     return next()
   })
   // This registry guard runs after every mutable policy waterfall. Even an
@@ -446,19 +487,35 @@ export function apply(ctx, config = {}) {
     return undefined
   })
 
-  // rc.2's durable session settlements include failed/retried model attempts.
+  ctx.on('agent/status', ({ agent, status }) => {
+    stateFor(agent.session).running = status === 'running'
+    reconcileQuotaTimer()
+  })
+  ctx.on('agent/disposed', ({ agent }) => {
+    const state = stateFor(agent.session)
+    state.running = false
+    reconcileQuotaTimer()
+  })
+
+  // rc.2/rc.3 durable session settlements include failed/retried model attempts.
   // Observe only future, child-owned events; inherited fork prefixes are not billed again.
   ctx.on('session/event', (session, event) => {
     if (!session.isOwnSeq(event.seq)) return
     const state = stateFor(session)
-    if (event.type === 'request/header') state.route = { ...event.data.header.config }
+    if (event.type === 'request/header') {
+      state.route = { ...event.data.header.config }
+      if (state.reservationId) bindChild(state.reservationId, session.id, state.route)
+    }
     if (event.type === 'llm/retry-started') {
       const key = `${event.data.turn}:${event.data.step}`
       state.attempts.set(key, (state.attempts.get(key) || 0) + 1)
     }
     if (event.type === 'user/message') {
       const reservationId = markerOf(event.data.message?.content)
-      if (reservationId && reservations.has(reservationId)) bindChild(reservationId, session.id, state.route)
+      const reservation = reservationId ? reservations.get(reservationId) : undefined
+      if (reservation && session.header.origin === 'subagent' && session.header.parentSession === reservation.rootId) {
+        bindChild(reservationId, session.id, state.route)
+      }
     }
     if (event.type !== 'assistant/message' && event.type !== 'assistant/attempt') return
     const usage = event.data.usage || lastAssistantStreamChunk(event.data.stream || [], 'usage')?.usage
@@ -477,8 +534,8 @@ export function apply(ctx, config = {}) {
       usage_reported: usage !== undefined,
       tokens: {
         uncached_input: usage?.inputTokens ?? null,
-        cached_input: usage === undefined ? null : usage.cacheReadTokens ?? 0,
-        cache_write_input: usage === undefined ? null : usage.cacheWriteTokens ?? 0,
+        cached_input: usage?.cacheReadTokens ?? null,
+        cache_write_input: usage?.cacheWriteTokens ?? null,
         output: usage?.outputTokens ?? null,
         reasoning: usage?.reasoningTokens ?? null,
       },
@@ -492,43 +549,39 @@ export function apply(ctx, config = {}) {
   // The immutable native tool result contains the child identity. No native
   // tool arguments, model routes or permission decisions are rewritten here.
   ctx.on('tools/result', (exec, result) => {
+    const authorized = authorizedCalls.get(exec.token)
     authorizedCalls.delete(exec.token)
+    reconcileQuotaTimer()
     if (exec.name !== settings.delegationToolName || !exec.agent) return
-    const reservationId = markerOf(exec.arguments?.prompt)
-    if (!reservationId || !reservations.has(reservationId)) return
+    // A denied duplicate may carry a valid old marker. Only this call's
+    // successful authorization owns its unstarted ticket cleanup.
+    if (!authorized) return
+    const { reservationId, reservation } = authorized
+    const childId = result.value?.subagentId
+    if (typeof childId === 'string' && childId.length > 0) {
+      // Requested arguments are not observations of the child's actual route.
+      // request/header supplies that evidence when the local child emits it.
+      bindChild(reservationId, childId, sessionStates.get(childId)?.route)
+    }
     if (result.isError) {
-      const reservation = reservations.get(reservationId)
-      reservation.end = reservation.childId ? 'failed' : 'not_dispatched'
+      // An activated child owns its terminal outcome even if the tool's result
+      // is later cancelled or rejected by another policy.
+      if (reservation.childId || reservation.end) return
+      reservation.end = 'not_dispatched'
       reconcileQuotaTimer()
       void enqueue({ action: 'release', run_id: reservation.rootId,
         reservation_id: reservationId,
+        dispatch_call_id: authorized.callId,
         outcome: reservation.end }).catch(() => {})
-      return
-    }
-    const childId = result.value?.subagentId
-    if (typeof childId === 'string') {
-      const actualRoute = sessionStates.get(childId)?.route
-      bindChild(reservationId, childId, actualRoute || {
-        ...(typeof exec.arguments.provider === 'string' ? { provider: exec.arguments.provider } : {}),
-        ...(typeof exec.arguments.model === 'string' ? { model: exec.arguments.model } : {}),
-        ...(exec.arguments.reasoning_effort ? { reasoning_effort: exec.arguments.reasoning_effort } : {}),
-      })
     }
   })
   ctx.on('subagent/end', info => {
-    const state = sessionStates.get(info.id)
-    const reservation = [...reservations.entries()].find(([, entry]) => entry.childId === info.id)
-    if (state) {
-      state.ended = true
-      flushState(state)
-    }
-    if (!reservation) return
-    const [reservationId, entry] = reservation
-    entry.end = info.stopReason === 'completed' ? 'completed'
+    // Local execution can settle before tools/result supplies its child id.
+    // Retain the terminal edge for bindChild rather than losing it.
+    if (!info.local) return
+    const outcome = info.stopReason === 'completed' ? 'completed'
       : info.stopReason === 'aborted' ? 'cancelled' : 'failed'
-    reconcileQuotaTimer()
-    void enqueue({ action: 'release', run_id: entry.rootId,
-      reservation_id: reservationId, outcome: entry.end }).catch(() => {})
+    finishChild(info.id, outcome)
   })
   ctx.on('session/flush', async session => {
     if (rootFor(stateFor(session))) await queue
@@ -545,7 +598,7 @@ export function apply(ctx, config = {}) {
   })
 
   const hostInfo = agent => ({
-    name: 'dsh', version: '0.2.1-rc.2',
+    name: 'dsh', compatibility_target: '0.2.1-rc.3',
     agent_id: agent.id, session_id: agent.session.id,
     cwd: ctx.get('workingDirectory')?.get(agent.session) || agent.session.header.cwd || bindProject(agent.session).projectRoot,
     project_root: bindProject(agent.session).projectRoot,
@@ -553,26 +606,27 @@ export function apply(ctx, config = {}) {
   })
   const currentRun = agent => rootFor(stateFor(agent.session)) || agent.session.id
   const modelMetadataFor = async (agent, signal) => {
-    let projectedModels
-    try {
-      projectedModels = ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy')
-    } catch { /* This optional projection supplies metadata only, never Router admission. */ }
-    if (!Array.isArray(projectedModels) || projectedModels.length === 0) return []
+    // Read only the effective non-secret route pairs from the bridge, including
+    // host overrides. Native allowlist membership never controls this lookup.
+    const mapped = await toolBridge({ action: 'model_metadata_routes', run_id: currentRun(agent) }, signal)
+    if (!mapped.ok || !Array.isArray(mapped.routes)) return []
     const llm = ctx.get('llm')
-    const metadata = []
-    for (const route of projectedModels) {
-      if (typeof route?.provider !== 'string' || typeof route?.model !== 'string') continue
+    const routes = mapped.routes.filter(route => typeof route?.provider === 'string' && typeof route?.model === 'string')
+    return Promise.all(routes.map(async route => {
+      signal?.throwIfAborted()
       const detached = { provider: route.provider, model: route.model }
       if (llm) {
         try {
           const info = await llm.resolveModelInfo(route.provider, route.model, signal)
           detached.reasoning_efforts = info.reasoning?.efforts.map(effort => effort.id) || []
           if (info.reasoning?.defaultEffort) detached.default_reasoning_effort = info.reasoning.defaultEffort
-        } catch { detached.metadata_status = 'unavailable_use_default_effort' }
-      }
-      metadata.push(detached)
-    }
-    return metadata
+        } catch {
+          signal?.throwIfAborted()
+          detached.metadata_status = 'unavailable_use_default_effort'
+        }
+      } else detached.metadata_status = 'unavailable_use_default_effort'
+      return detached
+    }))
   }
   const rememberPreparedDispatches = (result, runId, preparationTool) => {
     const tasks = Array.isArray(result.tasks) ? result.tasks : result.reservation_id ? [result] : []
@@ -669,7 +723,6 @@ export function apply(ctx, config = {}) {
       }
       const setupError = prepareProject(exec.agent)
       if (setupError) return setupError
-      const modelMetadata = await modelMetadataFor(exec.agent, exec.signal)
       const runId = exec.agent.session.id
       roots.set(runId, true)
       const state = stateFor(exec.agent.session)
@@ -685,8 +738,7 @@ export function apply(ctx, config = {}) {
           task_id: args.task_id, objective: args.objective, memento: args.memento,
           ...(args.input_artifacts !== undefined ? { input_artifacts: args.input_artifacts } : {}),
           detail: args.detail === true,
-          host: { ...hostInfo(exec.agent), call_id: exec.callId, model_metadata: modelMetadata },
-          model_metadata: modelMetadata,
+          host: { ...hostInfo(exec.agent), call_id: exec.callId },
         }, exec.signal)
         rememberPreparedDispatches(result, runId, 'generalrouter_prepare_repair')
       } finally {
@@ -818,7 +870,7 @@ export function apply(ctx, config = {}) {
 
   ctx.systemPrompt.section({
     name: 'generalrouter:host-admission', order: 89,
-    text: 'GeneralRouter no longer prefilters candidates by membership in DSH native subagent model selection policy. That projection, when present, supplies optional effort metadata only; absent or empty metadata does not block matching or same-model repair preparation. Router still checks configured mappings, observed quota admission and dispatch tickets. Returned dispatch arguments do not guarantee DSH will accept the call: the host retains its runtime restrictions. If the native call is rejected, report and retain the actual failure, do not claim a worker ran, and do not automatically substitute a model or switch to a different plugin entry point. This does not enable providers, change the user\'s allowlist, or add cross-plugin dispatch.',
+    text: 'GeneralRouter does not prefilter candidates by membership in DSH native subagent model selection policy. It queries optional effort metadata for the configured provider/model mappings independently of that policy; unavailable metadata uses the default effort on first selection and never changes a frozen route. Router still checks configured mappings, observed quota admission and dispatch tickets. Returned dispatch arguments do not guarantee DSH will accept the call: the host retains its runtime restrictions. If the native call is rejected, report and retain the actual failure, do not claim a worker ran, and do not automatically substitute a model or switch to a different plugin entry point. This does not enable providers, change the user\'s allowlist, or add cross-plugin dispatch.',
   })
   ctx.systemPrompt.section({
     name: 'generalrouter:dispatch', order: 90,
