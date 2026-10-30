@@ -1,6 +1,6 @@
 # GeneralRouter
 
-**Task-level model routing for DeepSeek Harness · v0.1.11 experimental**
+**Task-level model routing for DeepSeek Harness · v0.1.12 experimental**
 
 GeneralRouter is a plugin that matches independent development subtasks to model configurations once and records what happened after selection. Failures return to the main agent; repairs use fresh native subagents with the same fixed configuration. It separates capability scoring, execution constraints, acceptance outcomes and resource use, so a completed model call does not automatically count as a successful task.
 
@@ -72,7 +72,7 @@ The [case data](experiments/translation-ab-v2/results.json) include the candidat
 
 ## What comes next
 
-v0.1.11 retains the original scoring formula, same-model repair, absence of Router-side native membership filtering and v0.1.10 lifecycle corrections. It adds rc.5 compatibility declarations; see [host compatibility](DSH-COMPATIBILITY.md). It adds no new experiment and does not replace the v0.1.7 case. Further work may connect execution paths and establish which model/effort settings each exposes. More independent real tasks would be needed before changing weights or adding cost-aware selection.
+v0.1.12 retains the original scoring formula, same-model repair, absence of Router-side native membership filtering and v0.1.10 lifecycle corrections. It admits the bounded 0.2.1 release family from rc.2 onward; the latest source comparison remains rc.5; see [host compatibility](DSH-COMPATIBILITY.md). It adds no new experiment and does not replace the v0.1.7 case. Further work may connect execution paths and establish which model/effort settings each exposes. More independent real tasks would be needed before changing weights or adding cost-aware selection.
 
 ## Inspect the work
 
@@ -80,6 +80,6 @@ v0.1.11 retains the original scoring formula, same-model repair, absence of Rout
 - [Capability records](../data/model-vectors.v0.1.json) and [candidate configurations](../data/candidate-configurations.v0.1.json)
 - [DSH adapter](../dsh-generalrouter) and [matching/accounting modules](../generalrouter)
 - [Case evidence manifest](experiments/translation-ab-v2/evidence-manifest.json), [usage table](experiments/translation-ab-v2/usage.csv) and [reported settlements](experiments/translation-ab-v2/usage-records.json)
-- [Desktop installation](../dsh-generalrouter/README.zh-CN.md): the target host is DSH Desktop 0.2.1-rc.5, with rc.2 and rc.3 also declared compatible; installation uses its Add plugin flow and the packaged tarball. Python 3 is required locally.
+- [Desktop installation](../dsh-generalrouter/README.zh-CN.md): the host range is DSH Desktop `>=0.2.1-rc.2 <0.2.2-0`; source comparison currently reaches rc.5; installation uses its Add plugin flow and the packaged tarball. Python 3 is required locally.
 
 Artificial Analysis supplies the benchmark measurements; DSH supplies orchestration; EasyCLIProxyAPI supplies gateway access and reported quota information. GeneralRouter implements the capability-vector construction, task-profile processing, matching and execution-recording layer that connects them. Historical task-reference fits cover only four related business examples and do not calibrate general coding tasks; ordinary task weights remain explicit planner estimates.

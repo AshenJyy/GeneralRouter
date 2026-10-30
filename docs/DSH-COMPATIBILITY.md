@@ -1,6 +1,6 @@
 # DSH compatibility
 
-GeneralRouter v0.1.11 targets DSH Desktop `0.2.1-rc.5`, retaining explicit `0.2.1-rc.2` and `0.2.1-rc.3` declarations. This compatibility update is based on the official source contracts. It has not been installed or runtime-verified against rc.5.
+GeneralRouter v0.1.12 admits DSH Desktop `>=0.2.1-rc.2 <0.2.2-0`. This covers the 0.2.1 release family from rc.2 onward, including the stable 0.2.1 release. The latest inspected source is rc.5; the range is an admission policy, not evidence about future interfaces. This compatibility update is based on the official source contracts. It has not been installed or runtime-verified against rc.5.
 
 ## Pinned upstream sources
 
@@ -16,7 +16,9 @@ The intervening [reasoning-body migration](https://github.com/deepseek-ai/deepse
 
 ## Package compatibility
 
-The v0.1.10 manifest allowed only rc.2 and rc.3. DSH evaluates `engines.dsh` before installing or activating a plugin, so that declaration excludes rc.5 even when the imported APIs are unchanged. The updated manifest lists the inspected versions explicitly: `0.2.1-rc.2 || 0.2.1-rc.3 || 0.2.1-rc.5`. The `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-llm` peer ranges use the same set. This does not assert support for later releases. See the [official compatibility rule](https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/boot/app-boot/src/plugin-compatibility.ts#L54).
+Previous manifests enumerated individual RC versions, requiring a package update even when only the host version changed. DSH evaluates `engines.dsh` with `includePrerelease: true`. The manifest now uses `>=0.2.1-rc.2 <0.2.2-0`; `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-llm` use the same peer range. The explicit lower prerelease comparator also allows same-tuple RC versions under ordinary npm range matching. The upper `-0` excludes even 0.2.2 prereleases, avoiding accidental admission across that boundary. These comparator and prerelease semantics are documented by [node-semver](https://github.com/npm/node-semver#prerelease-tags).
+
+This admits later 0.2.1 RCs and stable 0.2.1 without editing the manifest for each RC. Actual interface changes can still require plugin work. Releases before rc.2 or from 0.2.2 onward remain outside this policy. See the [official compatibility rule](https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/boot/app-boot/src/plugin-compatibility.ts#L54).
 
 DSH's source-development Node requirement remains `^22.19.0 || >=24.0.0`, and its package manager remains `pnpm@11.28.5`. `@deepseek-ai/schemastery` remains `3.18.5`. These are upstream runtime/build declarations, not additional commands required for a Desktop user adding the packaged `.tgz`. See the [root manifest](https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/package.json) and [Schemastery manifest](https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/vendor/schemastery/package.json).
 
@@ -47,7 +49,7 @@ v0.1.10 introduced the following lifecycle and reporting corrections, retained b
 
 No score formula, model capability snapshot, same-model repair policy or user DSH configuration changes accompany these corrections.
 
-Cleanup depends on host observations: a final tool result settles only that call's authorized pre-start reservation, while an activated child waits for its real end event. Crash recovery, entirely missing host result/end events, and authorization committed with its response lost are not a complete durable-recovery feature in this release. Host records label rc.5 as the compatibility target, not as a detected running application version.
+Cleanup depends on host observations: a final tool result settles only that call's authorized pre-start reservation, while an activated child waits for its real end event. Crash recovery, entirely missing host result/end events, and authorization committed with its response lost are not a complete durable-recovery feature in this release. Host records retain rc.5 as the source compatibility target and add the admitted compatibility range; neither is a detected running application version.
 
 ## Evidence limit
 

@@ -599,6 +599,7 @@ export function apply(ctx, config = {}) {
 
   const hostInfo = agent => ({
     name: 'dsh', compatibility_target: '0.2.1-rc.5',
+    compatibility_range: '>=0.2.1-rc.2 <0.2.2-0',
     agent_id: agent.id, session_id: agent.session.id,
     cwd: ctx.get('workingDirectory')?.get(agent.session) || agent.session.header.cwd || bindProject(agent.session).projectRoot,
     project_root: bindProject(agent.session).projectRoot,
