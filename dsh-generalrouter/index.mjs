@@ -497,7 +497,7 @@ export function apply(ctx, config = {}) {
     reconcileQuotaTimer()
   })
 
-  // rc.2/rc.3 durable session settlements include failed/retried model attempts.
+  // Supported DSH releases retain durable failed/retried model settlements.
   // Observe only future, child-owned events; inherited fork prefixes are not billed again.
   ctx.on('session/event', (session, event) => {
     if (!session.isOwnSeq(event.seq)) return
@@ -598,7 +598,7 @@ export function apply(ctx, config = {}) {
   })
 
   const hostInfo = agent => ({
-    name: 'dsh', compatibility_target: '0.2.1-rc.3',
+    name: 'dsh', compatibility_target: '0.2.1-rc.5',
     agent_id: agent.id, session_id: agent.session.id,
     cwd: ctx.get('workingDirectory')?.get(agent.session) || agent.session.header.cwd || bindProject(agent.session).projectRoot,
     project_root: bindProject(agent.session).projectRoot,

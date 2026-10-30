@@ -8,7 +8,7 @@
     "dispatch_ownership": "The DSH main agent receives the first selection and explicitly dispatches native subagents. After failure, it decides whether to arrange a fresh worker on the same frozen model and effort; repairs bypass candidate matching.",
     "optimization_boundary": "Cost and timing are recorded for evaluation. The current matcher does not establish cost or completion-time optimality."
   },
-  "status": "v0.1.10_implemented_without_runtime_validation_v0.1.7_case_retained_as_history",
+  "status": "v0.1.11_implemented_without_runtime_validation_v0.1.7_case_retained_as_history",
   "native_allowlist_filter": false,
   "invocation_verified": false,
   "repair_policy": {
@@ -31,15 +31,21 @@
     "conceptual_reference": "https://www.anthropic.com/research/self-replicating-ai (Appendix A: Memento)",
     "evidence": "Implemented only; no new runtime validation or experiment."
   },
-  "target_dsh_version": "0.2.1-rc.3",
+  "target_dsh_version": "0.2.1-rc.5",
   "model_mapping_owner": "Plugin bundles the 12 AA-to-callable-model/effort mappings. The user owns DSH App provider registration, allowed models and effort metadata.",
   "source_snapshots": {
     "deepseek_harness": {
       "repository": "https://github.com/deepseek-ai/deepseek-harness",
-      "tag": "dsh-v0.2.1-rc.3",
-      "commit": "1f81c047fc48fa190a683e469daa699857e9afe8",
-      "previous_tag": "dsh-v0.2.1-rc.2",
-      "previous_commit": "687f282e8625c6b8d11ff58211a90524be2e4317"
+      "tag": "dsh-v0.2.1-rc.5",
+      "commit": "b830ec950faba0a46dda564be3e2d854afed94f1",
+      "previous_tag": "dsh-v0.2.1-rc.3",
+      "previous_commit": "1f81c047fc48fa190a683e469daa699857e9afe8",
+      "earlier_snapshots": [
+        {
+          "tag": "dsh-v0.2.1-rc.2",
+          "commit": "687f282e8625c6b8d11ff58211a90524be2e4317"
+        }
+      ]
     },
     "easycliproxyapi": {
       "repository": "https://github.com/router-for-me/EasyCLIProxyAPI",
@@ -67,18 +73,18 @@
     "effort_policy": "At first selection, query optional host metadata for enabled effective mapped provider/model identities independently of native allowlist membership. Use mapped effort when known supported; otherwise omit reasoning_effort and record default fallback. Frozen retries and repairs preserve their exact selected effort. Metadata lookup is not permission or a model request.",
     "skill_location_in_app_workspace": "Bundled runtime/skills/generalrouter-task-profile registered with the DSH skill service for all workspaces; a same-name project skill takes precedence.",
     "gateway": "Use the user's configured compatible provider with the actual ECPA baseURL, API protocol, model IDs and secret source. The user completed one native-subagent smoke workflow in v0.1.4; provider and execution-backend configuration remain user-owned and are not changed by this release.",
-    "installation_after_package_exists": "In DSH App, open Plugins > Add plugin, enter the absolute path to dsh-generalrouter-0.1.10.tgz, install and enable the bundle. Existing users update the package through App plugin management and start a new main session. Keep existing shared settings and project records. Leave projectRoot and hostConfig empty. Shared configuration and the bundled skill work across workspaces; no per-workspace copying is required. Same-name project or user skills still override the bundle and may need updating to use its new instructions. DSH provider registration, the native model allowlist and effort metadata remain user-owned.",
+    "installation_after_package_exists": "In DSH App, open Plugins > Add plugin, enter the absolute path to dsh-generalrouter-0.1.11.tgz, install and enable the bundle. Existing users update the package through App plugin management and start a new main session. Keep existing shared settings and project records. Leave projectRoot and hostConfig empty. Shared configuration and the bundled skill work across workspaces; no per-workspace copying is required. Same-name project or user skills still override the bundle and may need updating to use its new instructions. DSH provider registration, the native model allowlist and effort metadata remain user-owned.",
     "project_path_defaults": "Prefer session.header.cwd from main-session creation; use workingDirectory.get(session) only if that header is absent. Never infer the root from the package or DSH process directory. A nonempty projectRoot overrides the default. Bind the workspace when establishing a run and retain it across children, retries and records. A missing root is a setup error. Switching workspaces requires a new main session.",
     "hook_boundary": "Do not mutate subagent arguments from tools/pre-execute or assume subagent/start/end can reroute a call.",
     "sources": [
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/packages/subagent/tool-subagent/README.md",
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/packages/subagent/tool-subagent/src/model-selection.ts",
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/packages/subagent/tool-subagent/src/model-selection-settings.ts",
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/packages/llm/llm-pi-ai/README.md",
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/docs/user/develop/basic/tool.md",
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/docs/user/develop/basic/publish.md",
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/packages/skill/skill-filesystem/README.md",
-      "https://github.com/deepseek-ai/deepseek-harness/blob/1f81c047fc48fa190a683e469daa699857e9afe8/packages/core/tools/README.md"
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/subagent/tool-subagent/README.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/subagent/tool-subagent/src/model-selection.ts",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/subagent/tool-subagent/src/model-selection-settings.ts",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/llm/llm-pi-ai/README.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/docs/user/develop/basic/tool.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/docs/user/develop/basic/publish.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/skill/skill-filesystem/README.md",
+      "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/core/tools/README.md"
     ],
     "configuration_layers": {
       "order": [
@@ -182,8 +188,8 @@
       "scope": "One workflow does not establish all-candidate compatibility, quality, lower cost, quota savings or a guarantee against allowance exhaustion."
     },
     "current_release": {
-      "version": "0.1.10",
-      "work": "Update official rc.3 compatibility declarations while retaining rc.2; correct mapped effort metadata lookup, dispatch failure ticket ownership, activity-driven quota refresh and repeated child binding records. Update skill and generate packages. No scoring changes or new runtime evidence; v0.1.7 case remains historical.",
+      "version": "0.1.11",
+      "work": "Extend official host and DSH peer compatibility declarations to rc.5 while retaining rc.2/rc.3. Relevant official host API sources are unchanged from rc.3; the reasoning-body UI migration is not consumed by GeneralRouter. Update the recorded compatibility target, skill references and release artifacts. No scoring, dispatch, quota or accounting policy changes, and no new runtime evidence.",
       "validation": "No development tests, review, validators, compilation checks, simulated routing, API/model calls or developer plugin installation for this update.",
       "configuration": "Preserve shared connection settings and user DSH provider/backend configuration; do not read secret contents.",
       "future_work": "Public benchmark execution is deferred and contributes no results to this release."
@@ -192,9 +198,9 @@
   "distribution": {
     "kind": "standard_npm_tarball_supported_by_dsh",
     "package": "dsh-generalrouter",
-    "version": "0.1.10",
-    "artifact": "dsh-generalrouter-0.1.10.tgz",
-    "local_delivery_path": "dsh-generalrouter-0.1.10.tgz",
+    "version": "0.1.11",
+    "artifact": "dsh-generalrouter-0.1.11.tgz",
+    "local_delivery_path": "dsh-generalrouter-0.1.11.tgz",
     "contents": "Prebuilt JavaScript entry point, DSH bundle patch, Python runtime, task-profile skill with 12 human-defined semantic anchors, required model/rate data and blank configuration examples.",
     "external_configuration": "Optional shared host.local.json and quota.local.json under $DSH_HOME/generalrouter, with optional project overrides. Installed package contents do not store local paths or credentials. Workspace task and usage state remains under that workspace.",
     "source_repository_required_at_runtime": false
@@ -209,6 +215,7 @@
   },
   "declared_dsh_versions": [
     "0.2.1-rc.2",
-    "0.2.1-rc.3"
+    "0.2.1-rc.3",
+    "0.2.1-rc.5"
   ]
 }
