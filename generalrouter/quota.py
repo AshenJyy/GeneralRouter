@@ -1,7 +1,7 @@
 """Read real ECPA allowance percentages with an activity-driven ten-minute cache.
 
-Dispatch tickets record task identity and observed windows; no estimated quota
-percentage is held or deducted.
+Quota observations are informational; this module no longer grants execution
+permission, issues dispatch tickets or estimates per-task consumption.
 """
 from __future__ import annotations
 
@@ -389,104 +389,4 @@ class QuotaManager:
                     "last_attempt_at": state.get("last_attempt_at"), "last_success_at": state.get("last_success_at"),
                     "stale": due == 0, "refresh_due_seconds": due, "refresh_interval_seconds": self.refresh_interval,
                     "error": state.get("error"),
-                    "reservations": [copy.deepcopy(item) for item in state["reservations"].values() if item.get("status") == "active"],
-                    "reservation_unit": "dispatch ticket only; no percentage is estimated, held, or subtracted"}
-
-    @staticmethod
-    def _route_identity(route: dict[str, Any]) -> dict[str, Any]:
-        return {key: route.get(key) for key in ("configuration_id", "provider", "model", "reasoning_effort")}
-
-    def _admit(self, route: dict[str, Any], state: dict[str, Any], reservation_id: str | None = None) -> dict[str, Any]:
-        decision: dict[str, Any] = {"accepted": True, "quota_status": "unknown", "reservation_id": reservation_id,
-                                    "reason": "allowance_not_reported", "remaining_percent": None,
-                                    "minimum_remaining_percent": self.minimum_remaining}
-        ticket = state["reservations"].get(reservation_id) if reservation_id else None
-        if reservation_id and (not ticket or ticket.get("status") != "active" or ticket.get("route") != self._route_identity(route)):
-            return {**decision, "accepted": False, "reason": "dispatch_ticket_missing_or_route_mismatch"}
-        model = route.get("model")
-        accounts = state["accounts"]
-        matches = [account for account in accounts.values() if model in account.get("model_ids", [])]
-        if not matches:
-            return {**decision, "detail": "no_exact_credential_model_evidence"}
-        now = time.time()
-        evidence = []
-        incomplete_catalog = any(account.get("models_status") != "success" for account in accounts.values())
-        all_known = not incomplete_catalog
-        positives = []
-        for account in matches:
-            item = {"account_id": account["account_id"], "provider": account.get("provider"),
-                    "remaining_percent": None, "status": "unknown", "reason": "allowance_not_reported", "windows": []}
-            fetched = _instant(account.get("fetched_at"))
-            fresh = (state.get("collection_status") == "success" and fetched is not None
-                     and 0 <= now - fetched < self.refresh_interval)
-            if not fresh:
-                item["reason"] = "allowance_snapshot_stale_or_unavailable"
-            elif account.get("credential_type") == "oauth" and account.get("status") == "success":
-                applicable = [window for window in account.get("windows", []) if window.get("applicability") == "account_shared"]
-                if not applicable:
-                    item["reason"] = "window_model_scope_unknown"
-                else:
-                    invalid = False
-                    for window in applicable:
-                        percent = _number(window.get("remaining_percent"))
-                        reset = _instant(window.get("reset_at"))
-                        item["windows"].append(copy.deepcopy(window))
-                        if percent is None or not 0 <= percent <= 100 or (reset is not None and reset <= now):
-                            invalid = True
-                    if invalid:
-                        item["reason"] = "reported_allowance_window_unknown_or_reset"
-                    else:
-                        remaining = min(window["remaining_percent"] for window in applicable)
-                        item.update(status="reported", remaining_percent=remaining, reason="reported_percentage")
-                        if remaining > self.minimum_remaining:
-                            positives.append(remaining)
-            if item["status"] != "reported":
-                all_known = False
-            evidence.append(item)
-        decision["accounts"] = evidence
-        decision["catalog_incomplete"] = incomplete_catalog
-        if positives:
-            decision.update(quota_status="reported", reason="reported_percentage_available",
-                            remaining_percent=max(positives))
-        elif all_known and evidence:
-            decision.update(accepted=False, quota_status="reported", reason="reported_percentage_at_or_below_minimum",
-                            remaining_percent=max(item["remaining_percent"] for item in evidence))
-        else:
-            decision["detail"] = next((item["reason"] for item in evidence if item["status"] != "reported"), "allowance_not_reported")
-        decision["limitation"] = "Percentages are cached observations; actual credential selection remains with ECPA and no per-job consumption is assumed."
-        return decision
-
-    def admit(self, route: dict[str, Any], reservation_id: str | None = None) -> dict[str, Any]:
-        with self._locked_state() as state:
-            return self._admit(route, state, reservation_id)
-
-    def reserve(self, route: dict[str, Any], task_id: str, run_id: str) -> dict[str, Any]:
-        if not task_id or not run_id:
-            raise QuotaError("task_id and run_id are required for a dispatch ticket")
-        with self._locked_state(write=True) as state:
-            for identifier, item in state["reservations"].items():
-                if item.get("status") == "active" and item.get("task_id") == task_id and item.get("run_id") == run_id:
-                    if item.get("route") != self._route_identity(route):
-                        return {"accepted": False, "reason": "task_already_reserved_for_another_route", "reservation_id": identifier}
-                    return {**self._admit(route, state, identifier), "reservation": copy.deepcopy(item)}
-            decision = self._admit(route, state)
-            if not decision["accepted"]:
-                return decision
-            identifier = uuid4().hex
-            bindings = [{"account_id": account["account_id"], "window_ids": [window["id"] for window in account["windows"]]}
-                        for account in decision.get("accounts", [])]
-            state["reservations"][identifier] = {"reservation_id": identifier, "task_id": task_id, "run_id": run_id,
-                                                   "route": self._route_identity(route), "observed_windows": bindings,
-                                                   "created_at": _iso(time.time()), "status": "active",
-                                                   "basis": "dispatch_identity_only; no assumed quota consumption"}
-            return {**decision, "reservation_id": identifier, "reservation": copy.deepcopy(state["reservations"][identifier])}
-
-    def release(self, reservation_id: str, outcome: str = "completed") -> dict[str, Any]:
-        with self._locked_state(write=True) as state:
-            item = state["reservations"].get(reservation_id)
-            if not item:
-                return {"released": False, "reservation_id": reservation_id, "reason": "reservation_not_found"}
-            if item.get("status") != "active":
-                return {"released": True, "reservation_id": reservation_id, "reason": "already_released"}
-            item.update(status="released", outcome=outcome, released_at=_iso(time.time()))
-            return {"released": True, "reservation_id": reservation_id, "outcome": outcome}
+                    "policy": "reference_only; no admission or quota deduction"}

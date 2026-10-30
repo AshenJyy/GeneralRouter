@@ -463,6 +463,9 @@ class RunLedger:
             elapsed = (finished - started).total_seconds() if terminal and started and finished and finished >= started else None
             task_summaries[identity] = {
                 **_usage_summary(usage),
+                "profile_task_id": task.get("task_id", identity),
+                "selected_model": task.get("selected_model"),
+                "reported_execution": task.get("reported_execution"),
                 "status": task.get("status", "unknown"),
                 "execution_status": task.get("status", "unknown"),
                 "acceptance_status": task.get("acceptance_status", "unknown"),
@@ -479,7 +482,7 @@ class RunLedger:
             }
         related_groups, lineage_issues = _related_task_groups(tasks, by_task)
         result = {
-            "schema_version": "generalrouter-run-report.v3",
+            "schema_version": "generalrouter-run-report.v4",
             "run_id": state["run_id"],
             "profile_id": state.get("profile_id"),
             "created_at": state.get("created_at"),
@@ -493,7 +496,7 @@ class RunLedger:
             },
             **_usage_summary(records),
             "by_role": {role: _usage_summary(usage) for role, usage in by_role.items()},
-            "role_meaning": {"planner": "main_agent", "worker": "native_subagent", "unknown": "not_reported"},
+            "role_meaning": {"planner": "main_agent", "worker": "observed_child_session", "unknown": "not_reported"},
             "by_task": task_summaries,
             "related_task_groups": related_groups,
             "related_task_group_meaning": "Each group contains an original task and its descendant repair tasks, with each assigned worker record counted once. These are alternate cumulative views of by_task, not additional cost to add to task or run totals; planner usage is excluded. Singleton tasks remain in by_task only.",
@@ -522,6 +525,12 @@ class RunLedger:
         if detail:
             result.update(
                 usage=records,
+                selection_records=[
+                    {"selection_id": identity, **{key: task.get(key) for key in (
+                        "task_id", "profile_id", "selected_model", "matching", "task_profile", "selected_at", "result_history"
+                    )}}
+                    for identity, task in tasks.items() if task.get("selection_kind") == "recommendation"
+                ],
                 usage_attribution=attributions,
                 events=events,
                 task_records=[

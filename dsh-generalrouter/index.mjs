@@ -18,11 +18,11 @@ export const Config = z.object({
   pythonExecutable: z.string().default('py'),
   pythonArguments: z.array(z.string()).default(['-3']),
   bridgeTimeoutMs: z.natural().min(1000).max(120000).default(60000),
+  // Accepted for old local configs; it no longer limits worker tools.
   delegationToolName: z.string().default('subagent'),
   activeQuotaRefreshSeconds: z.natural().min(600).max(86400).default(600),
 })
 
-const markerPattern = /\[generalrouter-reservation:([A-Za-z0-9._-]+)\]/
 // DSH's bundled rank is 600; project and user skills have lower ranks and win.
 const bundledSkillRank = 600
 const skillName = 'generalrouter-task-profile'
@@ -66,31 +66,9 @@ function registerBundledSkill(ctx, runtimeRoot) {
   }))
 }
 
-function markerOf(value) {
-  if (typeof value === 'string') return markerPattern.exec(value)?.[1]
-  if (!Array.isArray(value)) return undefined
-  for (const block of value) {
-    if (block?.type === 'text') {
-      const match = markerOf(block.text)
-      if (match !== undefined) return match
-    }
-  }
-  return undefined
-}
-
 function safeError(error) {
   // Do not echo subprocess stderr, the profile, prompts, or environment values.
   return error instanceof Error ? error.message : 'GeneralRouter bridge operation failed'
-}
-
-function canonicalRoute(route) {
-  if (!route) return undefined
-  const effort = route.reasoning_effort ?? route.reasoningEffort
-  return {
-    ...(typeof route.provider === 'string' ? { provider: route.provider } : {}),
-    ...(typeof route.model === 'string' ? { model: route.model } : {}),
-    ...(typeof effort === 'string' ? { reasoning_effort: effort } : {}),
-  }
 }
 
 function callBridge(settings, envelope, signal) {
@@ -161,361 +139,134 @@ export function apply(ctx, config = {}) {
     pythonExecutable: config.pythonExecutable || 'py',
     pythonArguments: config.pythonArguments || ['-3'],
     bridgeTimeoutMs: config.bridgeTimeoutMs || 60000,
-    delegationToolName: config.delegationToolName || 'subagent',
     activeQuotaRefreshSeconds: Math.max(600, config.activeQuotaRefreshSeconds || 600),
   }
   registerBundledSkill(ctx, settings.runtimeRoot)
   const lifecycle = new AbortController()
   const quotaLifecycle = new AbortController()
-  const sessionStates = new Map()
-  const reservations = new Map()
-  const roots = new Map()
-  const runSettings = new Map()
-  const authorizedCalls = new Map()
-  const childReservations = new Map()
-  const childOutcomes = new Map()
+  const states = new Map()
+  const roots = new Set()
+  const bindings = new Map()
+  const diagnostics = new Map()
+  const linkedChildren = new Map()
+  const delegationTools = new Set(['subagent', 'subagent_codex', 'subagent_antigravity'])
+  if (config.delegationToolName) delegationTools.add(config.delegationToolName)
   let queue = Promise.resolve()
-  const recordingDiagnostics = new Map()
-  let quotaRefreshTimer
-  const pendingPreparations = new Map()
-  let quotaRefreshInFlight
-  let quotaRefreshDiagnostic
+  let quotaTimer
+  let quotaPending
+
   const stateFor = session => {
-    let state = sessionStates.get(session.id)
-    if (state === undefined) {
-      state = {
-        session,
-        parentId: session.header.parentSession,
-        route: undefined,
-        attempts: new Map(),
-        records: new Map(),
-        rootId: undefined,
-        reservationId: undefined,
-      }
-      sessionStates.set(session.id, state)
-    }
-    const reservationId = childReservations.get(session.id)
-    const reservation = reservationId ? reservations.get(reservationId) : undefined
-    if (reservation) {
-      state.rootId = reservation.rootId
-      state.reservationId = reservationId
+    let state = states.get(session.id)
+    if (!state) {
+      state = { session, records: new Map(), attempts: new Map(), running: false }
+      states.set(session.id, state)
     }
     return state
   }
   const rootFor = state => {
-    if (state.rootId) return state.rootId
     const seen = new Set()
     let current = state
     while (current && !seen.has(current.session.id)) {
-      seen.add(current.session.id)
-      if (roots.has(current.session.id)) return current.session.id
-      current = current.session.header.origin === 'subagent' ? sessionStates.get(current.parentId) : undefined
+      const id = current.session.id
+      seen.add(id)
+      if (roots.has(id)) return id
+      if (linkedChildren.has(id)) return linkedChildren.get(id)
+      current = current.session.header.origin === 'subagent'
+        ? states.get(current.session.header.parentSession) : undefined
     }
-    return undefined
   }
-  const bindProject = session => {
-    const runId = rootFor(stateFor(session)) || session.id
-    if (runSettings.has(runId)) return runSettings.get(runId)
-    const rootSession = sessionStates.get(runId)?.session || session
-    const projectRoot = config.projectRoot?.trim() || rootSession.header.cwd
-      || ctx.get('workingDirectory')?.get(rootSession)
+  const bindProject = (session, runId) => {
+    if (bindings.has(runId)) return
+    const rootSession = states.get(runId)?.session || session
+    const projectRoot = config.projectRoot?.trim() || rootSession.header.cwd || ctx.get('workingDirectory')?.get(rootSession)
     if (typeof projectRoot !== 'string' || !isAbsolute(projectRoot)) {
       throw new Error('Open the project folder in DSH, or set an absolute GeneralRouter projectRoot override.')
     }
-    const bound = {
-      ...settings,
-      projectRoot: resolve(projectRoot),
+    bindings.set(runId, {
+      ...settings, projectRoot: resolve(projectRoot),
       hostConfig: resolve(projectRoot, config.hostConfig?.trim() || 'host.local.json'),
       configExplicit: Boolean(config.hostConfig?.trim()),
-    }
-    // Freeze the paths for this run; later cd operations and child workspaces
-    // cannot move its configuration, quota cache or usage records.
-    runSettings.set(runId, bound)
-    return bound
-  }
-  const prepareProject = agent => {
-    try { bindProject(agent.session) } catch (error) {
-      return { ok: false, status: 'setup_required', message: safeError(error) }
-    }
-    stateFor(agent.session).running = agent.status === 'running'
-  }
-  const diagnosticsFor = runId => {
-    let diagnostics = recordingDiagnostics.get(runId)
-    if (!diagnostics) {
-      const bound = runSettings.get(runId)
-      if (!bound) return undefined
-      diagnostics = new RecordingDiagnostics(bound.projectRoot, runId)
-      recordingDiagnostics.set(runId, diagnostics)
-    }
-    return diagnostics
+    })
+    diagnostics.set(runId, new RecordingDiagnostics(resolve(projectRoot), runId))
   }
   const bridge = async (envelope, signal) => {
-    const bound = runSettings.get(envelope.run_id)
-    if (!bound) throw new Error('GeneralRouter run has no bound project directory.')
-    const diagnostics = isRecordingAction(envelope.action) ? diagnosticsFor(envelope.run_id) : undefined
-    const reservation = reservations.get(envelope.reservation_id || envelope.record?.reservation_id)
-    const identified = { ...envelope, ...(reservation?.taskId ? { task_id: reservation.taskId } : {}) }
-    let result
+    const bound = bindings.get(envelope.run_id)
+    if (!bound) throw new Error('GeneralRouter has no project directory for this record.')
+    const recorder = isRecordingAction(envelope.action) ? diagnostics.get(envelope.run_id) : undefined
     try {
-      result = await callBridge(bound, envelope, signal)
+      const result = await callBridge(bound, envelope, signal)
+      await recorder?.update(envelope, result.ok === true ? undefined : result)
+      return result
     } catch (error) {
-      await diagnostics?.update(identified, error)
-      if (diagnostics) ctx.logger.warn(`generalrouter: ${envelope.action} recording transport failed for run ${envelope.run_id}; see recording_diagnostics`)
+      await recorder?.update(envelope, error)
       throw error
-    }
-    if (diagnostics) {
-      await diagnostics.update(identified, result.ok === true ? undefined : result)
-      if (result.ok !== true) ctx.logger.warn(`generalrouter: ${envelope.action} recording rejected for run ${envelope.run_id}; see recording_diagnostics`)
-    }
-    return result
-  }
-  const withDiagnostics = async (result, runId, detail = false, includeHealthy = true) => {
-    const diagnostics = diagnosticsFor(runId)
-    if (!diagnostics) return result
-    const summary = await diagnostics.summary(detail)
-    if (!includeHealthy && !detail && !summary.unresolved_count && !summary.storage_error) return result
-    return {
-      ...result, recording_diagnostics: summary,
-      ...(summary.unresolved_count || summary.storage_error ? {
-        recording_warning: summary.storage_error || `${summary.unresolved_count} unresolved recording operation(s); see recording_diagnostics`,
-      } : {}),
-    }
-  }
-  const toolBridge = async (envelope, signal) => {
-    try { return await bridge(envelope, signal) } catch (error) {
-      if (signal?.aborted) throw error
-      // Keep the independent recorder diagnostics available even when Python
-      // itself cannot run. This is a failure result, never an empty report.
-      return { ok: false, status: 'bridge_unavailable', action: envelope.action, message: safeError(error) }
     }
   }
   const enqueue = envelope => {
     const operation = queue.then(() => bridge(envelope, lifecycle.signal))
+    // Recording failures never become a host permission decision.
     queue = operation.then(() => undefined, () => undefined)
     return operation
   }
   const writeRecord = (state, record) => {
-    const rootId = rootFor(state)
-    if (!rootId) return
-    state.rootId = rootId
-    const reservationId = state.reservationId
-    const reservation = reservationId ? reservations.get(reservationId) : undefined
-    void enqueue({
-      action: 'record_usage', run_id: rootId,
-      record: {
-        ...record,
-        role: state.session.id === rootId ? 'planner' : 'worker',
-        ...(reservationId ? { reservation_id: reservationId } : {}),
-        ...(reservation?.taskId ? { task_id: reservation.taskId } : {}),
-        ...(reservation?.configurationId ? { configuration_id: reservation.configurationId } : {}),
-      },
-    }).catch(() => {})
+    const runId = rootFor(state)
+    if (!runId) return
+    void enqueue({ action: 'record_usage', run_id: runId, record: {
+      ...record, role: state.session.id === runId ? 'planner' : 'worker',
+    } }).catch(() => {})
   }
   const flushState = state => {
     for (const record of state.records.values()) writeRecord(state, record)
   }
-  const bindChild = (reservationId, childSessionId, actualRoute) => {
-    const reservation = reservations.get(reservationId)
-    if (!reservation) return
-    if (reservation.childId && reservation.childId !== childSessionId) return
-    if (childReservations.has(childSessionId) && childReservations.get(childSessionId) !== reservationId) return
-    childReservations.set(childSessionId, reservationId)
-    reservation.childId = childSessionId
-    const state = sessionStates.get(childSessionId)
-    if (state) {
-      state.rootId = reservation.rootId
-      state.reservationId = reservationId
-      flushState(state)
+  const activeRuns = () => new Set([...states.values()]
+    .filter(state => state.running).map(rootFor).filter(Boolean))
+  const scheduleQuota = () => {
+    if (quotaLifecycle.signal.aborted) return
+    if (!activeRuns().size) {
+      clearTimeout(quotaTimer)
+      quotaTimer = undefined
+      return
     }
-    const observedRoute = canonicalRoute(actualRoute || state?.route)
-    const startKey = JSON.stringify(observedRoute || {})
-    if (!reservation.end && reservation.startKey !== startKey) {
-      void enqueue({
-        action: 'started', run_id: reservation.rootId,
-        reservation_id: reservationId, child_session_id: childSessionId,
-        ...(observedRoute ? { actual_route: observedRoute } : {}),
-      }).then(result => {
-        if (result.ok === true) reservation.startKey = startKey
-      }).catch(() => {})
-    }
-    const outcome = childOutcomes.get(childSessionId)
-    if (outcome) finishChild(childSessionId, outcome)
-  }
-  const finishChild = (childSessionId, outcome) => {
-    childOutcomes.set(childSessionId, outcome)
-    const state = sessionStates.get(childSessionId)
-    if (state) {
-      state.ended = true
-      state.running = false
-      flushState(state)
-    }
-    const reservationId = childReservations.get(childSessionId)
-    const reservation = reservationId ? reservations.get(reservationId) : undefined
-    if (reservation && !reservation.end) {
-      reservation.end = outcome
-      void enqueue({ action: 'release', run_id: reservation.rootId,
-        reservation_id: reservationId, outcome }).catch(() => {})
-    }
-    reconcileQuotaTimer()
-  }
-
-  const activeQuotaRuns = () => {
-    const active = new Set(pendingPreparations.keys())
-    for (const dispatch of authorizedCalls.values()) active.add(dispatch.rootId)
-    for (const state of sessionStates.values()) {
-      if (!state.running || state.ended) continue
-      const rootId = rootFor(state)
-      if (rootId) active.add(rootId)
-    }
-    return active
-  }
-  const hasActiveQuotaWork = () => activeQuotaRuns().size > 0
-  const reconcileQuotaTimer = ({ restart = false } = {}) => {
-    const active = !lifecycle.signal.aborted && !quotaLifecycle.signal.aborted && hasActiveQuotaWork()
-    if ((!active || restart) && quotaRefreshTimer !== undefined) {
-      clearTimeout(quotaRefreshTimer)
-      quotaRefreshTimer = undefined
-    }
-    if (!active || quotaRefreshTimer !== undefined || quotaRefreshInFlight) return
-    quotaRefreshTimer = setTimeout(() => {
-      quotaRefreshTimer = undefined
-      refreshActiveQuota()
+    if (quotaTimer || quotaPending) return
+    quotaTimer = setTimeout(() => {
+      quotaTimer = undefined
+      refreshQuota()
     }, settings.activeQuotaRefreshSeconds * 1000)
-    quotaRefreshTimer.unref?.()
+    quotaTimer.unref?.()
   }
-  const refreshActiveQuota = () => {
-    if (lifecycle.signal.aborted || quotaLifecycle.signal.aborted || quotaRefreshInFlight || !hasActiveQuotaWork()) return
-    // Initial matches and fixed-route repairs obtain a cold/stale snapshot through the bridge. This
-    // timer follows live agent activity, preparations and dispatches. An unused
-    // ticket alone never keeps polling while the user or agent is idle.
+  const refreshQuota = () => {
+    if (quotaLifecycle.signal.aborted || quotaPending) return
     const projects = new Map()
-    for (const runId of activeQuotaRuns()) {
-      const bound = runSettings.get(runId)
-      if (!bound) continue
-      const key = JSON.stringify([bound.projectRoot, bound.hostConfig, bound.userConfigFile])
-      if (!projects.has(key)) projects.set(key, runId)
+    for (const runId of activeRuns()) {
+      const bound = bindings.get(runId)
+      if (bound) projects.set(JSON.stringify([bound.projectRoot, bound.hostConfig, bound.userConfigFile]), runId)
     }
-    const operation = Promise.allSettled([...projects.values()].map(runId => bridge({
+    if (!projects.size) return
+    quotaPending = Promise.allSettled([...projects.values()].map(runId => bridge({
       action: 'refresh_quota', run_id: runId,
     }, quotaLifecycle.signal)))
-    quotaRefreshInFlight = operation
-    void operation.then(results => {
-      const diagnostics = results.map(result => result.status === 'rejected' ? safeError(result.reason)
-        : result.value.ok === false ? result.value.status || 'quota_refresh_failed' : undefined).filter(Boolean)
-      const diagnostic = [...new Set(diagnostics)].join('; ') || undefined
-      if (diagnostic && diagnostic !== quotaRefreshDiagnostic) {
-        ctx.logger.warn(`generalrouter: background quota refresh unavailable (${diagnostic})`)
-      }
-      quotaRefreshDiagnostic = diagnostic
-    }, error => {
-      if (lifecycle.signal.aborted || quotaLifecycle.signal.aborted) return
-      const diagnostic = safeError(error)
-      if (diagnostic !== quotaRefreshDiagnostic) {
-        ctx.logger.warn(`generalrouter: background quota refresh unavailable (${diagnostic})`)
-      }
-      quotaRefreshDiagnostic = diagnostic
-    }).finally(() => {
-      if (quotaRefreshInFlight === operation) quotaRefreshInFlight = undefined
-      reconcileQuotaTimer()
+    void quotaPending.finally(() => {
+      quotaPending = undefined
+      scheduleQuota()
     })
   }
 
-  const dispatchContext = exec => {
-    if (!exec.agent) return undefined
-    const state = stateFor(exec.agent.session)
-    const rootId = rootFor(state)
-    if (!rootId) return undefined
-    if (exec.name === 'send_message' && exec.agent.session.id === rootId) {
-      const targetId = exec.arguments?.agent_id
-      const target = typeof targetId === 'string' ? sessionStates.get(targetId) : undefined
-      const ended = target?.ended || [...reservations.values()].some(entry => entry.childId === targetId && entry.end)
-      if (ended) return {
-        denial: 'This worker already ended. Report its result to the parent. If the parent chooses repair, use generalrouter_prepare_repair with a new task_id and a concise memento, then dispatch a fresh worker on the original fixed route. Do not match again or reopen this worker.',
-      }
-      return undefined
-    }
-    const isNativeDispatch = exec.name === settings.delegationToolName
-    const isAlternateDispatch = ['subagent_fork', 'workflow', 'subagent_codex', 'subagent_antigravity'].includes(exec.name)
-    if (!isNativeDispatch && !isAlternateDispatch) return undefined
-    if (exec.agent.session.id !== rootId) return {
-      denial: 'GeneralRouter v0.1 workers cannot start further workers. Return the new subtask to the parent planner.',
-    }
-    if (!isNativeDispatch) return {
-      denial: `Use the reserved native ${settings.delegationToolName} route for this GeneralRouter run; ${exec.name} has no GeneralRouter reservation.`,
-    }
-    const reservationId = markerOf(exec.arguments?.prompt)
-    const reservation = reservationId ? reservations.get(reservationId) : undefined
-    if (!reservation || reservation.rootId !== rootId) return {
-      denial: 'This GeneralRouter run requires a reservation marker returned by generalrouter_match for an independent task, or generalrouter_prepare_repair for a same-model repair, before dispatch.',
-    }
-    return { rootId, reservationId, reservation }
-  }
-
-  ctx.on('tools/pre-execute', async (exec, next) => {
-    const dispatch = dispatchContext(exec)
-    if (!dispatch) return next()
-    if (dispatch.denial) return { kind: 'deny', reason: dispatch.denial }
-    await queue
-    let result
-    try {
-      result = await bridge({
-        action: 'authorize_dispatch', run_id: dispatch.rootId,
-        reservation_id: dispatch.reservationId, call_id: exec.callId,
-        actual_route: {
-          provider: exec.arguments.provider ?? null,
-          model: exec.arguments.model ?? null,
-          ...(exec.arguments.reasoning_effort ? { reasoning_effort: exec.arguments.reasoning_effort } : {}),
-        },
-      }, exec.signal)
-    } catch (error) {
-      return exec.signal.aborted ? { kind: 'cancel' } : { kind: 'deny', reason: safeError(error) }
-    }
-    if (result.ok !== true) return {
-      kind: 'deny', reason: `GeneralRouter refused dispatch (${result.status || 'not_authorized'}). Report the blocked route to the parent. A never-started dispatch may be prepared again using ${dispatch.reservation.preparationTool || 'the original preparation tool'} with its fixed route; do not bypass the reservation, re-rank a repair, or substitute a model.`,
-    }
-    authorizedCalls.set(exec.token, { ...dispatch, callId: exec.callId })
-    reconcileQuotaTimer()
-    return next()
-  })
-  // This registry guard runs after every mutable policy waterfall. Even an
-  // unrelated policy returning allow cannot undo GeneralRouter's refusal.
-  ctx.tools.guard(exec => {
-    const dispatch = dispatchContext(exec)
-    if (!dispatch) return undefined
-    if (dispatch.denial) return dispatch.denial
-    if (!authorizedCalls.has(exec.token)) return 'GeneralRouter did not authorize this exact native dispatch call.'
-    return undefined
-  })
-
   ctx.on('agent/status', ({ agent, status }) => {
     stateFor(agent.session).running = status === 'running'
-    reconcileQuotaTimer()
+    scheduleQuota()
   })
   ctx.on('agent/disposed', ({ agent }) => {
-    const state = stateFor(agent.session)
-    state.running = false
-    reconcileQuotaTimer()
+    stateFor(agent.session).running = false
+    scheduleQuota()
   })
-
-  // Supported DSH releases retain durable failed/retried model settlements.
-  // Observe only future, child-owned events; inherited fork prefixes are not billed again.
+  // Passive observation only: no tools/pre-execute, guard or argument mutation.
   ctx.on('session/event', (session, event) => {
     if (!session.isOwnSeq(event.seq)) return
     const state = stateFor(session)
-    if (event.type === 'request/header') {
-      state.route = { ...event.data.header.config }
-      if (state.reservationId) bindChild(state.reservationId, session.id, state.route)
-    }
+    if (event.type === 'request/header') state.route = { ...event.data.header.config }
     if (event.type === 'llm/retry-started') {
       const key = `${event.data.turn}:${event.data.step}`
       state.attempts.set(key, (state.attempts.get(key) || 0) + 1)
-    }
-    if (event.type === 'user/message') {
-      const reservationId = markerOf(event.data.message?.content)
-      const reservation = reservationId ? reservations.get(reservationId) : undefined
-      if (reservation && session.header.origin === 'subagent' && session.header.parentSession === reservation.rootId) {
-        bindChild(reservationId, session.id, state.route)
-      }
     }
     if (event.type !== 'assistant/message' && event.type !== 'assistant/attempt') return
     const usage = event.data.usage || lastAssistantStreamChunk(event.data.stream || [], 'usage')?.usage
@@ -523,358 +274,117 @@ export function apply(ctx, config = {}) {
     const attempt = state.attempts.get(key) || 0
     const route = state.route || session.requestHeader()?.config
     const record = {
-      record_id: `dsh:${session.id}:${key}:${attempt}`,
-      session_id: session.id,
-      turn: event.data.turn, step: event.data.step, attempt,
-      event_seq: event.seq,
-      observed_at: new Date(event.time).toISOString(),
-      provider: route?.provider || null,
-      model: route?.model || null,
-      ...(route?.reasoningEffort ? { reasoning_effort: route.reasoningEffort } : {}),
-      usage_reported: usage !== undefined,
+      record_id: `dsh:${session.id}:${key}:${attempt}`, session_id: session.id,
+      provider: route?.provider || null, model: route?.model || null,
+      reasoning_effort: route?.reasoningEffort || null,
       tokens: {
-        uncached_input: usage?.inputTokens ?? null,
-        cached_input: usage?.cacheReadTokens ?? null,
-        cache_write_input: usage?.cacheWriteTokens ?? null,
-        output: usage?.outputTokens ?? null,
+        uncached_input: usage?.inputTokens ?? null, cached_input: usage?.cacheReadTokens ?? null,
+        cache_write_input: usage?.cacheWriteTokens ?? null, output: usage?.outputTokens ?? null,
         reasoning: usage?.reasoningTokens ?? null,
       },
-      reasoning_included_in_output: true,
       source: 'dsh-session-provider-usage',
     }
     state.records.set(record.record_id, record)
     writeRecord(state, record)
   })
-
-  // The immutable native tool result contains the child identity. No native
-  // tool arguments, model routes or permission decisions are rewritten here.
   ctx.on('tools/result', (exec, result) => {
-    const authorized = authorizedCalls.get(exec.token)
-    authorizedCalls.delete(exec.token)
-    reconcileQuotaTimer()
-    if (exec.name !== settings.delegationToolName || !exec.agent) return
-    // A denied duplicate may carry a valid old marker. Only this call's
-    // successful authorization owns its unstarted ticket cleanup.
-    if (!authorized) return
-    const { reservationId, reservation } = authorized
+    if (!exec.agent || !delegationTools.has(exec.name)) return
+    const runId = rootFor(stateFor(exec.agent.session))
+    if (!runId) return
     const childId = result.value?.subagentId
-    if (typeof childId === 'string' && childId.length > 0) {
-      // Requested arguments are not observations of the child's actual route.
-      // request/header supplies that evidence when the local child emits it.
-      bindChild(reservationId, childId, sessionStates.get(childId)?.route)
+    if (typeof childId === 'string' && childId) {
+      linkedChildren.set(childId, runId)
+      const child = states.get(childId)
+      if (child) flushState(child)
     }
-    if (result.isError) {
-      // An activated child owns its terminal outcome even if the tool's result
-      // is later cancelled or rejected by another policy.
-      if (reservation.childId || reservation.end) return
-      reservation.end = 'not_dispatched'
-      reconcileQuotaTimer()
-      void enqueue({ action: 'release', run_id: reservation.rootId,
-        reservation_id: reservationId,
-        dispatch_call_id: authorized.callId,
-        outcome: reservation.end }).catch(() => {})
-    }
-  })
-  ctx.on('subagent/end', info => {
-    // Local execution can settle before tools/result supplies its child id.
-    // Retain the terminal edge for bindChild rather than losing it.
-    if (!info.local) return
-    const outcome = info.stopReason === 'completed' ? 'completed'
-      : info.stopReason === 'aborted' ? 'cancelled' : 'failed'
-    finishChild(info.id, outcome)
-  })
-  ctx.on('session/flush', async session => {
-    if (rootFor(stateFor(session))) await queue
+    void enqueue({ action: 'observe_tool', run_id: runId, observation: {
+      call_id: exec.callId, tool_name: exec.name,
+      child_session_id: typeof childId === 'string' ? childId : null,
+      is_error: result.isError === true, observed_at: new Date().toISOString(),
+    } }).catch(() => {})
   })
   ctx.on('dispose', async () => {
-    clearTimeout(quotaRefreshTimer)
-    quotaRefreshTimer = undefined
-    // Cancel only the read-only background request. The recorder queue reaches
-    // its normal settlement before the plugin's lifecycle signal is aborted.
+    clearTimeout(quotaTimer)
     quotaLifecycle.abort()
-    if (quotaRefreshInFlight) await quotaRefreshInFlight.catch(() => {})
+    if (quotaPending) await quotaPending.catch(() => {})
     await queue
     lifecycle.abort()
   })
 
-  const hostInfo = agent => ({
-    name: 'dsh', compatibility_target: '0.2.1-rc.5',
-    compatibility_range: '>=0.2.1-rc.2 <0.2.2-0',
-    agent_id: agent.id, session_id: agent.session.id,
-    cwd: ctx.get('workingDirectory')?.get(agent.session) || agent.session.header.cwd || bindProject(agent.session).projectRoot,
-    project_root: bindProject(agent.session).projectRoot,
-    observation_scope: 'new-events-since-plugin-load',
-  })
-  const currentRun = agent => rootFor(stateFor(agent.session)) || agent.session.id
-  const modelMetadataFor = async (agent, signal) => {
-    // Read only the effective non-secret route pairs from the bridge, including
-    // host overrides. Native allowlist membership never controls this lookup.
-    const mapped = await toolBridge({ action: 'model_metadata_routes', run_id: currentRun(agent) }, signal)
-    if (!mapped.ok || !Array.isArray(mapped.routes)) return []
-    const llm = ctx.get('llm')
-    const routes = mapped.routes.filter(route => typeof route?.provider === 'string' && typeof route?.model === 'string')
-    return Promise.all(routes.map(async route => {
-      signal?.throwIfAborted()
-      const detached = { provider: route.provider, model: route.model }
-      if (llm) {
-        try {
-          const info = await llm.resolveModelInfo(route.provider, route.model, signal)
-          detached.reasoning_efforts = info.reasoning?.efforts.map(effort => effort.id) || []
-          if (info.reasoning?.defaultEffort) detached.default_reasoning_effort = info.reasoning.defaultEffort
-        } catch {
-          signal?.throwIfAborted()
-          detached.metadata_status = 'unavailable_use_default_effort'
-        }
-      } else detached.metadata_status = 'unavailable_use_default_effort'
-      return detached
-    }))
-  }
-  const rememberPreparedDispatches = (result, runId, preparationTool) => {
-    const tasks = Array.isArray(result.tasks) ? result.tasks : result.reservation_id ? [result] : []
-    for (const task of tasks) {
-      if (!task.reservation_id || !task.dispatch) continue
-      reservations.set(task.reservation_id, { rootId: runId, taskId: task.task_id,
-        configurationId: task.configuration_id, dispatch: task.dispatch, preparationTool })
+  const invoke = async (action, args, exec) => {
+    if (!exec.agent) return { ok: false, status: 'agent_session_required' }
+    const state = stateFor(exec.agent.session)
+    const runId = rootFor(state) || exec.agent.session.id
+    try {
+      bindProject(exec.agent.session, runId)
+      if (action === 'match') {
+        roots.add(runId)
+        state.running = exec.agent.status === 'running'
+        for (const known of states.values()) if (rootFor(known) === runId) flushState(known)
+      }
+      if (action === 'report') await queue
+      const result = await bridge({ ...args, action, run_id: runId }, exec.signal)
+      if (action === 'match') refreshQuota()
+      scheduleQuota()
+      const diagnostic = await diagnostics.get(runId)?.summary(args.detail === true)
+      if (diagnostic && (action === 'report' || action === 'status' || diagnostic.unresolved_count || diagnostic.storage_error)) {
+        result.recording_diagnostics = diagnostic
+      }
+      return result
+    } catch (error) {
+      if (exec.signal?.aborted) throw error
+      return { ok: false, status: 'router_operation_unavailable', message: safeError(error),
+        execution_blocked_by_router: false }
     }
-  }
-  const beginPreparation = runId => {
-    pendingPreparations.set(runId, (pendingPreparations.get(runId) || 0) + 1)
-    reconcileQuotaTimer()
-  }
-  const endPreparation = runId => {
-    const remaining = (pendingPreparations.get(runId) || 1) - 1
-    if (remaining > 0) pendingPreparations.set(runId, remaining)
-    else pendingPreparations.delete(runId)
-    reconcileQuotaTimer()
   }
 
   ctx.tools.register(defineTool({
     name: 'generalrouter_match',
-    description: 'Select the model for one ready independent task and return exact native subagent dispatch arguments. Router checks mapping, quota and tickets, without filtering by the DSH native model allowlist; DSH may still reject the actual invocation. Its provider/model/effort are fixed after first selection. Submit task-profile.v3 once; reuse profile_id. Repairs use generalrouter_prepare_repair and inherit that fixed route without matching. Ended tasks never reopen. Tickets prevent duplicate dispatch without deducting quota. This tool does not call a model or fall back automatically after a host rejection.',
+    description: 'Choose model and preferred effort from task-profile.v3 and return scores and reasons. This is selection only: the main agent resolves its existing native, Codex or Antigravity tool and executes. No provider binding, dispatch arguments, ticket, allowlist check, quota gate or execution-state lock. With task_id select that task; otherwise return all tasks. detail adds candidate rankings.',
     parameters: {
-      profile_json: { type: 'string', description: 'First call: complete task-profile.v3 JSON from the skill. Later calls may omit it and use profile_id. Repeated full profiles remain supported.' },
-      profile_id: { type: 'string', description: 'Exact identifier returned by the first match in this run. Reuses the saved plan and original request.' },
-      original_request: { type: 'string', description: 'Original request and constraints for the first call. Omit on later calls to reuse the saved value.' },
-      task_id: { type: 'string', description: 'Optional task id from this profile to select a particular ready task.' },
-      retry_failed: { type: 'boolean', description: 'Legacy parameter; cannot reopen an ended task. The parent may use generalrouter_prepare_repair for a fresh same-model repair worker. A never-started independent task may be prepared again with its fixed route.' },
-      detail: { type: 'boolean', description: 'Include full candidate scoring and task explanation. Default false; dispatch is always complete.' },
-    },
-    output: jsonOutput,
+      profile_json: { type: 'string', description: 'Complete task-profile.v3 JSON. A new or revised plan can be supplied at any time.' },
+      profile_id: { type: 'string', description: 'Optional saved profile ID instead of repeating profile_json.' },
+      original_request: { type: 'string', description: 'Original requirements and constraints accompanying profile_json.' },
+      task_id: { type: 'string', description: 'Optional task ID to select from the supplied or saved profile.' },
+      detail: { type: 'boolean', description: 'Include the full candidate ranking; default false.' },
+    }, output: jsonOutput,
     async execute(args, exec) {
-      if (!exec.agent) throw new Error('generalrouter_match requires an Agent Session')
-      if (exec.agent.session.header.origin === 'subagent') return {
-        ok: false, status: 'delegate_to_parent', message: 'The parent planner owns GeneralRouter matching in v0.1.',
-      }
-      const setupError = prepareProject(exec.agent)
-      if (setupError) return setupError
-      let profile
+      const request = { ...args }
+      delete request.profile_json
       if (args.profile_json !== undefined) {
-        try { profile = JSON.parse(args.profile_json) } catch { return { ok: false, status: 'invalid_profile_json' } }
-        if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return { ok: false, status: 'invalid_profile_json' }
+        try { request.profile = JSON.parse(args.profile_json) }
+        catch { return { ok: false, status: 'invalid_profile_json' } }
       }
-      if (!profile && !args.profile_id) return {
-        ok: false, status: 'profile_required', message: 'Submit profile_json once, or pass the profile_id previously returned in this run.',
-      }
-      const modelMetadata = await modelMetadataFor(exec.agent, exec.signal)
-      const runId = exec.agent.session.id
-      roots.set(runId, true)
-      const state = stateFor(exec.agent.session)
-      state.rootId = runId
-      flushState(state)
-      await queue
-      beginPreparation(runId)
-      let result
-      try {
-        result = await toolBridge({
-          action: 'match', run_id: runId,
-          ...(profile ? { profile } : {}),
-          ...(args.profile_id !== undefined ? { profile_id: args.profile_id } : {}),
-          ...(args.original_request !== undefined ? { original_request: args.original_request } : {}),
-          detail: args.detail === true,
-          ...(args.task_id ? { task_id: args.task_id } : {}),
-          ...(args.retry_failed === true ? { retry_failed: true } : {}),
-          host: { ...hostInfo(exec.agent), call_id: exec.callId, model_metadata: modelMetadata },
-          model_metadata: modelMetadata,
-        }, exec.signal)
-        rememberPreparedDispatches(result, runId, 'generalrouter_match')
-      } finally {
-        endPreparation(runId)
-      }
-      return withDiagnostics(result, runId, args.detail === true, false)
+      return invoke('match', request, exec)
     },
   }))
-
   ctx.tools.register(defineTool({
-    name: 'generalrouter_prepare_repair',
-    description: 'Prepare a fresh native subagent for a repair chosen by the parent after an earlier task ended. Inherit the exact frozen provider/model/effort regardless of optional metadata; do not compute a new task vector, score candidates, or select another model. Supply a concise memento of attempted strategies, failures, evidence and next steps. Returns dispatch arguments and a ticket after mapping/quota admission checks, without a native allowlist prefilter. DSH may reject the actual invocation; report that failure without automatic fallback. This tool does not start a worker or loop repairs.',
+    name: 'generalrouter_record_result',
+    description: 'Optional parent-reported outcome/evidence for a saved selection. Never required before or after worker calls. This records an assessment, not a verified test result or execution permission. Linking a real child_session_id can associate already-observed usage; missing usage stays unknown.',
     parameters: {
-      profile_id: { type: 'string', required: true, description: 'Saved profile_id from this run; the original profile stays unchanged.' },
-      repairs_task_id: { type: 'string', required: true, description: 'Ended task being repaired. Its frozen provider/model/effort are inherited by the new repair task.' },
-      task_id: { type: 'string', required: true, description: 'New unique repair task ID. Reuse this ID only to repeat the identical preparation before dispatch; an ended repair also needs a fresh task ID and worker.' },
-      objective: { type: 'string', required: true, description: 'Specific repair goal and completion requirements chosen by the parent.' },
-      memento: { type: 'string', required: true, description: 'Nonempty concise handoff: attempted strategies, what failed, evidence or artifact references, and the proposed next step. Distinguish observations from guesses; never claim an unperformed check passed.' },
-      input_artifacts: { type: 'array', items: { type: 'string' }, description: 'Optional artifact paths or references needed by the fresh worker. Include only relevant inputs.' },
-      detail: { type: 'boolean', description: 'Include full repair preparation details. Default false; dispatch is always complete.' },
-    },
-    output: jsonOutput,
-    async execute(args, exec) {
-      if (!exec.agent) throw new Error('generalrouter_prepare_repair requires an Agent Session')
-      if (exec.agent.session.header.origin === 'subagent') return {
-        ok: false, status: 'delegate_to_parent', message: 'Report the failure and a concise memento to the parent; only the parent decides whether to prepare a same-model repair worker.',
-      }
-      const setupError = prepareProject(exec.agent)
-      if (setupError) return setupError
-      const runId = exec.agent.session.id
-      roots.set(runId, true)
-      const state = stateFor(exec.agent.session)
-      state.rootId = runId
-      flushState(state)
-      await queue
-      beginPreparation(runId)
-      let result
-      try {
-        result = await toolBridge({
-          action: 'prepare_repair', run_id: runId,
-          profile_id: args.profile_id, repairs_task_id: args.repairs_task_id,
-          task_id: args.task_id, objective: args.objective, memento: args.memento,
-          ...(args.input_artifacts !== undefined ? { input_artifacts: args.input_artifacts } : {}),
-          detail: args.detail === true,
-          host: { ...hostInfo(exec.agent), call_id: exec.callId },
-        }, exec.signal)
-        rememberPreparedDispatches(result, runId, 'generalrouter_prepare_repair')
-      } finally {
-        endPreparation(runId)
-      }
-      return withDiagnostics(result, runId, args.detail === true, false)
-    },
+      selection_id: { type: 'string', required: true },
+      execution_status: { type: 'string', enum: ['unknown', 'running', 'completed', 'failed', 'cancelled', 'not_started'] },
+      acceptance_status: { type: 'string', enum: ['unknown', 'passed', 'failed'] },
+      summary: { type: 'string' }, evidence: { type: 'array', items: { type: 'string' } },
+      tool_name: { type: 'string' }, provider: { type: 'string' }, model: { type: 'string' }, effort: { type: 'string' },
+      child_session_id: { type: 'string', description: 'Actual observed child ID, if available; never invent it.' },
+    }, output: jsonOutput,
+    execute: (args, exec) => invoke('record_result', args, exec),
   }))
-
-  ctx.tools.register(defineTool({
-    name: 'generalrouter_append_task',
-    description: 'Append one additional independent task without changing the original plan or selecting a model. Then call generalrouter_match with profile_id and its new task_id. Identical additions are idempotent. For repair work, use generalrouter_prepare_repair instead; repairs inherit their original route and never enter new matching.',
-    parameters: {
-      profile_id: { type: 'string', required: true, description: 'Saved profile_id from this run; remains unchanged after additions.' },
-      task_json: { type: 'string', required: true, description: 'One complete independent task object using the existing task-profile.v3 task fields, not a whole profile. Include specific input artifacts and acceptance requirements in context/deliverable.' },
-      repairs_task_id: { type: 'string', description: 'Legacy field retained for compatibility only. Repair additions here are rejected with guidance to generalrouter_prepare_repair; do not use this tool to route a repair.' },
-    },
-    output: jsonOutput,
-    async execute(args, exec) {
-      if (!exec.agent) throw new Error('generalrouter_append_task requires an Agent Session')
-      if (exec.agent.session.header.origin === 'subagent') return {
-        ok: false, status: 'delegate_to_parent', message: 'The parent planner owns task additions.',
-      }
-      const setupError = prepareProject(exec.agent)
-      if (setupError) return setupError
-      let task
-      try { task = JSON.parse(args.task_json) } catch { return { ok: false, status: 'invalid_task_json' } }
-      if (!task || typeof task !== 'object' || Array.isArray(task)) return { ok: false, status: 'invalid_task_json' }
-      const runId = exec.agent.session.id
-      roots.set(runId, true)
-      const state = stateFor(exec.agent.session)
-      state.rootId = runId
-      flushState(state)
-      await queue
-      const result = await toolBridge({ action: 'append_task', run_id: runId,
-        profile_id: args.profile_id, task,
-        ...(args.repairs_task_id !== undefined ? { repairs_task_id: args.repairs_task_id } : {}),
-        host: hostInfo(exec.agent) }, exec.signal)
-      return withDiagnostics(result, runId, false, false)
-    },
-  }))
-
-  ctx.tools.register(defineTool({
-    name: 'generalrouter_record_acceptance',
-    description: 'Record the parent’s acceptance result for an ended task, separately from worker completion. This records supplied evidence; it does not run tests or verify claims. Later corrections preserve history. A successful repair does not rewrite the original task’s failed result.',
-    parameters: {
-      task_id: { type: 'string', required: true },
-      outcome: { type: 'string', required: true, enum: ['unknown', 'passed', 'failed'] },
-      summary: { type: 'string', required: true, description: 'Concise result and scope; distinguish child-reported results from checks actually performed. Include remaining failures or unverified requirements.' },
-      evidence: { type: 'array', required: true, items: { type: 'string' }, description: 'Artifact/log references or concise expected-versus-actual observations. Use an empty list when no evidence is available and outcome unknown.' },
-    },
-    output: jsonOutput,
-    async execute(args, exec) {
-      if (!exec.agent) throw new Error('generalrouter_record_acceptance requires an Agent Session')
-      if (exec.agent.session.header.origin === 'subagent') return {
-        ok: false, status: 'delegate_to_parent', message: 'Return acceptance evidence to the parent planner.',
-      }
-      const setupError = prepareProject(exec.agent)
-      if (setupError) return setupError
-      const runId = exec.agent.session.id
-      roots.set(runId, true)
-      const state = stateFor(exec.agent.session)
-      state.rootId = runId
-      flushState(state)
-      await queue
-      const result = await toolBridge({ action: 'record_acceptance', run_id: runId,
-        task_id: args.task_id, outcome: args.outcome, summary: args.summary,
-        evidence: args.evidence, host: hostInfo(exec.agent) }, exec.signal)
-      return withDiagnostics(result, runId, false, false)
-    },
-  }))
-
   ctx.tools.register(defineTool({
     name: 'generalrouter_status',
-    description: 'Read concise task progress, active tickets, cached quota and recording diagnostics. Use only when status is needed; normal completion is recorded automatically.',
-    parameters: {
-      refresh: { type: 'boolean', description: 'Explicit live quota refresh; normally use the ten-minute cache.' },
-      detail: { type: 'boolean', description: 'Include configuration and full run details. Default false.' },
-    },
-    output: jsonOutput,
-    async execute(args, exec) {
-      if (!exec.agent) throw new Error('generalrouter_status requires an Agent Session')
-      const setupError = prepareProject(exec.agent)
-      if (setupError) return setupError
-      await queue
-      const runId = currentRun(exec.agent)
-      const result = await toolBridge({ action: 'status', run_id: runId,
-        refresh: args.refresh === true, detail: args.detail === true, host: hostInfo(exec.agent) }, exec.signal)
-      if (args.refresh === true) reconcileQuotaTimer({ restart: true })
-      return withDiagnostics(result, runId, args.detail === true)
-    },
-  }))
-  ctx.tools.register(defineTool({
-    name: 'generalrouter_release',
-    description: 'Close a GeneralRouter dispatch ticket when a selected task was cancelled or never started. Started native subagent tickets close automatically from their actual completion event. Closing a ticket does not return quota. Do not mark an unfinished task completed.',
-    parameters: {
-      reservation_id: { type: 'string', required: true },
-      outcome: { type: 'string', required: true, enum: ['cancelled', 'failed', 'not_dispatched', 'cancelled_before_dispatch'] },
-    },
-    output: jsonOutput,
-    async execute(args, exec) {
-      if (!exec.agent) throw new Error('generalrouter_release requires an Agent Session')
-      const setupError = prepareProject(exec.agent)
-      if (setupError) return setupError
-      await queue
-      const result = await toolBridge({ action: 'release', run_id: currentRun(exec.agent),
-        reservation_id: args.reservation_id, outcome: args.outcome }, exec.signal)
-      if (result.ok === true && reservations.has(args.reservation_id)) {
-        reservations.get(args.reservation_id).end = args.outcome
-        reconcileQuotaTimer()
-      }
-      return withDiagnostics(result, currentRun(exec.agent))
-    },
+    description: 'Optional saved selection/result records and cached quota reference. Quota does not authorize or block execution.',
+    parameters: { refresh: { type: 'boolean', description: 'Request quota collection subject to the ten-minute cache.' }, detail: { type: 'boolean' } },
+    output: jsonOutput, execute: (args, exec) => invoke('status', args, exec),
   }))
   ctx.tools.register(defineTool({
     name: 'generalrouter_report',
-    description: 'Read totals, planner/worker/task usage, linked repair-group costs, execution and acceptance results, API-equivalent cost and observed timing. Group totals overlap task totals; never add them together. Missing or ambiguous attribution remains unknown. Normally request once at delivery; detail includes full records.',
-    parameters: { detail: { type: 'boolean', description: 'Include individual usage records, task records and events. Default false.' } }, output: jsonOutput,
-    async execute(args, exec) {
-      if (!exec.agent) throw new Error('generalrouter_report requires an Agent Session')
-      const setupError = prepareProject(exec.agent)
-      if (setupError) return setupError
-      await queue
-      const runId = currentRun(exec.agent)
-      const result = await toolBridge({ action: 'report', run_id: runId, detail: args.detail === true }, exec.signal)
-      return withDiagnostics(result, runId, args.detail === true)
-    },
+    description: 'Optional report of saved recommendations, reported results and passively observed DSH usage. External plugin workers may not expose token events here. Missing usage/identity remains unknown. Costs are observed API-equivalent subtotals, not guaranteed complete workflow costs or subscription bills.',
+    parameters: { detail: { type: 'boolean', description: 'Include individual records; default false.' } },
+    output: jsonOutput, execute: (args, exec) => invoke('report', args, exec),
   }))
-
   ctx.systemPrompt.section({
-    name: 'generalrouter:host-admission', order: 89,
-    text: 'GeneralRouter does not prefilter candidates by membership in DSH native subagent model selection policy. It queries optional effort metadata for the configured provider/model mappings independently of that policy; unavailable metadata uses the default effort on first selection and never changes a frozen route. Router still checks configured mappings, observed quota admission and dispatch tickets. Returned dispatch arguments do not guarantee DSH will accept the call: the host retains its runtime restrictions. If the native call is rejected, report and retain the actual failure, do not claim a worker ran, and do not automatically substitute a model or switch to a different plugin entry point. This does not enable providers, change the user\'s allowlist, or add cross-plugin dispatch.',
-  })
-  ctx.systemPrompt.section({
-    name: 'generalrouter:dispatch', order: 90,
-    text: `GeneralRouter selects a model only for the first execution of each independent development task and then freezes its provider/model/effort. The parent uses generalrouter-task-profile to prepare one plan, submits profile_json and original_request to generalrouter_match once, then reuses its profile_id for other independent tasks. When ready_for_main_agent, copy dispatch into native ${settings.delegationToolName}, preserving its reservation marker and exact route; absent effort means provider default. Add only necessary upstream results. Execution completion and usage are recorded automatically. Workers report failures and evidence to the parent. After reading the worker's evidence, record acceptance separately with generalrouter_record_acceptance: passed, failed or unknown, with scope and evidence. Check contradictions or missing evidence as needed; do not routinely rerun the entire acceptance suite. An ended task/worker is never reopened. The parent decides whether to repair. For a repair, call generalrouter_prepare_repair with the saved profile_id, the ended repairs_task_id, a new task_id, a specific objective and a concise memento of attempted strategies, failures, evidence and next steps, plus necessary input_artifacts. Dispatch its returned arguments into a fresh native subagent using the exact original frozen provider/model/effort. This preparation only admits and records the inherited route; it never generates new weights, re-ranks candidates, or substitutes a model. If that route is blocked, report the block to the parent. generalrouter_append_task and new matching are only for additional independent tasks, never a way to rename or re-route repair work. A repair link is not depends_on; a known failed dependency cannot be treated as successful. A passing repair never changes its original task's failure. Keep the original profile unchanged. Never bypass tickets, automatically loop repairs, or add a reviewer without task need. Tickets do not deduct quota. Do not routinely reread ledgers/source, poll status, or repeat matching just to test completion. After delivery read one summary report; use detail:true only for specific diagnostics. Task and repair-group totals are alternate views, not additive costs. Recording diagnostics cover observed failures, not guaranteed usage completeness.`,
+    name: 'generalrouter:selection', order: 90,
+    text: 'GeneralRouter selects models only. When routing is requested, use generalrouter-task-profile to estimate task weights and generalrouter_match for model/effort recommendations. Resolve the selected model through your existing tools, including native subagent, subagent_codex or subagent_antigravity as appropriate; Router does not bind it to ECPA. Set the corresponding effort if the chosen tool supports it, otherwise use default and disclose that fallback. You own execution and failures. For a repair, retain the model and start a new subagent with a concise memento; no Router rematch or repair-preparation call is needed. Recording/report tools are optional and never execution prerequisites. A selection is not evidence of actual execution or successful acceptance. Unknown plugin usage stays unknown.',
   })
 }

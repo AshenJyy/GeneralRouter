@@ -15,9 +15,9 @@ $explicitHostConfig = $PSBoundParameters.ContainsKey('HostConfig') -and -not [st
 if (-not $ProjectRoot) { $ProjectRoot = (Get-Location).ProviderPath }
 # Optional command-line helper. Normal installation uses the App's Add plugin.
 if (-not $PackagePath) {
-    $PackagePath = Join-Path $PSScriptRoot 'dsh-generalrouter-0.1.5.tgz'
+    $PackagePath = Join-Path $PSScriptRoot 'dsh-generalrouter-0.1.13.tgz'
     if (-not (Test-Path -LiteralPath $PackagePath -PathType Leaf)) {
-        $PackagePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'dsh-generalrouter-0.1.5.tgz'
+        $PackagePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'dsh-generalrouter-0.1.13.tgz'
     }
 }
 $projectDirectory = [IO.Path]::GetFullPath($ProjectRoot)

@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 import sys
+from uuid import uuid4
 from typing import Any
 
 from .config import load_config
@@ -62,24 +63,7 @@ def _quota_summary(snapshot: dict, run_id: str) -> dict:
             }
             for account in values
         ],
-        "active_ticket_count": sum(ticket.get("run_id") == run_id for ticket in snapshot.get("reservations", [])),
-        "reservation_unit": "Dispatch identity only; no percentage is deducted.",
-    }
-
-
-def _admission_summary(decision: dict) -> dict:
-    return {
-        **{key: decision.get(key) for key in (
-            "accepted", "quota_status", "reason", "detail", "remaining_percent", "minimum_remaining_percent", "catalog_incomplete"
-        ) if key in decision},
-        "account_evidence": [
-            {
-                **{key: account.get(key) for key in ("provider", "status", "reason", "remaining_percent")},
-                "windows": [_window_summary(window) for window in account.get("windows", [])],
-            }
-            for account in decision.get("accounts", [])
-        ],
-        "limitation": "Cached percentages; unknown stays unknown and no task consumption is pre-deducted.",
+        "policy": "reference_only; no execution admission or quota deduction",
     }
 
 
@@ -170,45 +154,26 @@ class HostBridge:
         if not isinstance(self.run_id, str) or not self.run_id:
             raise BridgeError("run_id_required", "A DSH session_id or run_id is required.")
         self.ledger = RunLedger(self.state_dir, self.run_id)
-        bundled_mappings = _object_file(self.runtime_root / "data/model-call-mappings.v0.1.json")
-        self.routes = copy.deepcopy(bundled_mappings.get("routes", {}))
-        overrides = self.config.get("routes", {})
-        if not isinstance(self.routes, dict) or not isinstance(overrides, dict):
-            raise SetupRequired("routes must be a configuration_id-to-route object")
-        for identity, override in overrides.items():
-            if not isinstance(override, dict):
-                raise SetupRequired("Each optional route override must be an object")
-            self.routes[identity] = {**self.routes.get(identity, {}), **override}
-        if request.get("action") == "model_metadata_routes":
-            # The adapter needs only effective route identities for optional
-            # effort metadata. Do not load quota connections, rates or run state.
-            return
-        if self.config.get("quota_file"):
-            quota_path = Path(self.config["quota_file"])
-            self.quota_config = _quota_settings(_object_file(quota_path), quota_path.parent)
-        elif "quota" in self.config:
-            self.quota_config = self.config["quota"]
-        else:
-            self.quota_config = _quota_settings(
-                _object_file(self.runtime_root / "data/quota-policy.example.json"), self.runtime_root / "data"
+        try:
+            bundled = _object_file(self.runtime_root / "data/model-call-mappings.v0.1.json")
+            self.routes = copy.deepcopy(bundled.get("routes", {}))
+            if not isinstance(self.routes, dict):
+                self.routes = {}
+            overrides = self.config.get("routes", {})
+            if isinstance(overrides, dict):
+                for identity, override in overrides.items():
+                    if isinstance(override, dict):
+                        self.routes[identity] = {**self.routes.get(identity, {}), **override}
+        except (ValueError, OSError, TypeError):
+            self.routes = {}
+        # Usage prices and quota are optional observations, not selection gates.
+        try:
+            self.rate_data = (
+                _object_file(Path(self.config["rates_file"])) if self.config.get("rates_file")
+                else _object_file(self.runtime_root / "data/api-equivalent-rates.v0.1.json")
             )
-        self.quota = QuotaManager(self.quota_config, self.state_dir / "quota")
-        self.rate_data = (
-            _object_file(Path(self.config["rates_file"]))
-            if self.config.get("rates_file") else _object_file(self.runtime_root / "data/api-equivalent-rates.v0.1.json")
-        )
-
-    def model_metadata_routes(self) -> dict:
-        """Expose enabled route identities, never host policy or private settings."""
-        identities = {
-            (route["provider"], route["model"])
-            for route in self.routes.values()
-            if isinstance(route, dict) and route.get("enabled") is True
-            and all(isinstance(route.get(field), str) and route[field].strip() for field in ("provider", "model"))
-        }
-        return {"ok": True, "status": "model_metadata_routes",
-                "routes": [{"provider": provider, "model": model} for provider, model in sorted(identities)],
-                "native_allowlist_checked": False}
+        except (ValueError, OSError):
+            self.rate_data = {"rates": {}}
 
     def _rate(self, record: dict) -> dict | None:
         candidates = []
@@ -240,98 +205,6 @@ class HostBridge:
             return None
         return copy.deepcopy(entries[0])
 
-    def _model_catalog(self) -> list[dict]:
-        """Optional effort metadata, never a Router permission or membership gate."""
-        value = self.request.get("model_metadata")
-        if value is None:
-            value = self.request.get("allowed_models", self.host.get("model_metadata", self.host.get("available_models")))
-        if not isinstance(value, list):
-            return []
-        return [entry for entry in value if isinstance(entry, dict)]
-
-    def _route(self, configuration_id: str) -> tuple[dict | None, str]:
-        route = self.routes.get(configuration_id)
-        if not isinstance(route, dict) or route.get("enabled") is not True:
-            return None, "route_not_enabled_or_not_mapped"
-        if not all(isinstance(route.get(key), str) and route[key].strip() for key in ("provider", "model")):
-            return None, "callable_provider_and_model_required"
-        catalog = self._model_catalog()
-        model = next((entry for entry in catalog if entry.get("provider") == route["provider"] and entry.get("model") == route["model"]), {})
-        result = {
-            "configuration_id": configuration_id,
-            "provider": route["provider"],
-            "model": route["model"],
-            "effort_policy": "mapped_if_supported_else_default",
-            "native_allowlist_checked": False,
-            "invocation_verified": False,
-        }
-        effort = route.get("reasoning_effort")
-        supported = model.get("reasoning_efforts", model.get("reasoningEfforts", model.get("efforts")))
-        if isinstance(supported, dict):
-            supported = list(supported)
-        if isinstance(supported, list):
-            supported = [entry.get("id", entry.get("value")) if isinstance(entry, dict) else entry for entry in supported]
-        if isinstance(effort, str) and effort and isinstance(supported, list) and effort in supported:
-            result["reasoning_effort"] = effort
-            result["effort_resolution"] = "explicit_supported_mapping"
-        else:
-            result["effort_resolution"] = "provider_default"
-            result["effort_fallback_reason"] = "mapping_absent_or_not_supported_by_known_metadata"
-        result["reference_effort_matches_dispatch"] = result.get("reasoning_effort") == configuration_id.rsplit(":", 1)[-1]
-        return result, "mapped"
-
-    def _refresh_if_needed(self) -> dict:
-        snapshot = self.quota.snapshot(refresh=False)
-        enabled = any(isinstance(route, dict) and route.get("enabled") is True for route in self.routes.values())
-        # A failed attempt is cached too; repeated dispatches do not increase polling.
-        return self.quota.snapshot(refresh=True) if enabled and snapshot.get("stale", True) else snapshot
-
-    def _planner_input(self) -> tuple[dict, str, str, str]:
-        supplied = self.request.get("profile")
-        reference = self.request.get("profile_id")
-        if supplied is not None and not isinstance(supplied, dict):
-            raise BridgeError("profile_object_required", "profile must be a task-profile.v3 object.")
-        if reference is not None and (not isinstance(reference, str) or not reference):
-            raise BridgeError("invalid_profile_id", "profile_id must be a nonempty saved profile identifier.")
-        if supplied is None and reference is None:
-            raise BridgeError("profile_required", "Submit the complete profile once, then reuse its returned profile_id.")
-        with self.ledger.edit() as state:
-            saved_digest = state.get("profile_sha256")
-            saved_profile = state.get("profile")
-            if saved_digest is not None:
-                expected_id = _profile_id(self.run_id, saved_digest)
-                if state.get("profile_id") not in (None, expected_id):
-                    raise BridgeError("saved_profile_identity_mismatch", "The saved profile identity is inconsistent; preserve the run records and use a new run.")
-                if reference is not None and reference != expected_id:
-                    raise BridgeError("profile_id_not_in_run", "This profile_id does not belong to the current run.")
-                if isinstance(saved_profile, dict) and _profile_digest(saved_profile) != saved_digest:
-                    raise BridgeError("saved_profile_digest_mismatch", "The saved profile content no longer matches its registered digest; do not dispatch from this record.")
-            elif reference is not None and supplied is None:
-                raise BridgeError("profile_not_registered", "This run has no saved profile; submit its complete task-profile.v3 object.")
-            if supplied is None:
-                if not isinstance(saved_profile, dict):
-                    raise BridgeError("saved_profile_body_missing", "This older run stores only a profile digest. Resubmit the original complete profile to enable profile_id reuse.")
-                profile = copy.deepcopy(saved_profile)
-            else:
-                profile = copy.deepcopy(supplied)
-            digest = _profile_digest(profile)
-            if saved_digest is not None and saved_digest != digest:
-                raise BridgeError("profile_changed", "The original profile is immutable. Reuse profile_id and append a new task instead of replacing the plan.")
-            identity = _profile_id(self.run_id, digest)
-            if reference is not None and reference != identity:
-                raise BridgeError("profile_id_not_in_run", "The profile_id does not match this run and profile.")
-            if "original_request" in self.request:
-                original = self.request["original_request"]
-            elif "request" in self.request:
-                original = self.request["request"]
-            else:
-                original = state.get("original_request", "")
-            if not isinstance(original, str):
-                raise BridgeError("invalid_original_request", "original_request must be a string.")
-            if saved_digest is not None and original != state.get("original_request", ""):
-                raise BridgeError("original_request_changed", "The original request is fixed for this run; omit it on later calls or resend the same text.")
-        return profile, original, digest, identity
-
     def _router(self) -> GeneralRouter:
         routing_path = (
             _path(self.config_path.parent, self.config["routing_config"], "routing_config")
@@ -339,661 +212,189 @@ class HostBridge:
         )
         return GeneralRouter(load_config(routing_path))
 
-    @staticmethod
-    def _combined_profile(state: dict, profile: dict) -> dict:
-        combined = copy.deepcopy(profile)
-        additions = state.get("appended_tasks", [])
-        if not isinstance(additions, list):
-            raise BridgeError("saved_appended_tasks_invalid", "The saved appended-task records are not a list; preserve the run records.")
-        for addition in additions:
-            if not isinstance(addition, dict) or not isinstance(addition.get("task"), dict):
-                raise BridgeError("saved_appended_tasks_invalid", "A saved appended-task record has an invalid shape; preserve the run records.")
-            payload = {"task": addition["task"], "repairs_task_id": addition.get("repairs_task_id")}
-            if addition.get("digest") != _profile_digest(payload):
-                raise BridgeError("saved_appended_task_digest_mismatch", "An appended task no longer matches its saved payload; do not dispatch it.")
-            combined["tasks"].append(copy.deepcopy(addition["task"]))
-        return combined
-
-    @staticmethod
-    def _remember_attempt(task: dict) -> None:
-        """Keep reservation/session links when an unstarted dispatch is reissued."""
-        reservation_id = task.get("reservation_id")
-        if not reservation_id:
-            return
-        attempts = task.setdefault("attempts", [])
-        attempt = next((item for item in attempts if item.get("reservation_id") == reservation_id), None)
-        if attempt is None:
-            attempt = {"reservation_id": reservation_id}
-            attempts.append(attempt)
-        for field in (
-            "route", "reserved_at", "status", "dispatch_call_id", "authorized_at", "child_session_id",
-            "started_at", "finished_at", "outcome", "actual_route", "route_mismatch",
-        ):
-            if field in task:
-                attempt[field] = copy.deepcopy(task[field])
-
-    @staticmethod
-    def _acceptance_statuses(state: dict) -> dict:
-        return {identity: task.get("acceptance_status", "unknown") for identity, task in state.get("tasks", {}).items()}
-
-    @staticmethod
-    def _dependency_failures(state: dict) -> dict:
-        return {
-            identity: [dependency for dependency in task.get("depends_on", [])
-                       if state["tasks"][dependency].get("status") == "failed"
-                       or state["tasks"][dependency].get("acceptance_status", "unknown") == "failed"]
-            for identity, task in state.get("tasks", {}).items()
-            if any(state["tasks"][dependency].get("status") == "failed"
-                   or state["tasks"][dependency].get("acceptance_status", "unknown") == "failed"
-                   for dependency in task.get("depends_on", []))
-        }
-
-    def _frozen_route(self, frozen: dict) -> tuple[dict | None, str]:
-        """Recheck admission without resolving the selected model or effort again."""
-        mapping = self.routes.get(frozen.get("configuration_id"))
-        if not isinstance(mapping, dict) or mapping.get("enabled") is not True:
-            return None, "frozen_route_not_enabled"
-        if not all(isinstance(frozen.get(key), str) and frozen[key].strip() for key in ("provider", "model")):
-            return None, "frozen_route_mapping_invalid"
-        if any(mapping.get(key) != frozen.get(key) for key in ("provider", "model")):
-            return None, "frozen_route_mapping_changed"
-        # Preserve the frozen effort even if current metadata is absent or has
-        # changed. DSH owns actual invocation enforcement, not this Router.
-        return {**copy.deepcopy(frozen), "native_allowlist_checked": False, "invocation_verified": False}, "frozen_selection"
-
-    def append_task(self) -> dict:
-        if not isinstance(self.request.get("profile_id"), str) or not self.request["profile_id"]:
-            raise BridgeError("profile_id_required", "Append a task using the registered profile_id.")
-        task = self.request.get("task")
-        if not isinstance(task, dict):
-            raise BridgeError("task_object_required", "task must be one complete task object from task-profile.v3.")
-        repairs = self.request.get("repairs_task_id")
-        if repairs is not None:
-            raise BridgeError("prepare_repair_required", "Repairs do not select a model again. Use generalrouter_prepare_repair with profile_id, repairs_task_id, a fresh task_id, objective and memento; it inherits the original frozen route.")
-        profile, _, digest, profile_id = self._planner_input()
-        payload = {"task": copy.deepcopy(task), "repairs_task_id": repairs}
-        payload_digest = _profile_digest(payload)
-        router = self._router()
-        with self.ledger.edit() as state:
-            if state.get("profile_sha256") != digest:
-                raise BridgeError("profile_not_registered", "Register the original plan before appending tasks.")
-            identity = task.get("task_id")
-            if not isinstance(identity, str) or not identity.strip():
-                raise BridgeError("task_id_required", "An appended task needs a new nonempty task_id.")
-            combined = self._combined_profile(state, profile)
-            previous = next((item for item in state.get("appended_tasks", []) if item["task"].get("task_id") == identity), None)
-            if previous is not None:
-                if previous["digest"] != payload_digest:
-                    raise BridgeError("task_id_collision", "This task_id already has a different payload or repair link. Use a new task_id.")
-                return {"ok": True, "status": "task_already_appended", "profile_id": profile_id,
-                        "task_id": identity, "repairs_task_id": repairs}
-            if identity in state["tasks"]:
-                raise BridgeError("task_id_collision", "This task_id is already registered. Use a new task_id.")
-            combined["tasks"].append(copy.deepcopy(task))
-            # The same public v3 contract validates both original and appended tasks.
-            router.skill.normalize(combined)
-            if any(dependency not in state["tasks"] for dependency in task["depends_on"]):
-                raise BridgeError("append_dependency_not_registered", "An appended task may depend only on already registered tasks.")
-            appended_at = utc_now()
-            state.setdefault("appended_tasks", []).append({**payload, "digest": payload_digest, "appended_at": appended_at})
-            state["tasks"][identity] = {"status": "pending", "depends_on": copy.deepcopy(task["depends_on"]),
-                                        "objective": task["objective"], "repairs_task_id": repairs,
-                                        "acceptance_status": "unknown", "acceptance_history": []}
-            self.ledger.event(state, "task_appended", profile_id=profile_id, task_id=identity,
-                              repairs_task_id=repairs, task_sha256=payload_digest)
-        return {"ok": True, "status": "task_appended", "profile_id": profile_id,
-                "task_id": identity, "repairs_task_id": repairs,
-                "next_step": "Call generalrouter_match with this profile_id and task_id to select the new task once."}
-
-    @staticmethod
-    def _repair_guidance() -> str:
-        return ("Report the failure to the main agent. If the main agent decides to repair, use "
-                "generalrouter_prepare_repair with profile_id, repairs_task_id, a fresh task_id, objective "
-                "and memento. It prepares a new native subagent with the original frozen provider/model/effort "
-                "without model matching. Never reopen the ended task or silently switch models.")
-
-    @staticmethod
-    def _worker_request(task: dict, original: str) -> dict:
-        return {"original_request": original, "objective": task["objective"], "context": task["context"],
-                "input_artifacts": copy.deepcopy(task["input_artifacts"]), "deliverable": task["deliverable"],
-                "upstream_task_ids": copy.deepcopy(task["depends_on"])}
-
-    def _repair_response(self, entry: dict, profile_id: str, identity: str) -> dict:
-        response = {
-            "ok": True, "status": "ready_for_main_agent", "run_id": self.run_id,
-            "profile_id": profile_id, "task_id": identity, "repairs_task_id": entry["repairs_task_id"],
-            "selection_origin_task_id": entry["selection_origin_task_id"], "selection_kind": "inherited_repair",
-            "reservation_id": entry["reservation_id"], "configuration_id": entry["frozen_route"]["configuration_id"],
-            "route": copy.deepcopy(entry["frozen_route"]), "dispatch": copy.deepcopy(entry["dispatch"]),
-            "depends_on": copy.deepcopy(entry["depends_on"]), "selection": copy.deepcopy(entry["selection"]),
-            "native_allowlist_checked": False, "invocation_verified": False,
-            "admission": _admission_summary(entry["admission"]), "detail_available": True,
-            "main_agent_instructions": [
-                "Call a NEW DSH native subagent using dispatch, including its reservation marker. Do not resume the predecessor session.",
-                "Keep the inherited provider/model/effort exactly as returned. No model matching was performed for this repair.",
-                "Forward the referenced artifacts and original constraints. The memento is the main agent's handoff, not verified execution evidence.",
-                "Do not dispatch the same reservation twice. If no call was made, release it as not_dispatched.",
-                "Wait for this worker to finish, then record its acceptance separately. Keep the predecessor's failure and usage unchanged.",
-                self._repair_guidance(),
-            ],
-        }
-        if self.request.get("detail") is True:
-            response["details"] = {"memento": entry["memento"], "historical_task_profile": entry.get("historical_task_profile"),
-                                   "repair_context": entry["worker_request"]["repair_context"],
-                                   "original_selection": entry.get("original_selection"), "admission": entry["admission"]}
-        return response
-
-    def prepare_repair(self) -> dict:
-        """Prepare fresh execution of a main-agent repair decision; never rank models."""
-        for field in ("profile_id", "repairs_task_id", "task_id", "objective", "memento"):
-            if not isinstance(self.request.get(field), str) or not self.request[field].strip():
-                raise BridgeError("repair_field_required", f"prepare_repair requires a nonempty {field} string.")
-        artifacts = self.request.get("input_artifacts", [])
-        if not isinstance(artifacts, list) or any(not isinstance(item, str) or not item.strip() for item in artifacts):
-            raise BridgeError("repair_artifacts_invalid", "input_artifacts must be a list of nonempty artifact references.")
-        if any(field in self.request for field in ("profile", "task", "task_weights", "weight_source", "model", "provider", "reasoning_effort", "configuration_id")):
-            raise BridgeError("repair_selection_override_forbidden", "Repairs inherit the saved task metadata and frozen route. Do not submit a new profile, vector or model override.")
-        profile, original, digest, profile_id = self._planner_input()
-        identity, repairs = self.request["task_id"], self.request["repairs_task_id"]
-        payload = {"repairs_task_id": repairs, "task_id": identity, "objective": self.request["objective"],
-                   "memento": self.request["memento"], "input_artifacts": copy.deepcopy(artifacts)}
-        request_digest = _profile_digest(payload)
-        snapshot = self._refresh_if_needed()
-        with self.ledger.edit() as state:
-            if state.get("profile_sha256") != digest:
-                raise BridgeError("profile_not_registered", "Register the original plan before preparing a repair.")
-            combined = self._combined_profile(state, profile)
-            specs = {item["task_id"]: item for item in combined["tasks"]}
-            if set(specs) != set(state["tasks"]):
-                raise BridgeError("saved_task_set_mismatch", "The saved task states do not match this profile; preserve the run records.")
-            source = state["tasks"].get(repairs)
-            if source is None or source.get("status") not in ("completed", "failed"):
-                raise BridgeError("repair_target_not_ended", "A repair must identify an existing predecessor whose execution has ended.")
-            entry = state["tasks"].get(identity)
-            if entry is not None:
-                if entry.get("selection_kind") != "inherited_repair" or entry.get("repair_request_sha256") != request_digest:
-                    raise BridgeError("task_id_collision", "This task_id is already registered with a different repair request. Use a fresh task_id.")
-                if entry["status"] in ("completed", "failed"):
-                    return {"ok": True, "status": "task_ended", "profile_id": profile_id, "task_id": identity,
-                            "execution_status": entry["status"], "acceptance_status": entry.get("acceptance_status", "unknown"),
-                            "route": entry["frozen_route"], "next_step": self._repair_guidance()}
-                if entry["status"] == "running" or entry.get("dispatch_call_id") and entry["status"] == "reserved":
-                    return {"ok": True, "status": "awaiting_worker", "profile_id": profile_id, "task_id": identity,
-                            "reservation_id": entry.get("reservation_id"), "route": entry["frozen_route"],
-                            "next_step": "This repair already has an authorized or running worker. Wait for its outcome; do not dispatch it again."}
-            else:
-                origin_id, lineage = repairs, set()
-                while True:
-                    if origin_id in lineage or origin_id not in state["tasks"]:
-                        raise BridgeError("repair_lineage_invalid", "The saved repair lineage is inconsistent; preserve the records instead of choosing a substitute model.")
-                    lineage.add(origin_id)
-                    parent = state["tasks"][origin_id].get("repairs_task_id")
-                    if parent is None:
-                        break
-                    origin_id = parent
-                origin = state["tasks"][origin_id]
-                frozen = origin.get("frozen_route", origin.get("route"))
-                if not isinstance(frozen, dict) or not all(isinstance(frozen.get(field), str) and frozen[field] for field in ("configuration_id", "provider", "model")):
-                    raise BridgeError("repair_frozen_route_missing", "The original task has no recorded frozen route. No repair model can be inferred or selected.")
-                origin_spec = specs[origin_id]
-                task = copy.deepcopy(origin_spec)
-                task.update(task_id=identity, objective=payload["objective"],
-                            input_artifacts=list(dict.fromkeys(origin_spec["input_artifacts"] + specs[repairs]["input_artifacts"] + artifacts)),
-                            depends_on=[dependency for dependency in origin_spec["depends_on"] if dependency not in lineage])
-                worker_request = self._worker_request(task, original)
-                worker_request["repair_context"] = {
-                    "repairs_task_id": repairs, "selection_origin_task_id": origin_id,
-                    "original_objective": origin_spec["objective"], "predecessor_objective": specs[repairs]["objective"],
-                    "execution_status": source["status"], "outcome": source.get("outcome"),
-                    "acceptance_status": source.get("acceptance_status", "unknown"), "acceptance": copy.deepcopy(source.get("acceptance")),
-                    "predecessor_actual_route": copy.deepcopy(source.get("actual_route")), "predecessor_route_mismatch": source.get("route_mismatch"),
-                    "memento": payload["memento"], "memento_source": "main_agent_handoff_not_independently_verified",
-                    "execution_policy": "New subagent session, same original frozen provider/model/effort; report remaining failures to the main agent.",
-                }
-                appended = {"task": task, "repairs_task_id": repairs}
-                prepared_at = utc_now()
-                state.setdefault("appended_tasks", []).append({**copy.deepcopy(appended), "digest": _profile_digest(appended), "appended_at": prepared_at})
-                entry = {"status": "pending", "depends_on": copy.deepcopy(task["depends_on"]), "objective": task["objective"],
-                         "repairs_task_id": repairs, "acceptance_status": "unknown", "acceptance_history": [],
-                         "selection_kind": "inherited_repair", "selection_origin_task_id": origin_id,
-                         "frozen_route": copy.deepcopy(frozen), "selected_at": origin.get("selected_at", origin.get("reserved_at")),
-                         "repair_prepared_at": prepared_at, "repair_request_sha256": request_digest,
-                         "memento": payload["memento"], "worker_request": worker_request,
-                         "historical_task_profile": copy.deepcopy(origin.get("matching", {}).get("task_profile")),
-                         "original_selection": copy.deepcopy(origin.get("matching", {}).get("selection")),
-                         "selection": {"selection_kind": "inherited_repair", "selection_origin_task_id": origin_id,
-                                       "selection_fixed_for_task": True, "matching_performed": False,
-                                       "native_allowlist_checked": False, "invocation_verified": False,
-                                       "reason": "Main-agent repair decision; inherit the original frozen configuration without ranking."}}
-                state["tasks"][identity] = entry
-                self.ledger.event(state, "repair_prepared", profile_id=profile_id, task_id=identity, repairs_task_id=repairs,
-                                  selection_origin_task_id=origin_id, configuration_id=frozen["configuration_id"], repair_request_sha256=request_digest)
-            blocked = [dependency for dependency in entry["depends_on"]
-                       if state["tasks"][dependency]["status"] != "completed"
-                       or state["tasks"][dependency].get("acceptance_status", "unknown") == "failed"]
-            if blocked:
-                return {"ok": False, "status": "repair_dependencies_unavailable", "profile_id": profile_id, "task_id": identity,
-                        "dependencies": blocked, "route": entry["frozen_route"],
-                        "next_step": "Report unavailable upstream inputs to the main agent. The failed predecessor is a repair link, not a successful dependency."}
-            route, reason = self._frozen_route(entry["frozen_route"])
-            decision = None
-            if route is not None:
-                decision = (self.quota.admit(route, entry["reservation_id"]) if entry["status"] == "reserved"
-                            else self.quota.reserve(route, identity, self.run_id))
-                reason = decision["reason"]
-            if route is None or not decision.get("accepted"):
-                self.ledger.event(state, "repair_route_unavailable", task_id=identity, reason=reason, route=entry["frozen_route"])
-                return {"ok": False, "status": "fixed_route_unavailable", "profile_id": profile_id, "task_id": identity,
-                        "route": entry["frozen_route"], "reason": reason, "quota": _quota_summary(snapshot, self.run_id),
-                        "message": "The inherited route is unavailable. Report this to the main agent; no substitute or new ranking was used.",
-                        "admission": _admission_summary(decision) if decision else None}
-            if entry["status"] == "reserved":
-                entry["admission"] = decision
-                return self._repair_response(entry, profile_id, identity)
-            reservation_id = decision.get("reservation_id") or decision.get("reservation", {}).get("reservation_id")
-            dispatch = {"description": entry["objective"][:120], "provider": route["provider"], "model": route["model"],
-                        "prompt": f"[generalrouter-reservation:{reservation_id}]\n" + json.dumps(entry["worker_request"], ensure_ascii=False, indent=2)}
-            if route.get("reasoning_effort"):
-                dispatch["reasoning_effort"] = route["reasoning_effort"]
-            self._remember_attempt(entry)
-            for field in ("dispatch_call_id", "authorized_at", "child_session_id", "started_at", "finished_at", "outcome", "actual_route", "route_mismatch"):
-                entry.pop(field, None)
-            entry.update(status="reserved", reservation_id=reservation_id, route=route, dispatch=dispatch,
-                         reserved_at=utc_now(), admission=decision)
-            self._remember_attempt(entry)
-            self.ledger.event(state, "repair_reserved", task_id=identity, repairs_task_id=repairs,
-                              selection_origin_task_id=entry["selection_origin_task_id"], reservation_id=reservation_id,
-                              configuration_id=route["configuration_id"], route=route)
-            return self._repair_response(entry, profile_id, identity)
-
-    def record_acceptance(self) -> dict:
-        identity = self.request.get("task_id")
-        outcome = self.request.get("outcome")
-        summary = self.request.get("summary")
-        evidence = self.request.get("evidence")
-        if outcome not in ("unknown", "passed", "failed"):
-            raise BridgeError("unsupported_acceptance_outcome", "Acceptance outcome must be unknown, passed, or failed.")
-        if not isinstance(summary, str) or (outcome != "unknown" and not summary.strip()):
-            raise BridgeError("acceptance_summary_required", "Known acceptance outcomes need a nonempty summary string.")
-        if not isinstance(evidence, list) or any(not isinstance(item, str) or not item.strip() for item in evidence):
-            raise BridgeError("acceptance_evidence_invalid", "evidence must be a list of nonempty artifact references or concise observations; use [] if unavailable.")
-        payload = {"outcome": outcome, "summary": summary, "evidence": evidence}
-        payload_digest = _profile_digest(payload)
-        with self.ledger.edit() as state:
-            task = state["tasks"].get(identity) if isinstance(identity, str) else None
-            if task is None:
-                raise BridgeError("task_not_in_plan", "task_id is not present in this plan.")
-            if task.get("status") not in ("completed", "failed"):
-                raise BridgeError("task_execution_not_ended", "Record acceptance only after the task's execution has ended.")
-            history = task.setdefault("acceptance_history", [])
-            if history and history[-1].get("payload_sha256") == payload_digest:
-                return {"ok": True, "status": "acceptance_already_recorded", "task_id": identity,
-                        "execution_status": task["status"], "acceptance_status": task.get("acceptance_status", "unknown"),
-                        "next_step": self._repair_guidance() if outcome == "failed" else "No repair is started automatically."}
-            entry = {**copy.deepcopy(payload), "recorded_at": utc_now(), "payload_sha256": payload_digest}
-            history.append(entry)
-            task["acceptance_status"] = outcome
-            task["acceptance"] = copy.deepcopy(entry)
-            self.ledger.event(state, "acceptance_recorded", task_id=identity, outcome=outcome,
-                              payload_sha256=payload_digest, evidence_count=len(evidence))
-            dependency_failures = self._dependency_failures(state)
-        return {"ok": True, "status": "acceptance_recorded", "task_id": identity,
-                "execution_status": task["status"], "acceptance_status": outcome,
-                "dependency_failures": dependency_failures,
-                "next_step": self._repair_guidance() if outcome == "failed" else "No repair is started automatically.",
-                "note": "Acceptance is the main agent's recorded assessment. It does not reopen execution or change linked tasks."}
-
     def _diagnostics_reference(self) -> dict:
         return {
             "ledger_reference": self.ledger.path.relative_to(self.project_root).as_posix(),
             "detail_request": "Use detail:true on status/report or match when specific diagnostics are needed.",
         }
 
-    def match(self) -> dict:
-        profile, original, digest, profile_id = self._planner_input()
-        detail = self.request.get("detail") is True
-        # Refresh before acquiring the run lock; collection can involve network latency.
-        snapshot = self._refresh_if_needed()
+    def _quota_snapshot(self, *, refresh: bool = False) -> dict:
+        try:
+            if self.config.get("quota_file"):
+                path = Path(self.config["quota_file"])
+                settings = _quota_settings(_object_file(path), path.parent)
+            elif "quota" in self.config:
+                settings = self.config["quota"]
+            else:
+                settings = _quota_settings(
+                    _object_file(self.runtime_root / "data/quota-policy.example.json"), self.runtime_root / "data"
+                )
+            manager = QuotaManager(settings, self.state_dir / "quota")
+            return _quota_summary(manager.snapshot(refresh=refresh), self.run_id)
+        except Exception:
+            # Quota collection cannot prevent a capability recommendation.
+            return {"status": "unknown", "accounts": [], "policy": "reference_only",
+                    "error": "quota_observation_unavailable"}
+
+    def _planner_input(self) -> tuple[dict, str, str]:
+        supplied = self.request.get("profile")
+        reference = self.request.get("profile_id")
+        if supplied is not None:
+            if not isinstance(supplied, dict):
+                raise BridgeError("profile_object_required", "profile must be a task-profile.v3 object.")
+            original = self.request.get("original_request", "")
+            if not isinstance(original, str):
+                raise BridgeError("invalid_original_request", "original_request must be a string.")
+            identity = _profile_id(self.run_id, _profile_digest({"profile": supplied, "request": original}))
+            return copy.deepcopy(supplied), original, identity
+        if not isinstance(reference, str) or not reference:
+            raise BridgeError("profile_required", "Provide profile_json, or reuse a saved profile_id.")
         with self.ledger.edit() as state:
-            if state.get("profile_sha256") not in (None, digest):
-                raise BridgeError("profile_changed", "The original profile is immutable. Reuse profile_id and append a new task instead of replacing the plan.")
-            if state.get("profile_sha256") is not None and state.get("original_request", "") != original:
-                raise BridgeError("original_request_changed", "The saved original request changed before registration; retry with the existing plan.")
-            combined = self._combined_profile(state, profile)
-            if "profile_sha256" not in state:
-                router = self._router()
-                # Validate the complete DAG at registration, without ranking tasks
-                # which have not yet become ready for their first selection.
-                normalized = router.skill.normalize(combined)
-                state["profile_sha256"] = digest
-                state["original_request"] = original
-                state["host"] = {key: self.host.get(key) for key in ("name", "version", "session_id", "agent_id", "cwd")}
-                for task in normalized["tasks"]:
-                    state["tasks"][task["task_id"]] = {"status": "pending", "depends_on": task["depends_on"], "objective": task["objective"],
-                                                        "repairs_task_id": None, "acceptance_status": "unknown", "acceptance_history": []}
-                self.ledger.event(state, "plan_registered", profile_id=profile_id, profile_sha256=digest, candidate_snapshot=router.model_snapshot)
-            if not isinstance(state.get("profile"), dict):
-                state["profile"] = copy.deepcopy(profile)
-                self.ledger.event(state, "profile_saved", profile_id=profile_id, profile_sha256=digest)
-            elif _profile_digest(state["profile"]) != digest:
-                raise BridgeError("saved_profile_digest_mismatch", "The saved profile content no longer matches its registered digest.")
-            state["profile_id"] = profile_id
-            state.setdefault("original_request", original)
-            if {task["task_id"] for task in combined["tasks"]} != set(state["tasks"]):
-                raise BridgeError("saved_task_set_mismatch", "The saved task states do not match this profile; preserve the records and use a new run.")
-            requested = self.request.get("task_id")
-            if requested is not None and (not isinstance(requested, str) or requested not in state["tasks"]):
-                raise BridgeError("task_not_in_plan", "task_id is not present in this plan.")
-            if requested and state["tasks"][requested]["status"] in ("completed", "failed"):
-                item = state["tasks"][requested]
-                return {"ok": True, "status": "task_ended", "run_id": self.run_id, "profile_id": profile_id,
-                        "task_id": requested, "execution_status": item["status"],
-                        "acceptance_status": item.get("acceptance_status", "unknown"),
-                        "route": item.get("frozen_route", item.get("route")),
-                        "next_step": self._repair_guidance()}
-            pending_repairs = [identity for identity, item in state["tasks"].items()
-                               if item.get("repairs_task_id") and item["status"] == "pending"]
-            if requested and state["tasks"][requested].get("repairs_task_id"):
-                item = state["tasks"][requested]
-                return {"ok": False, "status": "prepare_repair_required", "profile_id": profile_id, "task_id": requested,
-                        "execution_status": item["status"], "repairs_task_id": item["repairs_task_id"],
-                        "legacy_repair": item.get("selection_kind") != "inherited_repair",
-                        "message": "Repair tasks never enter model matching. For a pending inherited repair, repeat its identical prepare_repair request; for a legacy appended repair, preserve its record and use a fresh repair task_id. Authorized or running workers must finish before any further repair.",
-                        "next_step": self._repair_guidance()}
-            ready = [
-                task for task in combined["tasks"]
-                if (requested is None or task["task_id"] == requested)
-                and state["tasks"][task["task_id"]]["status"] == "pending"
-                and not state["tasks"][task["task_id"]].get("repairs_task_id")
-                and all(state["tasks"][dependency]["status"] == "completed"
-                        and state["tasks"][dependency].get("acceptance_status", "unknown") != "failed"
-                        for dependency in task["depends_on"])
-            ]
-            if not ready:
-                statuses = {identity: task["status"] for identity, task in state["tasks"].items()}
-                done = bool(statuses) and all(value == "completed" for value in statuses.values())
-                dependency_failures = self._dependency_failures(state)
-                response = {"ok": not bool(pending_repairs), "status": "prepare_repair_required" if pending_repairs else "completed" if done or not statuses else "awaiting_worker_or_dependencies", "run_id": self.run_id,
-                            "profile_id": profile_id, "task_statuses": statuses, "acceptance_statuses": self._acceptance_statuses(state),
-                            "dependency_failures": dependency_failures,
-                            "completion_meaning": "Execution ended; consult acceptance_statuses for the recorded quality result.",
-                            "pending_repair_task_ids": pending_repairs,
-                            "pending_repairs": {identity: {"repairs_task_id": state["tasks"][identity]["repairs_task_id"],
-                                                           "legacy_repair": state["tasks"][identity].get("selection_kind") != "inherited_repair"}
-                                                for identity in pending_repairs},
-                            "repair_migration": "Repeat the identical prepare_repair request for a pending inherited repair. Preserve legacy pending repairs and use prepare_repair with their ended predecessor and a fresh task_id; they are never matched automatically.",
-                            "next_step": self._repair_guidance()}
-                if detail:
-                    response["details"] = {"task_matching": {
-                        identity: item.get("matching") for identity, item in state["tasks"].items()
-                        if requested is None or requested == identity
-                    }}
-                return response
-            task_spec = ready[0]
-            entry = state["tasks"][task_spec["task_id"]]
-            frozen = entry.get("frozen_route", entry.get("route"))
-            if isinstance(frozen, dict):
-                entry.setdefault("frozen_route", copy.deepcopy(frozen))
-                entry.setdefault("selected_at", entry.get("reserved_at", utc_now()))
-                saved_matching = entry.get("matching", {})
-                prior_ranking = saved_matching.get("ranking", [])
-                ranks = [row for row in prior_ranking if row.get("configuration_id") == frozen.get("configuration_id")]
-                if not ranks or not isinstance(saved_matching.get("selection"), dict):
-                    raise BridgeError("saved_selection_missing", "The frozen configuration has no saved matching record; preserve the run records.")
-                task = {**copy.deepcopy(task_spec), "task_profile": saved_matching.get("task_profile", {}),
-                        "worker_request": copy.deepcopy(entry.get("worker_request") or self._worker_request(task_spec, original))}
-                routing_policy = saved_matching.get("routing_policy", {})
-            else:
-                router = self._router()
-                # Registration/append already validates the complete DAG. Match
-                # just this ready task with a temporary dependency-free view;
-                # restore its real dependencies for admission and execution.
-                one_task = copy.deepcopy(task_spec)
-                one_task["depends_on"] = []
-                handoff = router.route({**combined, "tasks": [one_task]}, original_request=original)
-                task = handoff["tasks"][0]
-                task["depends_on"] = copy.deepcopy(task_spec["depends_on"])
-                task["worker_request"]["upstream_task_ids"] = copy.deepcopy(task_spec["depends_on"])
-                routing_policy = handoff["routing_policy"]
-                ranks = task["matching"]["ranking"]
-            eligibility = []
-            chosen = None
-            for rank in ranks:
-                identity = rank["configuration_id"]
-                route, reason = self._frozen_route(frozen) if isinstance(frozen, dict) else self._route(identity)
-                item = {**rank, "eligible": False, "eligibility_reason": reason}
-                if route is not None:
-                    decision = self.quota.reserve(route, task["task_id"], self.run_id) if chosen is None else self.quota.admit(route)
-                    item["admission"] = decision
-                    item["eligible"] = decision["accepted"]
-                    item["eligibility_reason"] = decision["reason"]
-                    if decision["accepted"] and chosen is None:
-                        chosen = (rank, route, decision)
-                eligibility.append(item)
-            if chosen is None:
-                self.ledger.event(state, "no_admissible_route", task_id=task["task_id"], ranking=eligibility)
-                reasons = {}
-                for item in eligibility:
-                    reason = item["eligibility_reason"]
-                    reasons[reason] = reasons.get(reason, 0) + 1
-                response = {
-                    "ok": False, "status": "fixed_route_unavailable" if isinstance(frozen, dict) else "setup_required_or_no_allowance", "run_id": self.run_id,
-                    "profile_id": profile_id, "task_id": task["task_id"], "rejection_summary": reasons,
-                    "quota": _quota_summary(snapshot, self.run_id), "detail_available": True,
-                    "message": ("This task's selected model and effort are fixed and currently unavailable. Report this to the main agent or restore its availability; no substitute was selected."
-                                if isinstance(frozen, dict) else "No enabled mapped candidate currently passes the reported allowance checks. Native allowlist membership was not checked; no model was dispatched."),
-                }
-                if detail:
-                    response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": routing_policy}
-                return response
-            rank, route, decision = chosen
-            reservation_id = decision.get("reservation_id") or decision.get("reservation", {}).get("reservation_id")
-            marker = f"[generalrouter-reservation:{reservation_id}]"
-            worker_request = copy.deepcopy(task["worker_request"])
-            dispatch = {
-                "description": task["objective"][:120],
-                "prompt": marker + "\n" + json.dumps(worker_request, ensure_ascii=False, indent=2),
-                "provider": route["provider"],
-                "model": route["model"],
-            }
-            if route.get("reasoning_effort"):
-                dispatch["reasoning_effort"] = route["reasoning_effort"]
-            if isinstance(frozen, dict):
-                selection = copy.deepcopy(entry["matching"]["selection"])
-            else:
-                common_score = task["matching"]["selected_score"]
-                selection = {
-                    "score": rank["score"], "coverage": rank["coverage"],
-                    "capability_rank": next(index for index, row in enumerate(eligibility, 1) if row["configuration_id"] == rank["configuration_id"]),
-                    "candidate_count": len(eligibility),
-                    "weight_source": task["task_profile"]["weight_source"],
-                    "task_weights": task["task_profile"]["task_weights"],
-                    "effective_weights": common_score["effective_weights"],
-                    "weight_policy": common_score["weight_policy"],
-                    "reason": "Highest capability-ranked enabled mapped candidate not excluded by reported ECPA percentages; unknown allowance is retained. Native allowlist membership and invocation were not verified.",
-                    "score_is_success_probability": False,
-                }
-            selection["selection_fixed_for_task"] = True
-            selection["native_allowlist_checked"] = False
-            selection["invocation_verified"] = False
-            selection["selection_kind"] = "initial_match"
-            selection["selection_origin_task_id"] = task["task_id"]
-            self._remember_attempt(entry)
-            for field in ("dispatch_call_id", "authorized_at", "child_session_id", "started_at", "finished_at", "outcome", "actual_route", "route_mismatch"):
-                entry.pop(field, None)
-            entry.update(status="reserved", reservation_id=reservation_id, route=route, dispatch=dispatch, reserved_at=utc_now(),
-                         admission=decision, worker_request=worker_request,
-                         selection_kind="initial_match", selection_origin_task_id=task["task_id"])
-            entry.setdefault("frozen_route", copy.deepcopy(route))
-            entry.setdefault("selected_at", entry["reserved_at"])
-            if not isinstance(frozen, dict):
-                entry["matching"] = {"ranking": eligibility, "selection": selection, "task_profile": task["task_profile"], "routing_policy": routing_policy}
-            self._remember_attempt(entry)
-            self.ledger.event(state, "route_reserved", task_id=task["task_id"], reservation_id=reservation_id, configuration_id=rank["configuration_id"], route=route, ranking=eligibility)
-            response = {
-                "ok": True, "status": "ready_for_main_agent", "run_id": self.run_id,
-                "profile_id": profile_id, "task_id": task["task_id"], "reservation_id": reservation_id,
-                "configuration_id": rank["configuration_id"], "route": route, "dispatch": dispatch,
-                "native_allowlist_checked": False, "invocation_verified": False,
-                "selection_kind": "initial_match", "selection_origin_task_id": task["task_id"],
-                "depends_on": task["depends_on"], "repairs_task_id": entry.get("repairs_task_id"), "selection": selection,
-                "admission": _admission_summary(decision), "detail_available": True,
-                "main_agent_instructions": [
-                    "Call DSH's native subagent using dispatch. Keep its reservation marker in the prompt.",
-                    "Forward necessary upstream results alongside the worker request; preserve user constraints.",
-                    "Use exactly the returned provider/model and supported effort, or the recorded provider default.",
-                    "Do not dispatch the same reservation twice. If no call was made, release it as not_dispatched.",
-                    "Wait for the worker to finish, then record the available acceptance evidence. Execution completion alone is not acceptance.",
-                    "Reuse profile_id with generalrouter_match to obtain the next ready task; do not resend the plan.",
-                    self._repair_guidance(),
-                ],
+            saved = state.get("profiles", {}).get(reference)
+            if saved is None and reference == state.get("profile_id") and isinstance(state.get("profile"), dict):
+                saved = {"profile": state["profile"], "original_request": state.get("original_request", "")}
+            if not isinstance(saved, dict):
+                raise BridgeError("profile_not_found", "This profile_id has no saved profile in this session; provide the profile again.")
+            return copy.deepcopy(saved["profile"]), saved["original_request"], reference
+
+    def match(self) -> dict:
+        profile, original, profile_id = self._planner_input()
+        router = self._router()
+        handoff = router.route(profile, original_request=original)
+        requested = self.request.get("task_id")
+        jobs = handoff["tasks"]
+        if requested is not None:
+            jobs = [job for job in jobs if job["task_id"] == requested]
+            if not jobs:
+                raise BridgeError("task_not_in_profile", "task_id is not present in the supplied profile.")
+        tasks = []
+        detail = self.request.get("detail") is True
+        for job in jobs:
+            score = job["matching"]["selected_score"]
+            task = {
+                "selection_id": "selection-" + uuid4().hex,
+                "task_id": job["task_id"],
+                "selected_model": job["selected_model"],
+                "selection": {**score, "reason": job["matching"]["selection_reason"],
+                              "candidate_count": len(job["matching"]["ranking"]),
+                              "weight_source": job["task_profile"]["weight_source"],
+                              "task_weights": job["task_profile"]["task_weights"],
+                              "score_is_success_probability": False},
+                "worker_request": job["worker_request"],
+                "depends_on": job["depends_on"],
             }
             if detail:
-                response["details"] = {"ranking": eligibility, "task_profile": task["task_profile"], "routing_policy": routing_policy, "admission": decision}
-            return response
-
-    def started(self) -> dict:
-        reservation_id = self.request.get("reservation_id")
-        with self.ledger.edit() as state:
-            identity = next((identity for identity, item in state["tasks"].items() if item.get("reservation_id") == reservation_id), None)
-            task = state["tasks"].get(identity)
-            if task is None:
-                if any(attempt.get("reservation_id") == reservation_id for item in state["tasks"].values() for attempt in item.get("attempts", [])):
-                    return {"ok": False, "status": "reservation_already_finished", "reservation_id": reservation_id}
-                raise BridgeError("reservation_not_in_run", "The reservation does not belong to this run.")
-            if task["status"] not in ("reserved", "running"):
-                return {"ok": False, "status": "reservation_already_finished"}
-            child_session_id = self.request.get("child_session_id")
-            if not isinstance(child_session_id, str) or not child_session_id:
-                raise BridgeError("worker_child_session_required", "A worker start must identify the native subagent's child_session_id.")
-            if task.get("selection_kind") == "inherited_repair":
-                previous_sessions = {value for other_id, other in state["tasks"].items() if other_id != identity
-                                     for value in [other.get("child_session_id"), *[attempt.get("child_session_id") for attempt in other.get("attempts", [])]]
-                                     if isinstance(value, str) and value}
-                if child_session_id in previous_sessions:
-                    return {"ok": False, "status": "repair_requires_fresh_subagent", "reservation_id": reservation_id,
-                            "message": "This child session belongs to an earlier task. A repair must start a new native subagent."}
-            if task.get("child_session_id") not in (None, child_session_id):
-                return {"ok": False, "status": "reservation_already_claimed_by_another_session", "reservation_id": reservation_id}
-            actual = self.request.get("actual_route") or {}
-            if not isinstance(actual, dict):
-                raise BridgeError("actual_route_required", "actual_route must be an object.")
-            expected = task["route"]
-            # The child identity and request header may arrive separately.
-            # Missing fields in a repeated notification must not erase an
-            # observed route or reset an already recorded mismatch.
-            observed = {key: actual[key] for key in ("provider", "model", "reasoning_effort") if actual.get(key) is not None}
-            merged = {**(task.get("actual_route") or {}), **observed}
-            mismatch = task.get("route_mismatch") is True or any(
-                value != expected.get(key) for key, value in observed.items()
-            )
-            complete = all(merged.get(key) is not None for key in ("provider", "model")) and (
-                expected.get("reasoning_effort") is None or merged.get("reasoning_effort") is not None
-            )
-            mismatch = True if mismatch else False if complete else None
-            if task["status"] == "running" and task.get("actual_route") == merged and task.get("route_mismatch") == mismatch:
-                return {"ok": True, "status": "worker_already_recorded", "route_mismatch": mismatch}
-            task.update(status="running", started_at=task.get("started_at", utc_now()), child_session_id=child_session_id, actual_route=merged, route_mismatch=mismatch)
-            self._remember_attempt(task)
-            self.ledger.event(state, "worker_started", task_id=identity, reservation_id=reservation_id,
-                              child_session_id=task.get("child_session_id"), actual_route=merged, route_mismatch=mismatch)
-        return {"ok": True, "status": "worker_recorded", "route_mismatch": mismatch}
-
-    def authorize_dispatch(self) -> dict:
-        """Check a native tool's unchanged arguments immediately before dispatch."""
-        reservation_id = self.request.get("reservation_id")
-        call_id = self.request.get("call_id", self.host.get("call_id"))
-        if not isinstance(call_id, str) or not call_id:
-            raise BridgeError("dispatch_call_id_required", "Dispatch authorization needs the native tool call_id.")
-        actual = self.request.get("actual_route")
-        if not isinstance(actual, dict):
-            raise BridgeError("actual_route_required", "Dispatch authorization needs an actual_route object.")
-        self._refresh_if_needed()
-        with self.ledger.edit() as state:
-            identity = next((identity for identity, item in state["tasks"].items() if item.get("reservation_id") == reservation_id), None)
-            task = state["tasks"].get(identity)
-            if task is None or task.get("status") != "reserved":
-                return {"ok": False, "accepted": False, "status": "dispatch_denied", "reason": "reservation_not_ready_in_this_run"}
-            blocked_dependencies = [dependency for dependency in task.get("depends_on", [])
-                                    if state["tasks"][dependency].get("status") != "completed"
-                                    or state["tasks"][dependency].get("acceptance_status", "unknown") == "failed"]
-            if blocked_dependencies:
-                self.ledger.event(state, "dispatch_denied", task_id=identity, reservation_id=reservation_id,
-                                  reason="dependency_not_ready_or_acceptance_failed", dependencies=blocked_dependencies)
-                return {"ok": False, "accepted": False, "status": "dispatch_denied",
-                        "reason": "dependency_not_ready_or_acceptance_failed", "dependencies": blocked_dependencies}
-            expected = task["route"]
-            mismatch = any(actual.get(key) != expected.get(key) for key in ("provider", "model", "reasoning_effort"))
-            if mismatch:
-                self.ledger.event(state, "dispatch_denied", task_id=identity, reservation_id=reservation_id, reason="route_mismatch", actual_route=actual)
-                return {"ok": False, "accepted": False, "status": "dispatch_denied", "reason": "route_mismatch"}
-            if task.get("dispatch_call_id") not in (None, call_id):
-                return {"ok": False, "accepted": False, "status": "dispatch_denied", "reason": "reservation_already_claimed_by_another_call"}
-            available, reason = self._frozen_route(task.get("frozen_route", expected))
-            if available is None:
-                self.ledger.event(state, "dispatch_denied", task_id=identity, reservation_id=reservation_id, reason=reason)
-                return {"ok": False, "accepted": False, "status": "dispatch_denied", "reason": reason,
-                        "message": "The frozen route is unavailable. Report it to the main agent; do not select a replacement."}
-            decision = self.quota.admit(expected, reservation_id)
-            if not decision.get("accepted"):
-                self.ledger.event(state, "dispatch_denied", task_id=identity, reservation_id=reservation_id, reason=decision.get("reason"))
-                return {"ok": False, "status": "dispatch_denied", **decision}
-            if not task.get("dispatch_call_id"):
-                task["dispatch_call_id"] = call_id
-                task["authorized_at"] = utc_now()
-                self._remember_attempt(task)
-                self.ledger.event(state, "dispatch_authorized", task_id=identity, reservation_id=reservation_id, call_id=call_id, route=expected)
-        return {"ok": True, "accepted": True, "status": "dispatch_authorized", "reservation_id": reservation_id, "call_id": call_id,
-                "native_allowlist_checked": False, "invocation_verified": False}
-
-    def release(self) -> dict:
-        reservation_id = self.request.get("reservation_id")
-        dispatch_call_id = self.request.get("dispatch_call_id")
-        if dispatch_call_id is not None and (not isinstance(dispatch_call_id, str) or not dispatch_call_id):
-            raise BridgeError("dispatch_call_id_required", "Dispatch settlement needs a nonempty native tool call_id.")
-        outcome = self.request.get("outcome", "completed")
-        if outcome not in ("completed", "failed", "cancelled", "not_dispatched", "cancelled_before_dispatch"):
-            raise BridgeError("unsupported_worker_outcome", "The worker outcome is not supported.")
-        with self.ledger.edit() as state:
-            identity = next((identity for identity, item in state["tasks"].items() if item.get("reservation_id") == reservation_id), None)
-            task = state["tasks"].get(identity)
-            if task is None:
-                previous = next((attempt for item in state["tasks"].values() for attempt in item.get("attempts", [])
-                                 if attempt.get("reservation_id") == reservation_id), None)
-                if previous is not None:
-                    return {"ok": previous.get("outcome") == outcome, "status": "reservation_already_finished", "reservation_id": reservation_id}
-                raise BridgeError("reservation_not_in_run", "The reservation does not belong to this run.")
-            if dispatch_call_id is not None and task.get("dispatch_call_id") != dispatch_call_id:
-                # A rejected duplicate tool call does not own the successful
-                # call's ticket. Its later error/cancel event must not end it.
-                return {"ok": False, "status": "dispatch_call_mismatch", "reservation_id": reservation_id,
-                        "task_id": identity, "execution_status": task.get("status"),
-                        "message": "This dispatch call does not own the ticket; its current worker or reservation was preserved."}
-            if task.get("status") in ("completed", "failed", "pending") and task.get("outcome") == outcome:
-                return {"ok": True, "status": "already_released", "reservation_id": reservation_id,
-                        "task_id": identity, "execution_status": task["status"],
-                        "next_step": self._repair_guidance() if task["status"] == "failed" else "No new worker is started automatically."}
-            if task.get("status") in ("completed", "failed", "pending"):
-                return {"ok": False, "status": "reservation_already_finished", "reservation_id": reservation_id}
-            if outcome in ("not_dispatched", "cancelled_before_dispatch") and (task.get("status") == "running" or task.get("child_session_id")):
-                raise BridgeError("worker_already_started", "A started worker cannot be released as not dispatched; record its terminal execution outcome.")
-            result = self.quota.release(reservation_id, outcome)
-            if result.get("released"):
-                task.update(status="completed" if outcome == "completed" else "pending" if outcome in ("not_dispatched", "cancelled_before_dispatch") else "failed", outcome=outcome, finished_at=utc_now())
-                self._remember_attempt(task)
-                self.ledger.event(state, "worker_finished", task_id=identity, reservation_id=reservation_id,
-                                  child_session_id=task.get("child_session_id"), outcome=outcome,
-                                  dispatch_call_id=task.get("dispatch_call_id"))
-        response = {"ok": result.get("released", False), "status": "released", **result,
-                    "task_id": identity, "execution_status": task.get("status"),
-                    "acceptance_status": task.get("acceptance_status", "unknown")}
-        if task.get("status") == "failed":
-            response["next_step"] = self._repair_guidance()
-        elif task.get("status") == "pending":
-            response["next_step"] = ("Repeat the identical generalrouter_prepare_repair request to reissue an unstarted repair ticket; its model remains fixed."
-                                     if task.get("selection_kind") == "inherited_repair"
-                                     else "Reuse generalrouter_match for this unstarted task; its model remains fixed.")
+                task["details"] = {"ranking": job["matching"]["ranking"], "task_profile": job["task_profile"]}
+            tasks.append(task)
+        warning = None
+        try:
+            with self.ledger.edit() as state:
+                state.setdefault("profiles", {})[profile_id] = {"profile": profile, "original_request": original}
+                for task, job in zip(tasks, jobs):
+                    identity = task["selection_id"]
+                    # A selection record is evidence, never an execution ticket.
+                    state["tasks"][identity] = {
+                        "task_id": job["task_id"], "profile_id": profile_id,
+                        "status": "not_observed", "acceptance_status": "unknown",
+                        "selected_at": utc_now(), "selected_model": task["selected_model"],
+                        "selection_kind": "recommendation", "matching": job["matching"],
+                        "task_profile": job["task_profile"],
+                    }
+                    self.ledger.event(state, "model_selected", selection_id=identity,
+                                      task_id=identity, profile_task_id=job["task_id"],
+                                      selected_model=task["selected_model"], selection=task["selection"])
+        except Exception:
+            warning = "Selection computed, but its local record could not be saved; profile_id reuse and linked result recording are unavailable for this response."
+        response = {
+            "ok": True, "status": "matched" if tasks else "no_tasks",
+            "mode": "selection_only", "run_id": self.run_id, "profile_id": profile_id,
+            "record_saved": warning is None, "execution_owner": "main_agent",
+            "invocation_verified": False, "tasks": tasks,
+            "main_agent_instructions": [
+                "Use your existing tools to invoke the selected model. GeneralRouter does not choose a provider or tool, supply dispatch arguments, or authorize execution.",
+                "Use the corresponding effort when the chosen tool supports it; otherwise use default and disclose that fallback.",
+                "The main agent owns task ordering, worker calls and failures. For repair, start a fresh worker of the same model with the failure evidence; no Router preparation or rematching is needed.",
+                "selection_id is only an optional result-recording link. No marker, ticket, status poll or recording call is required to execute work.",
+            ],
+        }
+        if len(tasks) == 1:
+            # Keep the common single-task response compact.
+            response.pop("tasks")
+            response.update(tasks[0])
+        if detail:
+            response["routing_policy"] = handoff["routing_policy"]
+        if warning:
+            response["recording_warning"] = warning
         return response
+
+    def record_result(self) -> dict:
+        identity = self.request.get("selection_id")
+        execution = self.request.get("execution_status", "unknown")
+        acceptance = self.request.get("acceptance_status", "unknown")
+        if execution not in ("unknown", "running", "completed", "failed", "cancelled", "not_started"):
+            raise BridgeError("invalid_execution_status", "Use a documented execution status or unknown.")
+        if acceptance not in ("unknown", "passed", "failed"):
+            raise BridgeError("invalid_acceptance_status", "Acceptance must be unknown, passed or failed.")
+        summary = self.request.get("summary", "")
+        evidence = self.request.get("evidence", [])
+        if not isinstance(summary, str) or not isinstance(evidence, list) or any(not isinstance(item, str) for item in evidence):
+            raise BridgeError("invalid_result_evidence", "Provide a summary string and an array of evidence references.")
+        with self.ledger.edit() as state:
+            task = state["tasks"].get(identity) if isinstance(identity, str) else None
+            if task is None:
+                raise BridgeError("selection_not_found", "The optional result link has no saved selection. Execution is not blocked by this recording error.")
+            result = {"execution_status": execution, "acceptance_status": acceptance,
+                      "summary": summary, "evidence": evidence, "source": "main_agent_reported", "at": utc_now()}
+            for key in ("tool_name", "provider", "model", "effort", "child_session_id"):
+                value = self.request.get(key)
+                if value is not None:
+                    if not isinstance(value, str) or not value.strip():
+                        raise BridgeError("invalid_result_identity", "Optional result identities must be nonempty strings or omitted.")
+                    result[key] = value
+            task.setdefault("result_history", []).append(result)
+            task.update(status=execution, acceptance_status=acceptance, outcome=execution)
+            # Keep reported identities separate from provider/header observations.
+            task["reported_execution"] = result
+            if result.get("child_session_id"):
+                task["child_session_id"] = result["child_session_id"]
+            self.ledger.event(state, "result_reported", task_id=identity,
+                              child_session_id=result.get("child_session_id"), result=result)
+        return {"ok": True, "status": "result_recorded", "selection_id": identity,
+                "source": "main_agent_reported", "verified_by_router": False}
+
+    def observe_tool(self) -> dict:
+        observed = self.request.get("observation")
+        if not isinstance(observed, dict):
+            raise BridgeError("observation_required", "A read-only tool observation is required.")
+        # Never persist arbitrary tool input, output, prompts or credentials.
+        fields = {key: observed.get(key) for key in (
+            "call_id", "tool_name", "child_session_id", "is_error", "observed_at"
+        )}
+        with self.ledger.edit() as state:
+            self.ledger.event(state, "delegation_tool_result_observed", **fields)
+        return {"ok": True, "status": "tool_observation_recorded"}
+
+    def status(self) -> dict:
+        with self.ledger.edit() as state:
+            progress = {identity: {"task_id": task.get("task_id", identity),
+                                   "execution_status": task.get("status", "unknown"),
+                                   "acceptance_status": task.get("acceptance_status", "unknown")}
+                        for identity, task in state.get("tasks", {}).items()}
+        return {"ok": True, "status": "selection_only", "run_id": self.run_id,
+                "records": progress, "execution_owner": "main_agent",
+                "quota": self._quota_snapshot(refresh=self.request.get("refresh") is True),
+                "diagnostics": self._diagnostics_reference()}
+
+    def refresh_quota(self) -> dict:
+        snapshot = self._quota_snapshot(refresh=True)
+        return {"ok": True, "status": "quota_reference", "quota": snapshot}
+
+    def report(self) -> dict:
+        with self.ledger.edit() as state:
+            report = RunLedger.report(state, detail=self.request.get("detail") is True)
+        return {"ok": True, "status": "report", "mode": "selection_only", "run_id": self.run_id,
+                "report": report, "diagnostics": self._diagnostics_reference(),
+                "coverage": "Passive DSH session usage only. External plugin workers may not expose request/token events here. Missing worker usage or task links is unknown, never zero; totals are observed subtotals, not guaranteed whole-workflow totals."}
 
     def record_usage(self) -> dict:
         record = self.request.get("record")
@@ -1002,55 +403,6 @@ class HostBridge:
         with self.ledger.edit() as state:
             entry = RunLedger.record_usage(state, record, self._rate(record))
         return {"ok": True, "status": "usage_recorded", "record_id": entry["record_id"], "api_equivalent": entry["api_equivalent"]}
-
-    def status(self) -> dict:
-        snapshot = self.quota.snapshot(refresh=self.request.get("refresh") is True)
-        mapped = [identity for identity, route in self.routes.items() if isinstance(route, dict) and route.get("enabled") is True]
-        detail = self.request.get("detail") is True
-        with self.ledger.edit() as state:
-            statuses = {identity: task.get("status", "unknown") for identity, task in state.get("tasks", {}).items()}
-            counts = {}
-            for status in statuses.values():
-                counts[status] = counts.get(status, 0) + 1
-            result = {
-                "ok": True, "status": "configured" if mapped else "setup_required", "run_id": self.run_id,
-                "profile_id": state.get("profile_id"),
-                "progress": {"total_tasks": len(statuses), "counts": counts, "task_statuses": statuses,
-                             "acceptance_statuses": self._acceptance_statuses(state),
-                             "dependency_failures": self._dependency_failures(state),
-                             "repair_links": {identity: task["repairs_task_id"] for identity, task in state.get("tasks", {}).items() if task.get("repairs_task_id")}},
-                "active_tickets": [
-                    {key: ticket.get(key) for key in ("reservation_id", "task_id", "route", "created_at")}
-                    for ticket in snapshot.get("reservations", []) if ticket.get("run_id") == self.run_id
-                ],
-                "quota": _quota_summary(snapshot, self.run_id),
-                "configuration": {"status": "configured" if mapped else "setup_required", "enabled_route_count": len(mapped), "loaded_file_count": len(self.loaded_config_files)},
-                "diagnostics": self._diagnostics_reference(),
-                "detail_available": True,
-            }
-            if detail:
-                result.update(
-                    enabled_route_ids=mapped,
-                    quota=snapshot,
-                    report=RunLedger.report(state, detail=True),
-                    configuration={**result["configuration"], "project_root": str(self.project_root), "state_dir": str(self.state_dir), "loaded_files": self.loaded_config_files},
-                )
-        return result
-
-    def refresh_quota(self) -> dict:
-        # The host scheduler shares this cache with admissions; it creates no run.
-        if not any(isinstance(route, dict) and route.get("enabled") is True for route in self.routes.values()):
-            return {"ok": False, "status": "setup_required", "message": "No enabled user-mapped models; background collection was skipped."}
-        snapshot = self.quota.snapshot(refresh=True)
-        accounts = snapshot.get("accounts", {})
-        values = accounts.values() if isinstance(accounts, dict) else accounts
-        complete = bool(accounts) and any(account.get("status") == "success" for account in values)
-        return {"ok": complete, "status": "quota_refreshed" if complete else "quota_refresh_incomplete", "quota": snapshot}
-
-    def report(self) -> dict:
-        with self.ledger.edit() as state:
-            report = RunLedger.report(state, detail=self.request.get("detail") is True)
-        return {"ok": True, "status": "report", "run_id": self.run_id, "report": report, "diagnostics": self._diagnostics_reference()}
 
 
 def _error_response(error: Exception, action: str, stage: str) -> dict:
@@ -1159,7 +511,7 @@ def main() -> int:
         if not isinstance(request, dict):
             raise BridgeError("request_object_required", "The host request must be a JSON object.")
         requested_action = request.get("action", "match")
-        if requested_action not in ("match", "append_task", "prepare_repair", "record_acceptance", "status", "refresh_quota", "authorize_dispatch", "started", "release", "record_usage", "report", "model_metadata_routes"):
+        if requested_action not in ("match", "record_result", "observe_tool", "status", "refresh_quota", "record_usage", "report"):
             raise BridgeError("unsupported_action", "The requested host action is not supported.")
         action = requested_action
         stage = "load_host_configuration"

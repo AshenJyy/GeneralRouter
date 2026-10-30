@@ -54,3 +54,7 @@ Cleanup depends on host observations: a final tool result settles only that call
 ## Evidence limit
 
 The source comparison establishes that these interface files did not change across the pinned releases. It does not establish successful installation, model dispatch, quota retrieval, or usage recording in a running rc.5 application. No tests, compilation/import checks, simulated routing, or model calls were performed for this compatibility update.
+
+## v0.1.13 selection-only change
+
+The version range is unchanged. This release removes Router pre-execute/guard handlers and dispatch management, retaining tool registration, bundled skill delivery and passive session/tool-result observations. No new runtime compatibility test was performed. External plugin request/usage event coverage is unknown until observed; model invocation belongs to the main agent.

@@ -4,15 +4,15 @@ import { dirname, resolve } from 'node:path'
 
 const digest = value => createHash('sha256').update(value).digest('hex')
 const identifier = value => typeof value === 'string' && /^[A-Za-z0-9:._-]{1,240}$/.test(value) ? value : undefined
-const recordingActions = new Set(['record_usage', 'started', 'release', 'record_acceptance'])
+const recordingActions = new Set(['record_usage', 'record_result', 'observe_tool'])
 
 export const isRecordingAction = action => recordingActions.has(action)
 
 function operationOf(envelope) {
   const record = envelope.record || {}
   const identity = envelope.action === 'record_usage' ? record.record_id
-    : envelope.action === 'record_acceptance' ? JSON.stringify([envelope.task_id, envelope.outcome, envelope.summary, envelope.evidence])
-    : `${envelope.reservation_id || ''}:${envelope.action === 'release' ? envelope.outcome || '' : envelope.child_session_id || ''}`
+    : envelope.action === 'record_result' ? JSON.stringify([envelope.selection_id, envelope.execution_status, envelope.acceptance_status, envelope.summary, envelope.evidence])
+    : envelope.observation?.call_id
   return {
     id: digest(`${envelope.action}:${identity}`),
     action: envelope.action,

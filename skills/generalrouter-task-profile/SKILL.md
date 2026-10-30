@@ -1,6 +1,6 @@
 ---
 name: generalrouter-task-profile
-description: Prepare GeneralRouter executable subtasks, estimate four-dimensional capability weights, and hand the plan to the DSH router for native subagent execution.
+description: Prepare GeneralRouter executable subtasks, estimate four-dimensional capability weights, and obtain model recommendations for the main agent to execute with its existing tools.
 ---
 
 # GeneralRouter Task Profile
@@ -51,34 +51,17 @@ The root has exactly `schema_version: "task-profile.v3"` and `tasks: [...]`. Eac
 
 Put necessary parent context and constraints in `context`; put concrete output and acceptance conditions in `deliverable`. The four allowed sources are `planner_estimated`, `uncalibrated`, `aa_calibrated_anchor`, and `estimated_from_aa_anchor`. Return `tasks: []` if no executable request can be identified. A standalone planner returns only this JSON object.
 
-## DSH execution
+## Model selection in DSH
 
-When `generalrouter_match` is available:
+Submit `profile_json` and `original_request` to `generalrouter_match`. The response supplies model identity, preferred effort, score and reason. `detail: true` includes the candidate ranking. An optional `task_id` selects one task; without it, all tasks receive recommendations. A saved `profile_id` can reuse a plan. New work or a revised plan can be submitted directly; there is no append/register/repair-prepare sequence.
 
-1. Submit the complete plan once as the JSON string `profile_json`, together with `original_request`. Retain the returned `profile_id` for this run. Later matches send that ID, optionally `task_id`, without repeating the plan or original request. The original complete-profile form remains supported; do not silently replace a registered plan.
-2. For `ready_for_main_agent`, invoke the native `subagent` using the returned `dispatch` exactly, including its reservation marker. Supply necessary upstream results without weakening any original task constraint. Use returned effort; omitted effort means the selected provider/model default. Router does not filter candidates by the native session allowlist or claim the invocation has been verified. If DSH rejects the call, report the actual failure to the main agent rather than substituting another model or backend.
-3. A task's selected provider/model/effort is fixed, including its later repairs. Dispatch each reservation once. Release an undispatched ticket with `not_dispatched`; a before-start retry retains the selected configuration. A rejected duplicate invocation is not evidence that the original worker failed: report that rejection without releasing another live worker's ticket. Never reopen a completed or failed execution with `retry_failed`, replace the registered plan, or change its route. Setup or allowance errors require their specific resolution, not a guessed mapping.
-4. Ask workers for delivered paths, checks actually performed and their results, saved evidence paths, checks not performed, and blockers. If work fails or remains incomplete, ask for a concise handoff of attempted approaches, failures and useful next steps. Read that evidence and make targeted checks when something is missing or contradictory; do not automatically repeat the full suite or add a reviewer. After execution ends, record acceptance through `generalrouter_record_acceptance` with `task_id`, `outcome` (`unknown`, `passed`, or `failed`), `summary`, and an array of evidence references. The tool records the parent's assessment; it does not verify files or tests. Worker completion alone means acceptance is unknown.
-5. Report failure to the main agent, which decides whether to stop or arrange a same-model repair under the user's scope and stopping conditions. Use the repair handoff below, not another model match. For the next independent ready task, request a match by `profile_id`. A known failed dependency blocks downstream dispatch; unknown acceptance does not mean passed.
-6. Use `generalrouter_report` at completion for observed role/task totals and linked repair-group costs. `match`, `status`, and `report` default to concise responses; request `detail: true` only for a concrete diagnostic or detailed-record need. Preserve unknowns and label API-equivalent cost separately from a subscription bill.
+The main agent resolves the selected model through its existing tools: native `subagent`, `subagent_codex`, `subagent_antigravity`, or another appropriate installed entry. GeneralRouter does not bind models to ECPA, return tool-specific dispatch arguments or authorize calls. Use the corresponding effort when the chosen tool supports it; otherwise use default and disclose the fallback. An AA name or slug is an identity reference, not necessarily a callable model ID.
 
-### Additional independent tasks
+Preserve the user's task constraints and provide required upstream results. The main agent owns task order, worker calls, failures and acceptance. If repair is needed, start a fresh subagent of the same model with the original requirements, existing artifacts and a short memento of attempts, failures and evidence. No Router rematch or preparation call is needed for that repair.
 
-Use `generalrouter_append_task(profile_id, task_json)` for genuinely additional independent work. `task_json` is one complete ordinary task object with a new `task_id`. The original profile and its ID remain unchanged. Then call `generalrouter_match(profile_id, task_id)` for its first model selection. Do not disguise a repair as unrelated work to obtain a different model.
+Recording is optional. `generalrouter_record_result(selection_id, execution_status, acceptance_status, summary, evidence, ...)` saves a main-agent-reported result; an actual `child_session_id` may associate already-observed usage. `selection_id` is a record link, not a ticket or required prompt marker. A worker completing does not by itself establish acceptance. Missing results or plugin token events remain unknown. `generalrouter_report` returns observed usage subtotals, which may omit external plugin workers; it is not a guaranteed full bill. Status/report/recording calls are never execution prerequisites.
 
-### Same-model repair handoff
-
-When the main agent decides to repair an ended task, call `generalrouter_prepare_repair(profile_id, repairs_task_id, task_id, objective, memento, input_artifacts?)`. Use the ended predecessor's ID as `repairs_task_id` and a fresh repair `task_id`. `objective` states the remaining repair and acceptance target. The nonempty `memento` briefly records approaches tried, observed failures or blockers, relevant evidence and next steps; distinguish known facts from hypotheses. If the worker did not leave notes, the main agent summarizes the evidence it actually has and labels gaps. Optional `input_artifacts` adds relevant paths.
-
-The tool inherits the predecessor's frozen provider/model/effort and original constraints, records a linked repair and prepares a new dispatch ticket. It does not estimate a new vector, score candidates, or choose another model. For `ready_for_main_agent`, the main agent starts a **new native subagent** with the returned dispatch, including the memento and reservation marker. An undispatched repair ticket is retried through this same tool with the same input; do not reuse a ticket that has already been dispatched. A blocked route returns to the main agent; do not substitute another model or effort.
-
-Mapping, quota, dependency and ticket checks still apply. A missing native model catalog or an absent model entry does not block selection or repair preparation. First selection uses optional effort metadata when available and otherwise uses the provider default; repairs keep their already frozen setting. DSH retains its own invocation rules.
-
-Do not call `generalrouter_match` for a repair or use the old `append_task(..., repairs_task_id)` path. New workspaces or sessions must not be used to evade the fixed choice. The main agent controls whether another attempt is warranted; there is no autonomous repair loop. New instances use the existing workspace artifacts and the brief handoff rather than requiring the predecessor's full conversation.
-
-A successful repair does not change the original task's acceptance result. Keep each task's outcome and cost separate, and report the related tasks' combined completion cost. A repair receives extra failure evidence, so its result is not a controlled comparison against the original execution.
-
-Let the host perform its normal profile checks. Routine execution does not require reading plugin source, ledgers, full reports, or validation scripts; do not run `normalize_profile.py` as an extra main-agent step. Do not repeat a completed match just to demonstrate idempotency. Keep complete task constraints in the first profile and dispatch even when control responses are concise.
+Use the returned weights and reasons without routinely reading source, ledgers or full reference files. The router performs profile validation; no extra planner-side validator step is needed.
 
 ## References when needed
 

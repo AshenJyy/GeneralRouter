@@ -1,4 +1,14 @@
-# Design decisions in v0.1.12
+# Design decisions
+
+## v0.1.13: selection only
+
+The author clarified that the Router should only choose a model. Earlier safeguards had accumulated into a second execution controller: native-only tool guards, tickets, frozen provider routes, plan locks and repair preparation. These could stop the main agent from using plugin tools it already knew how to call.
+
+The new boundary is task weights → capability ranking → model/effort recommendation. The main agent owns tool choice, execution, task order and same-model repair with a fresh worker. No dispatch/authorization/repair-preparation tools remain. Optional outcome and usage records do not grant or deny execution. Quota is reference-only. Profile validation still checks the numeric/schema contract needed for meaningful scoring.
+
+The scoring formula and AA data are unchanged. This is an architecture correction, not an experimentally demonstrated quality or cost improvement. It has not been runtime-tested. The following earlier decisions are retained as history and do not describe current enforcement.
+
+## Historical decisions through v0.1.12
 
 These are implementation choices and their boundaries, rather than claims of measured optimality. The [project overview](PROJECT-OVERVIEW.md) describes the prototype and the [case study](experiments/translation-ab-v2/README.md) reports v0.1.7 behavior. The same-model repair handoff and v0.1.9 removal of Router-side native membership filtering are implemented but have not been runtime-verified.
 

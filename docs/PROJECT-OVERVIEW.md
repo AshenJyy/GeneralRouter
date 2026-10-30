@@ -1,85 +1,15 @@
 # GeneralRouter
 
-**Task-level model routing for DeepSeek Harness · v0.1.12 experimental**
+**Task-level model selection for DeepSeek Harness · v0.1.13 experimental**
 
-GeneralRouter is a plugin that matches independent development subtasks to model configurations once and records what happened after selection. Failures return to the main agent; repairs use fresh native subagents with the same fixed configuration. It separates capability scoring, execution constraints, acceptance outcomes and resource use, so a completed model call does not automatically count as a successful task.
+GeneralRouter turns a planner's four-dimensional task weights into a model/effort recommendation with an inspectable ranking. The main agent resolves and invokes its existing native, Codex or Antigravity tool. The Router has no execution guard, ticket, provider lock or repair-preparation workflow.
 
-[中文项目说明](../README.md) · [Core algorithm](CORE-ALGORITHM.md) · [Design decisions](DESIGN-DECISIONS.md) · [Case study](experiments/translation-ab-v2/README.md)
+The author proposed the move from nine dimensions to four: agentic, coding, knowledge/document and scientific reasoning. Artificial Analysis supplies the model evaluation data and the category-weight reference; GeneralRouter implements the data transformation, task-profile process and matching rule. Ordinary task weights are planner estimates using authored semantic anchors, not AA measurements or success probabilities. [Algorithm](CORE-ALGORITHM.md).
 
-## The problem
+The current scorer mixes task weights with a 0.4 composite prior and ranks capability vectors by weighted dot product with explicit missing-data handling. Its 12 configurations are model/effort reference profiles, not proof of 12 callable routes. Cost and latency are recorded when observable but not optimized by the scorer. Quota percentages are reference information rather than execution permission.
 
-Strong subscription models have limited allowances. Other models may offer more usage but may not meet every task's requirements. The goal is to preserve output quality while reducing development time and keeping subscription use within an available allowance. These goals have not yet been demonstrated by the prototype.
+The goal is to preserve delivery quality while reducing completion time and pressure on constrained model usage. The saved v0.1.7 translation-extension case did not achieve that goal: B used fewer GPT-route tokens but more total reported tokens, took longer and left navigation untranslated. Eleven candidates were excluded by the then-active native allowlist filter. [Case study](experiments/translation-ab-v2/README.md).
 
-## What the prototype does
+The author subsequently clarified that Router should only select. v0.1.13 removes the accumulated execution-control layer. The main agent still handles a repair using a fresh worker of the same model and a concise memento, without another model match. Optional result recording is separate from execution. Passive usage observation may omit external plugin workers; missing usage remains unknown and report totals are observed subtotals.
 
-DeepSeek Harness (DSH) supplies the main agent, sessions, tools and worker execution. GeneralRouter adds the task profile, candidate matching, reported-quota admission and execution records.
-
-```mermaid
-flowchart LR
-    P[DSH planner + task-profile skill] --> T[Subtask requirements and weights]
-    T --> R[Capability scoring and admission]
-    C[Model capability snapshot] --> R
-    Q[Enabled mappings and reported quotas] --> R
-    R --> D[Fixed model and effort for this task]
-    D --> W[DSH native subagent]
-    W --> E[Execution and acceptance recorded separately]
-    W --> U[Actual route, tokens and equivalent cost]
-    E --> F[Failure reported to main agent]
-    F --> M[Main agent decides repair and writes memento]
-    M --> H[Inherited route: admission and new ticket]
-    H --> N[New native subagent, same model and effort]
-    N --> E
-```
-
-- **Four capability dimensions:** agentic work, coding, knowledge/document work and scientific reasoning. The planner estimates their relative importance using documented semantic examples. The weights are not measured task difficulty or success probabilities.
-- **Twelve model/effort configurations across four model families:** capability records come from retained Artificial Analysis data. A score is distinct from permission to execute that configuration.
-- **A stable task history:** a task's selected provider, model and effort stay fixed. If the main agent arranges a repair, a new linked task inherits that configuration without reranking or generating new weights. The original outcome and each repair's resource use remain separate. Mapping/quota blocks and actual host rejections are reported without switching models.
-- **Host-owned native permissions:** v0.1.9 does not prefilter candidates by DSH native-catalog or allowlist membership. Enabled valid mappings, quota admission, ticket checks and route identity remain. DSH can still reject the actual invocation; no cross-plugin dispatch is added.
-- **Observable execution:** selected and actual routes, reported token usage, acceptance records and API-equivalent cost are kept separately. Missing measurements stay unknown.
-
-Cost and time are currently recorded for comparison; they are not optimization terms in the selection policy. Reported quota snapshots cannot guarantee that an account will never run out.
-
-The project author proposed the nine-to-four-dimensional redesign, the v0.1.8 first-selection-only repair architecture and removal of Router's native membership prefilter in v0.1.9. A short memento carries prior attempts, failures, evidence and next steps into the new worker alongside existing files and constraints. The [repair handoff](REPAIR-HANDOFF.md) and latest admission change are implemented but have not been runtime-verified; the case below remains a v0.1.7 observation.
-
-## Core implementation
-
-The project's core implementation consists of three connected modules:
-
-1. **Model-vector construction:** normalize recorded benchmark components, aggregate them into four capability groups, bind each vector to an exact model/effort configuration, and retain missing-data coverage and source provenance.
-2. **Task-weight processing:** define the planner's semantic reference rules and profile contract, keep estimated and fitted sources distinct, and normalize the task weights used for matching.
-3. **Matching and admission:** combine task emphasis with a general prior, calculate scores and missing-evidence discounts, explain each dimension's contribution, and select an enabled valid mapping that passes reported-quota constraints. The host retains actual invocation permissions.
-
-The [algorithm walkthrough](CORE-ALGORITHM.md) gives the formulas and source locations. These modules apply established numerical methods to the project's routing problem; they do not train a new foundation model or claim a new mathematical method.
-
-## One real development case
-
-Two independent sessions repaired an existing browser translation extension on the same arXiv paper. The requirements covered translated navigation, Chinese typography, table layout and preservation of links and formulas. Each session used one development worker. The user operated the delivered extensions afterward; no automated browser test was run for this case.
-
-| Observation | Default DSH session (A) | GeneralRouter session (B) |
-| --- | --- | --- |
-| Actual development worker | GPT-6.1 Sol / max, inherited | Gemini 3.8 Flash / high, explicitly routed |
-| Complete development turn | 618.289 seconds | 653.131 seconds |
-| Reported tokens, all models | 3,873,131 | 4,603,304 |
-| Reported GPT-routed tokens | 3,873,131 | 1,710,628 |
-| Navigation translation | Complete in supplied screenshots | Incomplete after translation finished |
-| Link navigation and restore/retranslate | User confirmed normal operation | User confirmed normal operation |
-
-**B used 55.8% fewer GPT-routed tokens, but missed a quality requirement, used 18.9% more total reported tokens and took 34.842 seconds longer.** The measured development time excludes subsequent manual acceptance. This is not evidence of quality-preserving savings, and the GPT token change is not a measured subscription-quota change.
-
-The route records revealed an important scope limit in v0.1.7. All 12 configurations received scores, but only Flash passed that version's native-subagent allowlist prefilter. DSH also exposed Codex and Antigravity plugin tools; B did not call either. The case therefore does not demonstrate selection across all three execution paths. Flash was not selected because a cost optimizer found it economical. v0.1.9 removes the Router-side filter without rewriting this result or proving the other configurations executable.
-
-The [case data](experiments/translation-ab-v2/results.json) include the candidate ranking and exclusions. Known-token API-equivalent subtotals use a dated price snapshot, omit unknown fee components and are not subscription bills. A was also not certified defect-free: screenshot coverage was limited, and narrow-window and cross-browser behavior remain unverified. This is one paired observation, not a general model comparison.
-
-## What comes next
-
-v0.1.12 retains the original scoring formula, same-model repair, absence of Router-side native membership filtering and v0.1.10 lifecycle corrections. It admits the bounded 0.2.1 release family from rc.2 onward; the latest source comparison remains rc.5; see [host compatibility](DSH-COMPATIBILITY.md). It adds no new experiment and does not replace the v0.1.7 case. Further work may connect execution paths and establish which model/effort settings each exposes. More independent real tasks would be needed before changing weights or adding cost-aware selection.
-
-## Inspect the work
-
-- [Planner skill and task contract](../skills/generalrouter-task-profile/SKILL.md)
-- [Capability records](../data/model-vectors.v0.1.json) and [candidate configurations](../data/candidate-configurations.v0.1.json)
-- [DSH adapter](../dsh-generalrouter) and [matching/accounting modules](../generalrouter)
-- [Case evidence manifest](experiments/translation-ab-v2/evidence-manifest.json), [usage table](experiments/translation-ab-v2/usage.csv) and [reported settlements](experiments/translation-ab-v2/usage-records.json)
-- [Desktop installation](../dsh-generalrouter/README.zh-CN.md): the host range is DSH Desktop `>=0.2.1-rc.2 <0.2.2-0`; source comparison currently reaches rc.5; installation uses its Add plugin flow and the packaged tarball. Python 3 is required locally.
-
-Artificial Analysis supplies the benchmark measurements; DSH supplies orchestration; EasyCLIProxyAPI supplies gateway access and reported quota information. GeneralRouter implements the capability-vector construction, task-profile processing, matching and execution-recording layer that connects them. Historical task-reference fits cover only four related business examples and do not calibrate general coding tasks; ordinary task weights remain explicit planner estimates.
+No runtime test or new experiment was run for this update. The DSH range remains `>=0.2.1-rc.2 <0.2.2-0`, with source comparison through rc.5. Existing user model/plugin settings and historical experiment records were not changed.

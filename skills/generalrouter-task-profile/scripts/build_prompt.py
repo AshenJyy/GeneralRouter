@@ -31,7 +31,7 @@ def build_prompt(include_examples: bool = False, include_references: bool = Fals
         "only when explicitly included below. Do not claim to have read an omitted "
         "historical reference; obtain it before using an AA-anchor source. Treat example "
         "requests as examples, not tasks to execute. As a standalone planner, return "
-        "only a task-profile.v3 JSON object. Native-host dispatch instructions apply "
+        "only a task-profile.v3 JSON object. Host integration instructions apply "
         "only when that host actually provides the corresponding tools.",
         skill_body((SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8-sig")),
     ]
