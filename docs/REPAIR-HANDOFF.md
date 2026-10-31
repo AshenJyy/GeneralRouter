@@ -6,4 +6,4 @@ The new worker receives the original requirements, existing artifacts and a shor
 
 The user proposed the same-model/fresh-worker architecture. The memento concept was referenced from [Anthropic's self-replicating AI article](https://www.anthropic.com/research/self-replicating-ai), Appendix A. This project uses a compact handoff note, not autonomous replication, periodic restarts or unbounded repair loops.
 
-Versions 0.1.8–0.1.12 implemented this through a preparation tool, frozen routes and tickets. v0.1.13 removes that Router enforcement layer; the main-agent workflow retains the same-model repair preference. Historical records remain unchanged. The new implementation has not been runtime-tested.
+Versions 0.1.8–0.1.12 implemented this through a preparation tool, frozen routes and tickets. v0.1.13 removes that Router enforcement layer; the main-agent workflow retains the same-model repair preference. Historical records remain unchanged. The [October 30 demonstration](demos/2026-10-30.md) exercised an initial recommendation and plugin worker delivery, but did not exercise this repair workflow.

@@ -12,4 +12,6 @@ The goal is to preserve delivery quality while reducing completion time and pres
 
 The author subsequently clarified that Router should only select. v0.1.13 removes the accumulated execution-control layer. The main agent still handles a repair using a fresh worker of the same model and a concise memento, without another model match. Optional result recording is separate from execution. Passive usage observation may omit external plugin workers; missing usage remains unknown and report totals are observed subtotals.
 
-No runtime test or new experiment was run for this update. The DSH range remains `>=0.2.1-rc.2 <0.2.2-0`, with source comparison through rc.5. Existing user model/plugin settings and historical experiment records were not changed.
+A [2026-10-30 demonstration](demos/2026-10-30.md) exercised one v0.1.13 workflow: a coding-task profile, twelve scored configurations, an Argon/high recommendation, one Antigravity worker call and a delivered HTML page. The user checked its fixed example and obtained 2 valid rows, 2 invalid rows and average score 15. Actual worker model/effort and complete usage remained unconfirmed. The same-model repair branch was not exercised, and no new comparative performance experiment was run.
+
+The declared DSH range remains `>=0.2.1-rc.2 <0.2.2-0`, with source comparison through rc.5. That range is not a guarantee that future host interfaces have been verified. The historical experiment records remain unchanged.

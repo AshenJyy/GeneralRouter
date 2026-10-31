@@ -1,6 +1,10 @@
 # GeneralRouter
 
+[English](README.en.md) · 简体中文
+
 GeneralRouter 是 DeepSeek Harness（DSH）的任务级模型选择插件，当前版本 **v0.1.13 experimental**。主 agent 提供任务向量，Router 返回模型、首选 effort 和评分理由；主 agent 使用已有工具执行。
+
+[观看 43 秒实录](docs/demos/generalrouter-demo.mp4) · [演示记录](docs/demos/2026-10-30.md) · [核心算法](docs/CORE-ALGORITHM.md) · [架构决策](docs/DESIGN-DECISIONS.md) · [历史对照案例](docs/experiments/translation-ab-v2/README.md)
 
 ```mermaid
 flowchart LR
@@ -24,7 +28,7 @@ flowchart LR
 
 - 模型分项成绩来自 **Artificial Analysis（AA）**，类别与综合比例参考其资料；不是本项目自行跑榜的结果。
 - 从九维转为四维由项目作者提出，是核心架构调整。四维是 agentic、coding、knowledge/document、scientific reasoning；这不是 PCA 投影，也没有九维/四维效果对照。
-- 候选池有 12 组模型与 effort 配置。模型向量见 [数据文件](data/model-vectors.v0.1.json)，来源见 [AA 分项快照](data/aa-components.v0.1.json)。
+- 候选池覆盖 4 个模型家族、12 组模型与 effort 配置；这不等于 12 条调用路径均已验证。模型向量见 [数据文件](data/model-vectors.v0.1.json)，来源见 [AA 分项快照](data/aa-components.v0.1.json) 与 [第三方署名](THIRD_PARTY_NOTICES.md)。
 - 普通任务权重由主 agent 依据四维定义及 12 个人工语义锚点估计；非负、总和为 1。任务权重表达能力侧重，不代表难度或成功率。
 - 匹配保留 0.4 综合先验，按加权点积及缺项覆盖规则排名；成本、时间和难度尚未加入评分。
 
@@ -40,9 +44,13 @@ flowchart LR
 
 ## 已有证据
 
+**当前版本演示（2026-10-30，v0.1.13）：** 一个 CSV 汇总网页任务获得四维权重 `(0, 1, 0, 0)`，Router 对 12 组配置评分并推荐 Argon/high。主 agent 通过现有 Antigravity 插件调用一个 worker，交付网页；用户实际点击 Load example 和 Calculate，确认结果为有效行 2、无效行 2、平均分 15。插件采用自身默认配置，实际 worker 型号与 effort 未确认，用量也不完整。这次验证了一个任务的推荐到交付流程，未验证修复分支，也没有产生新的性能对照结论。见 [演示与边界](docs/demos/2026-10-30.md)。
+
+**历史对照（v0.1.7）：**
+
 v0.1.7 做过一次浏览器翻译扩展的配对开发案例。B 组减少约 55.8% 的 GPT 路由 token，但总 token 增加、开发回合更长，目录翻译也未达标，因此没有达成保质和缩短工期目标。该次 12 组均被评分，11 组被旧原生允许列表预筛选排除，实际只执行了 Flash；不能描述为跨三个入口选出了最优模型。
 
-见 [实验报告](docs/experiments/translation-ab-v2/README.md) 和 [原始汇总](docs/experiments/translation-ab-v2/results.json)。历史结果不因新版架构改变而改写。v0.1.13 没有运行测试、review、编译/导入校验、模拟或模型试调用；跨插件实际调用及记录覆盖尚未验证。
+见 [实验报告](docs/experiments/translation-ab-v2/README.md) 和 [原始汇总](docs/experiments/translation-ab-v2/results.json)。历史结果不因新版架构改变而改写；一次当前版本演示也不能证明普遍质量、速度或成本收益。
 
 ## 安装
 
