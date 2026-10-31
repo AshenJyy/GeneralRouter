@@ -1,3 +1,5 @@
+<p align="center"><strong>To prevent model providers from optimizing specifically for benchmark test sets, those sets must remain private. For public test sets, must we therefore consult multiple benchmarks and compare models by their relative rankings? All current routers lack a comprehensive, fair, private evaluation set.</strong></p>
+
 # GeneralRouter
 
 [简体中文](README.md) · English
