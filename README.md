@@ -1,3 +1,5 @@
+<p align="center"><strong>防止模型厂商针对测评集特化，测评集就要闭源。针对开源测评集，则必须参考多个然后计算模型排名的相对关系？当前所有router都缺一个完整公正闭源的测评集。</strong></p>
+
 # GeneralRouter
 
 [English](README.en.md) · 简体中文
